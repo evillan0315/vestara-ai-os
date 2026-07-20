@@ -49,6 +49,15 @@ const DEFAULT_CONFIG: OpenCodeConfig = {
   autoStart: true,
 };
 
+function getApiKeyEnv(): Record<string, string> {
+  const env: Record<string, string> = {};
+  if (process.env.OPENCODE_API_KEY) env.OPENCODE_API_KEY = process.env.OPENCODE_API_KEY;
+  if (process.env.OPENCODE_BASE_URL) env.OPENCODE_BASE_URL = process.env.OPENCODE_BASE_URL;
+  if (process.env.NVIDIA_API_KEY) env.NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
+  if (process.env.VERCEL_AI_GATEWAY_API_KEY) env.VERCEL_AI_GATEWAY_API_KEY = process.env.VERCEL_AI_GATEWAY_API_KEY;
+  return env;
+}
+
 let serverProcess: ChildProcess | null = null;
 let config: OpenCodeConfig = DEFAULT_CONFIG;
 
@@ -163,6 +172,7 @@ export async function startServer(): Promise<void> {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: {
       ...process.env,
+      ...getApiKeyEnv(),
       OPENCODE_SERVER_PORT: String(config.port),
     },
   });
@@ -286,6 +296,7 @@ function sendPromptViaCLI(
         timeout: 120000,
         env: {
           ...process.env,
+          ...getApiKeyEnv(),
           OPENCODE_MODEL: opts.model || '',
         },
       },
