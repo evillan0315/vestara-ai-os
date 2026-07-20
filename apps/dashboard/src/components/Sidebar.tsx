@@ -8,6 +8,8 @@ const navItems = [
   { to: '/models', label: 'Models', icon: '🧠' },
   { to: '/memory', label: 'Memory', icon: '💾' },
   { to: '/knowledge', label: 'Knowledge', icon: '📚' },
+  { to: '/terminal', label: 'Terminal', icon: '💻' },
+  { to: '/monitor', label: 'System', icon: '📈' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 

@@ -8,6 +8,8 @@ import { OpenCodePage } from './pages/OpenCode';
 import { Settings } from './pages/Settings';
 import Memory from './pages/Memory';
 import Knowledge from './pages/Knowledge';
+import Terminal from './pages/Terminal';
+import SystemMonitor from './pages/SystemMonitor';
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
         <Route path="/models" element={<Models />} />
         <Route path="/memory" element={<Memory />} />
         <Route path="/knowledge" element={<Knowledge />} />
+        <Route path="/terminal" element={<Terminal />} />
+        <Route path="/monitor" element={<SystemMonitor />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
