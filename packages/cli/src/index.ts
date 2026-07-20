@@ -10,6 +10,7 @@ import { ChatCommand } from './commands/chat.js';
 import { ModelsCommand } from './commands/models.js';
 import { ConfigCommand } from './commands/config.js';
 import { InitCommand } from './commands/init.js';
+import { UpgradeCommand } from './commands/upgrade.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -51,6 +52,13 @@ program
   .option('-s, --service <service>', 'Stop specific service')
   .action(async (options) => {
     await new StopCommand().execute(options);
+  });
+
+program
+  .command('upgrade')
+  .description('Upgrade Vestara to latest version')
+  .action(async () => {
+    await new UpgradeCommand().execute();
   });
 
 program
