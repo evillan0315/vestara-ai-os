@@ -45,6 +45,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'Admin',
     items: [
+      { to: '/scripts', label: 'Scripts', icon: '📜' },
       { to: '/users', label: 'Users', icon: '👥' },
       { to: '/settings', label: 'Settings', icon: '⚙️' },
     ],

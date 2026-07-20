@@ -19,6 +19,7 @@ import { registerWebSocketHandler } from './websocket.js';
 import { registerOpenCodeRoutes } from './routes/opencode.js';
 import { registerChatRoutes } from './routes/chat.js';
 import { registerUserRoutes } from './routes/users.js';
+import { registerScriptRoutes } from './routes/scripts.js';
 import { AIRouter, type ProviderConfig } from './providers/router.js';
 import type { VestaraApp } from './types.js';
 
@@ -98,6 +99,7 @@ async function main() {
   registerOpenCodeRoutes(vestaraApp);
   registerChatRoutes(vestaraApp);
   registerUserRoutes(vestaraApp);
+  registerScriptRoutes(vestaraApp);
   registerWebSocketHandler(vestaraApp);
 
   // Start
