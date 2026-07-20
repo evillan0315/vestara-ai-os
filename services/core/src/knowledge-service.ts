@@ -1,8 +1,8 @@
-import { Database } from 'better-sqlite3';
-import { EventBus } from './event-bus.js';
-import { createChildLogger } from './logger.js';
+import type { Database } from './db.js';
+import type { EventBus } from './events.js';
+import { createLogger } from './logger.js';
 
-const log = createChildLogger('knowledge-service');
+const log = createLogger('knowledge-service');
 
 export interface KnowledgeEntry {
   id: number;

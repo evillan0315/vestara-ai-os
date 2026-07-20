@@ -1,5 +1,5 @@
-import type { FastifyInstance } from 'fastify';
-import { authMiddleware } from './routes/auth.js';
+import type { VestaraApp } from '../types.js';
+import { authMiddleware } from './auth.js';
 import { parseModelString } from '../providers/router.js';
 import type { ChatMessage } from '../providers/types.js';
 import { generateId } from '@vestara/utils';
@@ -16,7 +16,7 @@ interface MessageRow {
   content: string;
 }
 
-export function registerChatRoutes(app: FastifyInstance) {
+export function registerChatRoutes(app: VestaraApp) {
   /**
    * POST /api/chat — Send a message and get a response (non-streaming)
    */
@@ -65,7 +65,7 @@ export function registerChatRoutes(app: FastifyInstance) {
       convId,
     );
 
-    const messages: ChatMessage[] = history.map((m) => ({
+    const messages: ChatMessage[] = history.map((m: MessageRow) => ({
       role: m.role as ChatMessage['role'],
       content: m.content,
     }));
@@ -183,7 +183,7 @@ export function registerChatRoutes(app: FastifyInstance) {
       convId,
     );
 
-    const messages: ChatMessage[] = history.map((m) => ({
+    const messages: ChatMessage[] = history.map((m: MessageRow) => ({
       role: m.role as ChatMessage['role'],
       content: m.content,
     }));

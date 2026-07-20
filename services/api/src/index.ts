@@ -20,7 +20,7 @@ import { registerWebSocketHandler } from './websocket.js';
 import { registerOpenCodeRoutes } from './routes/opencode.js';
 import { registerChatRoutes } from './routes/chat.js';
 import { AIRouter, type ProviderConfig } from './providers/router.js';
-import type { Database } from '@vestara/core';
+import type { VestaraApp } from './types.js';
 
 const config = getConfig();
 const logger = createLogger('api', config.logLevel);
@@ -86,18 +86,19 @@ async function main() {
   });
 
   // Register routes
-  registerAuthRoutes(app);
-  registerProviderRoutes(app);
-  registerConversationRoutes(app);
-  registerAgentRoutes(app);
-  registerAgentRuntimeRoutes(app);
-  registerSystemRoutes(app);
-  registerKnowledgeRoutes(app);
-  registerMemoryRoutes(app);
-  registerProjectRoutes(app);
-  registerOpenCodeRoutes(app);
-  registerChatRoutes(app);
-  registerWebSocketHandler(app);
+  const vestaraApp = app as unknown as VestaraApp;
+  registerAuthRoutes(vestaraApp);
+  registerProviderRoutes(vestaraApp);
+  registerConversationRoutes(vestaraApp);
+  registerAgentRoutes(vestaraApp);
+  registerAgentRuntimeRoutes(vestaraApp);
+  registerSystemRoutes(vestaraApp);
+  registerKnowledgeRoutes(vestaraApp);
+  registerMemoryRoutes(vestaraApp);
+  registerProjectRoutes(vestaraApp);
+  registerOpenCodeRoutes(vestaraApp);
+  registerChatRoutes(vestaraApp);
+  registerWebSocketHandler(vestaraApp);
 
   // Start
   try {

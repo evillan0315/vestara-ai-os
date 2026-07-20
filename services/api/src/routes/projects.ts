@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { VestaraApp } from '../types.js';
 import { authMiddleware } from './auth.js';
 import { generateId } from '@vestara/utils';
 
@@ -13,7 +13,7 @@ interface ProjectRow {
   updated_at: string;
 }
 
-export function registerProjectRoutes(app: FastifyInstance) {
+export function registerProjectRoutes(app: VestaraApp) {
   app.get('/api/projects', {
     preHandler: [authMiddleware],
   }, async (request) => {

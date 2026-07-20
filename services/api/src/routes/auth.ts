@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { VestaraApp } from '../types.js';
 import { generateId, generateToken } from '@vestara/utils';
 import { hash, compare } from 'bcryptjs';
 import { sign, verify } from 'jsonwebtoken';
@@ -13,7 +13,7 @@ interface UserRow {
   created_at: string;
 }
 
-export function registerAuthRoutes(app: FastifyInstance) {
+export function registerAuthRoutes(app: VestaraApp) {
   app.post<{ Body: { name: string; email: string; password: string } }>(
     '/api/auth/register',
     async (request, reply) => {

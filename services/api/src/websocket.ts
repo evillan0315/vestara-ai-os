@@ -1,13 +1,13 @@
-import type { FastifyInstance } from 'fastify';
+import type { VestaraApp } from './types.js';
 import type { WebSocket } from '@fastify/websocket';
 
-export function registerWebSocketHandler(app: FastifyInstance) {
+export function registerWebSocketHandler(app: VestaraApp) {
   const clients = new Set<WebSocket>();
 
   app.get('/ws', { websocket: true }, (socket) => {
     clients.add(socket);
 
-    socket.on('message', (message) => {
+    socket.on('message', (message: Buffer | string) => {
       try {
         const data = JSON.parse(message.toString());
         // Handle incoming messages (subscriptions, etc.)

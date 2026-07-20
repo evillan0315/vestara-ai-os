@@ -1,7 +1,7 @@
-import type { FastifyInstance } from 'fastify';
+import type { VestaraApp } from '../types.js';
 import { authMiddleware } from './auth.js';
 
-export function registerAgentRuntimeRoutes(app: FastifyInstance) {
+export function registerAgentRuntimeRoutes(app: VestaraApp) {
   // Get agent stats
   app.get('/api/agents/stats', {
     preHandler: [authMiddleware],

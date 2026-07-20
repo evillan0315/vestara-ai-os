@@ -1,7 +1,7 @@
-import type { FastifyInstance } from 'fastify';
+import type { VestaraApp } from '../types.js';
 import { authMiddleware } from './auth.js';
 
-export function registerKnowledgeRoutes(app: FastifyInstance) {
+export function registerKnowledgeRoutes(app: VestaraApp) {
   // Get knowledge stats
   app.get('/api/knowledge/stats', {
     preHandler: [authMiddleware],

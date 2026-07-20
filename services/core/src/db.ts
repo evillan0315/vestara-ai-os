@@ -40,6 +40,10 @@ export class Database {
   pragma(sql: string): unknown {
     return this.db.pragma(sql);
   }
+
+  prepare(sql: string): DatabaseDriver.Statement {
+    return this.db.prepare(sql);
+  }
 }
 
 export function createDatabase(dbPath: string): Database {

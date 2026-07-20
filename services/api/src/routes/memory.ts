@@ -1,7 +1,7 @@
-import type { FastifyInstance } from 'fastify';
+import type { VestaraApp } from '../types.js';
 import { authMiddleware } from './auth.js';
 
-export function registerMemoryRoutes(app: FastifyInstance) {
+export function registerMemoryRoutes(app: VestaraApp) {
   // Get memory stats
   app.get('/api/memory/stats', {
     preHandler: [authMiddleware],

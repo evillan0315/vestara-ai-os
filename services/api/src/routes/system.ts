@@ -1,9 +1,9 @@
-import type { FastifyInstance } from 'fastify';
+import type { VestaraApp } from '../types.js';
 import { authMiddleware } from './auth.js';
 import { cpus, totalmem, freemem } from 'node:os';
 import { execSync } from 'node:child_process';
 
-export function registerSystemRoutes(app: FastifyInstance) {
+export function registerSystemRoutes(app: VestaraApp) {
   app.get('/api/system/stats', {
     preHandler: [authMiddleware],
   }, async () => {

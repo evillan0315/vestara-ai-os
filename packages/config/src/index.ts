@@ -131,15 +131,17 @@ let _config: VestaraConfig | null = null;
 export function getConfig(): VestaraConfig {
   if (_config) return _config;
 
-  const fileConfig = loadConfigFile();
-  const envConfig = loadEnvConfig();
+  const fileConfig = loadConfigFile() as Record<string, unknown>;
+  const envConfig = loadEnvConfig() as Record<string, unknown>;
 
-  _config = deepMerge(
-    deepMerge(defaults, fileConfig) as Record<string, unknown>,
-    envConfig as Record<string, unknown>,
-  ) as VestaraConfig;
+  const merged: any = deepMerge(
+    deepMerge(defaults as unknown as Record<string, unknown>, fileConfig),
+    envConfig,
+  );
 
-  return _config;
+  _config = merged;
+
+  return _config!;
 }
 
 export function resetConfig(): void {

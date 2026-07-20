@@ -1,8 +1,8 @@
-import type { FastifyInstance } from 'fastify';
-import { authMiddleware } from './routes/auth.js';
-import * as opencode from './providers/opencode.js';
+import type { VestaraApp } from '../types.js';
+import { authMiddleware } from './auth.js';
+import * as opencode from '../providers/opencode.js';
 
-export function registerOpenCodeRoutes(app: FastifyInstance) {
+export function registerOpenCodeRoutes(app: VestaraApp) {
   /**
    * Get OpenCode status
    */

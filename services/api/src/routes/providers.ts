@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { VestaraApp } from '../types.js';
 import { authMiddleware } from './auth.js';
 import { generateId } from '@vestara/utils';
 
@@ -13,7 +13,7 @@ interface ProviderRow {
   created_at: string;
 }
 
-export function registerProviderRoutes(app: FastifyInstance) {
+export function registerProviderRoutes(app: VestaraApp) {
   app.get('/api/providers', {
     preHandler: [authMiddleware],
   }, async () => {
@@ -21,7 +21,7 @@ export function registerProviderRoutes(app: FastifyInstance) {
       'SELECT * FROM providers ORDER BY created_at DESC',
     );
     return {
-      providers: providers.map((p) => ({
+      providers: providers.map((p: ProviderRow) => ({
         ...p,
         config: JSON.parse(p.config),
         enabled: Boolean(p.enabled),

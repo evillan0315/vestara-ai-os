@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { VestaraApp } from '../types.js';
 import { authMiddleware } from './auth.js';
 import { generateId } from '@vestara/utils';
 
@@ -20,7 +20,7 @@ interface MessageRow {
   created_at: string;
 }
 
-export function registerConversationRoutes(app: FastifyInstance) {
+export function registerConversationRoutes(app: VestaraApp) {
   app.get('/api/conversations', {
     preHandler: [authMiddleware],
   }, async (request) => {
