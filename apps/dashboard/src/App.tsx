@@ -12,6 +12,7 @@ import Memory from './pages/Memory';
 import Knowledge from './pages/Knowledge';
 import Terminal from './pages/Terminal';
 import SystemMonitor from './pages/SystemMonitor';
+import Users from './pages/Users';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -57,6 +58,7 @@ function AppRoutes() {
         <Route path="/knowledge" element={<Knowledge />} />
         <Route path="/terminal" element={<Terminal />} />
         <Route path="/monitor" element={<SystemMonitor />} />
+        <Route path="/users" element={<Users />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>

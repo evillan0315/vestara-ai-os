@@ -11,6 +11,7 @@ const navItems = [
   { to: '/knowledge', label: 'Knowledge', icon: '📚' },
   { to: '/terminal', label: 'Terminal', icon: '💻' },
   { to: '/monitor', label: 'System', icon: '📈' },
+  { to: '/users', label: 'Users', icon: '👥' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 
