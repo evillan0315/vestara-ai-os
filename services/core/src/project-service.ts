@@ -2,6 +2,8 @@ import type { Database } from './db.js';
 import type { EventBus } from './events.js';
 import { createLogger } from './logger.js';
 import { generateId } from '@vestara/utils';
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const log = createLogger('project-service');
 
@@ -207,6 +209,189 @@ export class ProjectService {
     this.db.run("UPDATE projects SET updated_at = datetime('now') WHERE id = ?", projectId);
     this.events.emit('task:deleted', { projectId, taskId: id });
     return true;
+  }
+
+  // ── .vestara Sync Methods ──────────────────────
+
+  async syncToVestara(projectId: string, userId: string): Promise<{ success: boolean; path?: string; error?: string }> {
+    const project = await this.getProject(projectId, userId);
+    if (!project) return { success: false, error: 'Project not found' };
+    if (!project.path) return { success: false, error: 'Project has no path configured' };
+
+    const vestaraDir = join(project.path, '.vestara');
+    if (!existsSync(vestaraDir)) {
+      mkdirSync(vestaraDir, { recursive: true });
+    }
+
+    // 1. Write config.json
+    const config = {
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      syncedAt: new Date().toISOString(),
+    };
+    writeFileSync(join(vestaraDir, 'config.json'), JSON.stringify(config, null, 2));
+
+    // 2. Write tasks.json
+    const tasks = this.db.all<any>(
+      'SELECT * FROM tasks WHERE project_id = ? ORDER BY created_at DESC',
+      projectId,
+    );
+    writeFileSync(join(vestaraDir, 'tasks.json'), JSON.stringify(tasks, null, 2));
+
+    // 3. Write conversations.json (AI chat history linked to this project)
+    const conversations = this.db.all<any>(
+      'SELECT * FROM conversations WHERE project_id = ? ORDER BY updated_at DESC',
+      projectId,
+    );
+    const conversationsWithMessages = conversations.map(conv => {
+      const messages = this.db.all<any>(
+        'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC',
+        conv.id,
+      );
+      return { ...conv, messages };
+    });
+    writeFileSync(join(vestaraDir, 'conversations.json'), JSON.stringify(conversationsWithMessages, null, 2));
+
+    // 4. Write opencode.json (OpenCode sessions linked to this project)
+    const opencodeChats = this.db.all<any>(
+      'SELECT * FROM opencode_chats WHERE project_id = ? ORDER BY updated_at DESC',
+      projectId,
+    );
+    const opencodeWithMessages = opencodeChats.map(chat => {
+      const messages = this.db.all<any>(
+        'SELECT * FROM opencode_messages WHERE chat_id = ? ORDER BY created_at ASC',
+        chat.id,
+      );
+      return { ...chat, messages };
+    });
+    writeFileSync(join(vestaraDir, 'opencode.json'), JSON.stringify(opencodeWithMessages, null, 2));
+
+    log.info({ projectId, path: vestaraDir }, 'Synced to .vestara');
+    return { success: true, path: vestaraDir };
+  }
+
+  async getVestaraConfig(projectId: string, userId: string): Promise<any> {
+    const project = await this.getProject(projectId, userId);
+    if (!project || !project.path) return null;
+
+    const configPath = join(project.path, '.vestara', 'config.json');
+    if (!existsSync(configPath)) return null;
+
+    try {
+      return JSON.parse(readFileSync(configPath, 'utf-8'));
+    } catch {
+      return null;
+    }
+  }
+
+  async importFromVestara(projectId: string, userId: string): Promise<{ success: boolean; imported?: { tasks: number; conversations: number; opencodeChats: number }; error?: string }> {
+    const project = await this.getProject(projectId, userId);
+    if (!project) return { success: false, error: 'Project not found' };
+    if (!project.path) return { success: false, error: 'Project has no path configured' };
+
+    const vestaraDir = join(project.path, '.vestara');
+    if (!existsSync(vestaraDir)) return { success: false, error: '.vestara directory not found' };
+
+    let tasksImported = 0;
+    let conversationsImported = 0;
+    let opencodeChatsImported = 0;
+
+    // 1. Import tasks.json
+    const tasksPath = join(vestaraDir, 'tasks.json');
+    if (existsSync(tasksPath)) {
+      try {
+        const tasks = JSON.parse(readFileSync(tasksPath, 'utf-8'));
+        for (const task of tasks) {
+          const existing = this.db.get<any>('SELECT id FROM tasks WHERE id = ?', task.id);
+          if (!existing) {
+            this.db.run(
+              'INSERT INTO tasks (id, project_id, title, description, status, assignee_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+              task.id, projectId, task.title, task.description, task.status, task.assignee_id, task.created_at, task.updated_at,
+            );
+            tasksImported++;
+          }
+        }
+      } catch (err) {
+        log.warn({ projectId }, 'Failed to import tasks.json');
+      }
+    }
+
+    // 2. Import conversations.json
+    const convPath = join(vestaraDir, 'conversations.json');
+    if (existsSync(convPath)) {
+      try {
+        const conversations = JSON.parse(readFileSync(convPath, 'utf-8'));
+        for (const conv of conversations) {
+          const existing = this.db.get<any>('SELECT id FROM conversations WHERE id = ?', conv.id);
+          if (!existing) {
+            this.db.run(
+              'INSERT INTO conversations (id, user_id, project_id, title, model_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              conv.id, userId, projectId, conv.title, conv.model_id, conv.created_at, conv.updated_at,
+            );
+            conversationsImported++;
+          }
+          // Import messages
+          if (conv.messages) {
+            for (const msg of conv.messages) {
+              const msgExists = this.db.get<any>('SELECT id FROM messages WHERE id = ?', msg.id);
+              if (!msgExists) {
+                this.db.run(
+                  'INSERT INTO messages (id, conversation_id, role, content, tokens, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+                  msg.id, conv.id, msg.role, msg.content, msg.tokens || null, msg.created_at,
+                );
+              }
+            }
+          }
+        }
+      } catch (err) {
+        log.warn({ projectId }, 'Failed to import conversations.json');
+      }
+    }
+
+    // 3. Import opencode.json
+    const ocPath = join(vestaraDir, 'opencode.json');
+    if (existsSync(ocPath)) {
+      try {
+        const opencodeChats = JSON.parse(readFileSync(ocPath, 'utf-8'));
+        for (const chat of opencodeChats) {
+          const existing = this.db.get<any>('SELECT id FROM opencode_chats WHERE id = ?', chat.id);
+          if (!existing) {
+            this.db.run(
+              'INSERT INTO opencode_chats (id, project_id, title, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+              chat.id, projectId, chat.title, chat.model, chat.created_at, chat.updated_at,
+            );
+            opencodeChatsImported++;
+          }
+          // Import messages
+          if (chat.messages) {
+            for (const msg of chat.messages) {
+              const msgExists = this.db.get<any>('SELECT id FROM opencode_messages WHERE id = ?', msg.id);
+              if (!msgExists) {
+                this.db.run(
+                  'INSERT INTO opencode_messages (id, chat_id, role, content, model, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+                  msg.id, chat.id, msg.role, msg.content, msg.model || null, msg.created_at,
+                );
+              }
+            }
+          }
+        }
+      } catch (err) {
+        log.warn({ projectId }, 'Failed to import opencode.json');
+      }
+    }
+
+    log.info({ projectId, tasksImported, conversationsImported, opencodeChatsImported }, 'Imported from .vestara');
+    return {
+      success: true,
+      imported: {
+        tasks: tasksImported,
+        conversations: conversationsImported,
+        opencodeChats: opencodeChatsImported,
+      },
+    };
   }
 
   private mapProject(row: any): Project {

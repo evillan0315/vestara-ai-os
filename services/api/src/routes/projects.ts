@@ -2,6 +2,9 @@ import type { VestaraApp } from '../types.js';
 import { authMiddleware } from './auth.js';
 import { createProjectSchema, updateProjectSchema, createTaskSchema, updateTaskSchema } from '@vestara/validation';
 import { generateId } from '@vestara/utils';
+import { ProjectService } from '@vestara/core';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export function registerProjectRoutes(app: VestaraApp) {
   app.get('/api/projects', {
@@ -263,5 +266,107 @@ export function registerProjectRoutes(app: VestaraApp) {
     app.db.run('DELETE FROM tasks WHERE id = ?', taskId);
     app.db.run("UPDATE projects SET updated_at = datetime('now') WHERE id = ?", id);
     return { message: 'Task deleted' };
+  });
+
+  // ── .vestara Sync Routes ──────────────────────
+
+  app.post<{
+    Params: { id: string };
+  }>('/api/projects/:id/sync', {
+    preHandler: [authMiddleware],
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const userId = (request as any).userId;
+
+    const project = app.db.get<any>(
+      'SELECT * FROM projects WHERE id = ? AND user_id = ?',
+      id, userId,
+    );
+    if (!project) {
+      return reply.status(404).send({ error: 'Project not found' });
+    }
+    if (!project.path) {
+      return reply.status(400).send({ error: 'Project has no path configured' });
+    }
+
+    const projectService = new ProjectService(app.db, app.events);
+    const result = await projectService.syncToVestara(id, userId);
+    return result;
+  });
+
+  app.get<{
+    Params: { id: string };
+  }>('/api/projects/:id/vestara', {
+    preHandler: [authMiddleware],
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const userId = (request as any).userId;
+
+    const project = app.db.get<any>(
+      'SELECT * FROM projects WHERE id = ? AND user_id = ?',
+      id, userId,
+    );
+    if (!project) {
+      return reply.status(404).send({ error: 'Project not found' });
+    }
+    if (!project.path) {
+      return reply.status(400).send({ error: 'Project has no path configured' });
+    }
+
+    const vestaraDir = join(project.path, '.vestara');
+    if (!existsSync(vestaraDir)) {
+      return { exists: false };
+    }
+
+    const configPath = join(vestaraDir, 'config.json');
+    const tasksPath = join(vestaraDir, 'tasks.json');
+    const convPath = join(vestaraDir, 'conversations.json');
+    const ocPath = join(vestaraDir, 'opencode.json');
+
+    let config = null;
+    let taskCount = 0;
+    let conversationCount = 0;
+    let opencodeChatCount = 0;
+
+    try {
+      if (existsSync(configPath)) config = JSON.parse(readFileSync(configPath, 'utf-8'));
+      if (existsSync(tasksPath)) taskCount = JSON.parse(readFileSync(tasksPath, 'utf-8')).length;
+      if (existsSync(convPath)) conversationCount = JSON.parse(readFileSync(convPath, 'utf-8')).length;
+      if (existsSync(ocPath)) opencodeChatCount = JSON.parse(readFileSync(ocPath, 'utf-8')).length;
+    } catch {}
+
+    return {
+      exists: true,
+      config,
+      stats: {
+        tasks: taskCount,
+        conversations: conversationCount,
+        opencodeChats: opencodeChatCount,
+      },
+    };
+  });
+
+  app.post<{
+    Params: { id: string };
+  }>('/api/projects/:id/import', {
+    preHandler: [authMiddleware],
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const userId = (request as any).userId;
+
+    const project = app.db.get<any>(
+      'SELECT * FROM projects WHERE id = ? AND user_id = ?',
+      id, userId,
+    );
+    if (!project) {
+      return reply.status(404).send({ error: 'Project not found' });
+    }
+    if (!project.path) {
+      return reply.status(400).send({ error: 'Project has no path configured' });
+    }
+
+    const projectService = new ProjectService(app.db, app.events);
+    const result = await projectService.importFromVestara(id, userId);
+    return result;
   });
 }

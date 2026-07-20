@@ -5,6 +5,7 @@ import { generateId } from '@vestara/utils';
 interface ConversationRow {
   id: string;
   user_id: string;
+  project_id: string | null;
   title: string;
   model_id: string | null;
   created_at: string;
@@ -21,14 +22,26 @@ interface MessageRow {
 }
 
 export function registerConversationRoutes(app: VestaraApp) {
-  app.get('/api/conversations', {
+  app.get<{
+    Querystring: { projectId?: string };
+  }>('/api/conversations', {
     preHandler: [authMiddleware],
   }, async (request) => {
     const userId = (request as any).userId;
-    const conversations = app.db.all<ConversationRow>(
-      'SELECT * FROM conversations WHERE user_id = ? ORDER BY updated_at DESC',
-      userId,
-    );
+    const { projectId } = request.query;
+
+    let conversations;
+    if (projectId) {
+      conversations = app.db.all<ConversationRow>(
+        'SELECT * FROM conversations WHERE user_id = ? AND project_id = ? ORDER BY updated_at DESC',
+        userId, projectId,
+      );
+    } else {
+      conversations = app.db.all<ConversationRow>(
+        'SELECT * FROM conversations WHERE user_id = ? ORDER BY updated_at DESC',
+        userId,
+      );
+    }
     return { conversations };
   });
 
@@ -57,17 +70,17 @@ export function registerConversationRoutes(app: VestaraApp) {
   });
 
   app.post<{
-    Body: { title?: string; modelId?: string };
+    Body: { title?: string; modelId?: string; projectId?: string };
   }>('/api/conversations', {
     preHandler: [authMiddleware],
   }, async (request, reply) => {
     const userId = (request as any).userId;
-    const { title, modelId } = request.body || {};
+    const { title, modelId, projectId } = request.body || {};
     const id = generateId();
 
     app.db.run(
-      'INSERT INTO conversations (id, user_id, title, model_id) VALUES (?, ?, ?, ?)',
-      id, userId, title || 'New Conversation', modelId || null,
+      'INSERT INTO conversations (id, user_id, project_id, title, model_id) VALUES (?, ?, ?, ?, ?)',
+      id, userId, projectId || null, title || 'New Conversation', modelId || null,
     );
 
     const conversation = app.db.get<ConversationRow>(

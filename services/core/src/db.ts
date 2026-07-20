@@ -106,6 +106,7 @@ export function migrate(db: Database): void {
     CREATE TABLE IF NOT EXISTS conversations (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
       title TEXT NOT NULL DEFAULT 'New Conversation',
       model_id TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -244,6 +245,7 @@ export function migrate(db: Database): void {
   db.run(`
     CREATE TABLE IF NOT EXISTS opencode_chats (
       id TEXT PRIMARY KEY,
+      project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
       title TEXT NOT NULL DEFAULT 'New Chat',
       model TEXT NOT NULL DEFAULT 'opencode/deepseek-v4-flash-free',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -261,4 +263,16 @@ export function migrate(db: Database): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+
+  // Migration: Add project_id to conversations if missing
+  const convColumns = db.all<{ name: string }>("PRAGMA table_info(conversations)");
+  if (!convColumns.some(c => c.name === 'project_id')) {
+    db.run("ALTER TABLE conversations ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL");
+  }
+
+  // Migration: Add project_id to opencode_chats if missing
+  const ocColumns = db.all<{ name: string }>("PRAGMA table_info(opencode_chats)");
+  if (!ocColumns.some(c => c.name === 'project_id')) {
+    db.run("ALTER TABLE opencode_chats ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL");
+  }
 }

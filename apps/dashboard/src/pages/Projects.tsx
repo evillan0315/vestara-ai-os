@@ -49,6 +49,8 @@ export default function Projects() {
   const [showBrowser, setShowBrowser] = useState(false);
   const [browserPath, setBrowserPath] = useState('');
   const [browserEntries, setBrowserEntries] = useState<{ name: string; path: string; type: string; icon: string }[]>([]);
+  const [vestaraData, setVestaraData] = useState<{ exists: boolean; config?: any; stats?: { tasks: number; conversations: number; opencodeChats: number } } | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -58,6 +60,7 @@ export default function Projects() {
   useEffect(() => {
     if (selectedProject) {
       fetchTasks(selectedProject.id);
+      fetchVestaraData(selectedProject.id);
     }
   }, [selectedProject]);
 
@@ -133,6 +136,63 @@ export default function Projects() {
       }
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
+    }
+  };
+
+  const fetchVestaraData = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/vestara`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setVestaraData(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch .vestara data:', error);
+    }
+  };
+
+  const syncToVestara = async () => {
+    if (!selectedProject) return;
+    setSyncing(true);
+    try {
+      const response = await fetch(`/api/projects/${selectedProject.id}/sync`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          fetchVestaraData(selectedProject.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to sync to .vestara:', error);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const importFromVestara = async () => {
+    if (!selectedProject) return;
+    setSyncing(true);
+    try {
+      const response = await fetch(`/api/projects/${selectedProject.id}/import`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          fetchTasks(selectedProject.id);
+          fetchVestaraData(selectedProject.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to import from .vestara:', error);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -425,6 +485,18 @@ export default function Projects() {
                     {selectedProject.description && (
                       <p className="text-gray-400 text-sm mt-1">{selectedProject.description}</p>
                     )}
+                    {vestaraData?.exists && (
+                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded">
+                          .vestara
+                        </span>
+                        {vestaraData.stats && (
+                          <span>
+                            {vestaraData.stats.tasks} tasks · {vestaraData.stats.conversations} chats · {vestaraData.stats.opencodeChats} sessions
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     {selectedProject.path && (
@@ -434,6 +506,28 @@ export default function Projects() {
                       >
                         Open
                       </button>
+                    )}
+                    {selectedProject.path && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={syncToVestara}
+                          disabled={syncing}
+                          className="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded text-sm hover:bg-purple-500/30 disabled:opacity-50"
+                          title="Sync to .vestara"
+                        >
+                          {syncing ? '...' : '↓ Sync'}
+                        </button>
+                        {vestaraData?.exists && (
+                          <button
+                            onClick={importFromVestara}
+                            disabled={syncing}
+                            className="px-3 py-1 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded text-sm hover:bg-orange-500/30 disabled:opacity-50"
+                            title="Import from .vestara"
+                          >
+                            {syncing ? '...' : '↑ Import'}
+                          </button>
+                        )}
+                      </div>
                     )}
                     <select
                       value={selectedProject.status}

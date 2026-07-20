@@ -62,6 +62,7 @@ async function main() {
 
   // Services
   const events = (app as any).events || { emit: () => {}, on: () => {} };
+  app.decorate('events', events);
   app.decorate('memoryService', new MemoryService(db, events));
   app.decorate('knowledgeService', new KnowledgeService(db, events));
   app.decorate('agentRuntime', new AgentRuntime(db, events));

@@ -104,14 +104,31 @@ export function registerOpenCodeRoutes(app: VestaraApp) {
   /**
    * List all OpenCode chats
    */
-  app.get('/api/providers/opencode/chats', {}, async () => {
-    const chats = app.db.all<{
-      id: string;
-      title: string;
-      model: string;
-      created_at: string;
-      updated_at: string;
-    }>('SELECT * FROM opencode_chats ORDER BY updated_at DESC');
+  app.get<{
+    Querystring: { projectId?: string };
+  }>('/api/providers/opencode/chats', {}, async (request) => {
+    const { projectId } = request.query;
+
+    let chats;
+    if (projectId) {
+      chats = app.db.all<{
+        id: string;
+        project_id: string | null;
+        title: string;
+        model: string;
+        created_at: string;
+        updated_at: string;
+      }>('SELECT * FROM opencode_chats WHERE project_id = ? ORDER BY updated_at DESC', projectId);
+    } else {
+      chats = app.db.all<{
+        id: string;
+        project_id: string | null;
+        title: string;
+        model: string;
+        created_at: string;
+        updated_at: string;
+      }>('SELECT * FROM opencode_chats ORDER BY updated_at DESC');
+    }
     return { chats };
   });
 
@@ -119,12 +136,13 @@ export function registerOpenCodeRoutes(app: VestaraApp) {
    * Create a new OpenCode chat
    */
   app.post<{
-    Body: { title?: string; model?: string };
+    Body: { title?: string; model?: string; projectId?: string };
   }>('/api/providers/opencode/chats', {}, async (request) => {
     const id = randomUUID();
     const title = request.body?.title || 'New Chat';
     const model = request.body?.model || 'opencode/deepseek-v4-flash-free';
-    app.db.run('INSERT INTO opencode_chats (id, title, model) VALUES (?, ?, ?)', id, title, model);
+    const projectId = request.body?.projectId || null;
+    app.db.run('INSERT INTO opencode_chats (id, project_id, title, model) VALUES (?, ?, ?, ?)', id, projectId, title, model);
     const chat = app.db.get('SELECT * FROM opencode_chats WHERE id = ?', id);
     return { chat };
   });
