@@ -1,0 +1,103 @@
+name: Deploy Development
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+env:
+  DEPLOY_HOST: ${{ secrets.DEV_SSH_HOST }}
+  DEPLOY_USER: ${{ secrets.DEV_SSH_USER }}
+  DEPLOY_PATH: /opt/vestara
+  NODE_VERSION: '22'
+
+jobs:
+  deploy:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ env.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy files
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.github' \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            ./ ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/
+
+      - name: Install dependencies
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'EOF'
+            cd ${{ env.DEPLOY_PATH }}
+            pnpm install --frozen-lockfile
+          EOF
+
+      - name: Build on server
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'EOF'
+            cd ${{ env.DEPLOY_PATH }}
+            pnpm build
+          EOF
+
+      - name: Run migrations
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'EOF'
+            cd ${{ env.DEPLOY_PATH }}
+            pnpm migrate 2>/dev/null || true
+          EOF
+
+      - name: Restart services
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'EOF'
+            cd ${{ env.DEPLOY_PATH }}
+            pnpm dev &
+            sleep 5
+          EOF
+
+      - name: Health check
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'EOF'
+            curl -sf http://localhost:3000/api/health || exit 1
+          EOF
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+    steps:
+      - name: Send notification
+        run: |
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "✅ Development deployment successful"
+          else
+            echo "❌ Development deployment failed"
+          fi

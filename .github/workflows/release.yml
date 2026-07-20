@@ -1,0 +1,194 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  NODE_VERSION: '22'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            packages/*/dist
+            services/*/dist
+            apps/*/dist
+
+  docker:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version
+        id: version
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build and push API
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/api:latest
+            ghcr.io/${{ github.repository }}/api:${{ steps.version.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Dashboard
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.dashboard
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/dashboard:latest
+            ghcr.io/${{ github.repository }}/dashboard:${{ steps.version.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deb-packages:
+    name: Build Debian Packages
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Build .deb packages
+        run: |
+          chmod +x scripts/build-deb.sh
+          ./scripts/build-deb.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb-packages
+          path: dist/deb/*.deb
+
+  iso:
+    name: Build ISO
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap xorriso mksquashfs grub-pc-bin grub-efi-amd64-bin
+
+      - name: Build ISO
+        run: |
+          chmod +x scripts/build-iso.sh
+          VERSION=${{ github.ref_name }} ./scripts/build-iso.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iso-image
+          path: dist/iso/*.iso
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [docker, deb-packages, iso]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: deb-packages
+          path: dist/deb
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: iso-image
+          path: dist/iso
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: |
+            dist/deb/*.deb
+            dist/iso/*.iso
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [release]
+    if: always()
+    steps:
+      - name: Send notification
+        run: |
+          if [ "${{ needs.release.result }}" = "success" ]; then
+            echo "✅ Release ${{ github.ref_name }} published"
+          else
+            echo "❌ Release failed"
+          fi
