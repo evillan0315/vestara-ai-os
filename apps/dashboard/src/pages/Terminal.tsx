@@ -16,7 +16,6 @@ export default function Terminal() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Welcome message
     setLines([
       {
         type: 'output',
@@ -40,11 +39,9 @@ export default function Terminal() {
   const executeCommand = async (command: string) => {
     if (!command.trim()) return;
 
-    // Add to history
     setCommandHistory(prev => [...prev, command]);
     setHistoryIndex(-1);
 
-    // Add input line
     const inputLine: TerminalLine = {
       type: 'input',
       content: command,
@@ -52,7 +49,6 @@ export default function Terminal() {
     };
     setLines(prev => [...prev, inputLine]);
 
-    // Handle built-in commands
     const cmd = command.trim().toLowerCase();
 
     if (cmd === 'clear') {
@@ -98,7 +94,6 @@ export default function Terminal() {
       return;
     }
 
-    // Execute via API
     setIsRunning(true);
     try {
       const response = await fetch('/api/system/exec', {
@@ -121,7 +116,7 @@ export default function Terminal() {
       } else {
         setLines(prev => [...prev, { type: 'error', content: 'Command execution failed', timestamp: new Date() }]);
       }
-    } catch (error) {
+    } catch {
       setLines(prev => [...prev, { type: 'error', content: 'Failed to execute command', timestamp: new Date() }]);
     } finally {
       setIsRunning(false);
@@ -158,65 +153,68 @@ export default function Terminal() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a12] text-white p-6 flex flex-col">
-      <div className="max-w-6xl mx-auto flex flex-col flex-1">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Terminal</h1>
-            <p className="text-gray-400 mt-1">Execute commands on the system</p>
-          </div>
+    <div className="-m-6 h-[calc(100vh+3rem)] flex flex-col bg-[#0a0a12] text-white">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e1e2e] shrink-0">
+        <div>
+          <h1 className="text-xl font-bold text-white">Terminal</h1>
+          <p className="text-xs text-gray-400">Execute commands on the system</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 hidden sm:inline">
+            {commandHistory.length} commands
+          </span>
           <button
             onClick={() => setLines([])}
-            className="px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] transition-colors"
+            className="px-3 py-1.5 text-sm bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] transition-colors"
           >
             Clear
           </button>
         </div>
+      </div>
 
-        {/* Terminal */}
-        <div
-          ref={terminalRef}
-          className="flex-1 bg-[#0d0d18] border border-[#1e1e2e] rounded-lg p-4 font-mono text-sm overflow-y-auto min-h-[500px]"
-          onClick={() => inputRef.current?.focus()}
-        >
-          {lines.map((line, i) => (
-            <div key={i} className={`whitespace-pre-wrap ${
-              line.type === 'input' ? 'text-[#4a9eff]' :
-              line.type === 'error' ? 'text-red-400' :
-              'text-gray-300'
-            }`}>
-              {line.type === 'input' && (
-                <span className="text-[#4a9eff]">ai@vestara:~$ </span>
-              )}
-              {line.content}
-            </div>
-          ))}
-
-          {/* Input line */}
-          <div className="flex items-center mt-1">
-            <span className="text-[#4a9eff]">ai@vestara:~$ </span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent outline-none text-gray-300 font-mono"
-              disabled={isRunning}
-              autoFocus
-            />
-            {isRunning && (
-              <span className="text-yellow-400 animate-pulse">Running...</span>
+      {/* Terminal */}
+      <div
+        ref={terminalRef}
+        className="flex-1 overflow-y-auto p-4 font-mono text-sm"
+        onClick={() => inputRef.current?.focus()}
+      >
+        {lines.map((line, i) => (
+          <div key={i} className={`whitespace-pre-wrap break-all ${
+            line.type === 'input' ? 'text-[#4a9eff]' :
+            line.type === 'error' ? 'text-red-400' :
+            'text-gray-300'
+          }`}>
+            {line.type === 'input' && (
+              <span className="text-[#4a9eff]">ai@vestara:~$ </span>
             )}
+            {line.content}
           </div>
-        </div>
+        ))}
 
-        {/* Status bar */}
-        <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-          <span>Ctrl+L to clear | ↑/↓ for history</span>
-          <span>{commandHistory.length} commands in history</span>
+        {/* Input line */}
+        <div className="flex items-center mt-1">
+          <span className="text-[#4a9eff] shrink-0">ai@vestara:~$ </span>
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 min-w-0 bg-transparent outline-none text-gray-300 font-mono"
+            disabled={isRunning}
+            autoFocus
+          />
+          {isRunning && (
+            <span className="text-yellow-400 animate-pulse shrink-0">Running...</span>
+          )}
         </div>
+      </div>
+
+      {/* Status bar */}
+      <div className="flex items-center justify-between px-4 py-1.5 border-t border-[#1e1e2e] text-xs text-gray-500 shrink-0">
+        <span>Ctrl+L clear | ↑/↓ history</span>
+        <span className="hidden sm:inline">Vestara Terminal v0.1.0</span>
       </div>
     </div>
   );
