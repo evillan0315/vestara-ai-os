@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/chat', label: 'AI Chat', icon: '💬' },
+  { to: '/opencode', label: 'OpenCode', icon: '⚡' },
   { to: '/agents', label: 'Agents', icon: '🤖' },
   { to: '/models', label: 'Models', icon: '🧠' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },

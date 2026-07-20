@@ -17,7 +17,7 @@ export const registerSchema = z.object({
 
 export const createProviderSchema = z.object({
   name: z.string().min(1).max(100),
-  type: z.enum(['openai', 'anthropic', 'google', 'openrouter', 'ollama', 'lmstudio']),
+  type: z.enum(['openai', 'anthropic', 'google', 'openrouter', 'ollama', 'lmstudio', 'opencode']),
   apiKey: z.string().optional(),
   baseUrl: z.string().url().optional(),
   config: z.record(z.unknown()).optional(),

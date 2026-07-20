@@ -114,7 +114,8 @@ export type ProviderType =
   | 'google'
   | 'openrouter'
   | 'ollama'
-  | 'lmstudio';
+  | 'lmstudio'
+  | 'opencode';
 
 export interface Model {
   id: string;

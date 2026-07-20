@@ -13,6 +13,7 @@ import { registerKnowledgeRoutes } from './routes/knowledge.js';
 import { registerMemoryRoutes } from './routes/memory.js';
 import { registerProjectRoutes } from './routes/projects.js';
 import { registerWebSocketHandler } from './websocket.js';
+import { registerOpenCodeRoutes } from './routes/opencode.js';
 
 const config = getConfig();
 const logger = createLogger('api', config.logLevel);
@@ -58,6 +59,7 @@ async function main() {
   registerKnowledgeRoutes(app);
   registerMemoryRoutes(app);
   registerProjectRoutes(app);
+  registerOpenCodeRoutes(app);
   registerWebSocketHandler(app);
 
   // Start
