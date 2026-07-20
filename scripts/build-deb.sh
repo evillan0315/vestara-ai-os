@@ -151,7 +151,7 @@ EOF
 
 Fastify API server for Vestara AI OS.
 
-## Endpoints (15 modules, 57 endpoints)
+## Endpoints (14 modules, 63 endpoints)
 
 - `/api/auth/*` — OS-based authentication
 - `/api/system/*` — System stats, health, exec
@@ -198,7 +198,7 @@ Architecture: amd64
 Depends: nginx, vestara-api
 Maintainer: Vestara <support@vestara.ai>
 Description: Vestara AI OS - Dashboard
- React 19 dashboard for Vestara AI OS with 13 pages including
+ React 19 dashboard for Vestara AI OS with 14 pages including
  AI chat, OpenCode, agents, models, memory, knowledge,
  terminal, file manager, monitor, scripts, and users.
 EOF
@@ -391,7 +391,7 @@ systemd service files for Vestara AI OS.
 
 - vestara.target — Main target
 - vestara-api.service — API server
-- vestara-dashboard.service — Dashboard
+- nginx.service — Dashboard
 EOF
     
     echo -e "0.1.0" > "$pkg/usr/share/doc/vestara-systemd/changelog.Debian"

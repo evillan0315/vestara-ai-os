@@ -52,7 +52,7 @@ export class UpgradeCommand {
       // Stop services
       spinner.start('Stopping services...');
       try {
-        execSync('sudo systemctl stop vestara-api.service vestara-dashboard.service', { stdio: 'pipe' });
+        execSync('sudo systemctl stop vestara-api.service nginx', { stdio: 'pipe' });
         spinner.succeed(chalk.green('Services stopped'));
       } catch {
         spinner.warn(chalk.yellow('Could not stop services'));
@@ -68,7 +68,7 @@ export class UpgradeCommand {
       // Start services
       spinner.start('Starting services...');
       try {
-        execSync('sudo systemctl start vestara-api.service vestara-dashboard.service', { stdio: 'pipe' });
+        execSync('sudo systemctl start vestara-api.service nginx', { stdio: 'pipe' });
         spinner.succeed(chalk.green('Services started'));
       } catch {
         spinner.warn(chalk.yellow('Could not start services'));

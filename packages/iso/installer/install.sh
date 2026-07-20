@@ -194,7 +194,7 @@ EOF
         # Enable services
         systemctl enable vestara.target
         systemctl enable vestara-api.service
-        systemctl enable vestara-dashboard.service
+        systemctl enable nginx
 
         # Install GRUB
         apt-get update

@@ -219,7 +219,7 @@ vestara-ai-os/
 │   └── dashboard/              # React dashboard (14 pages)
 ├── services/
 │   ├── core/                   # @vestara/core (DB, memory, knowledge, agents)
-│   └── api/                    # Fastify API server (15 route modules)
+│   └── api/                    # Fastify API server (14 route modules)
 ├── packages/
 │   ├── types/                  # Shared TypeScript types
 │   ├── validation/             # Zod schemas

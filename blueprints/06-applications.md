@@ -1,7 +1,7 @@
 # Vestara AI OS — Applications
 
 > Built-in applications that make the AI workstation complete.
-> All 13 screens are implemented and working.
+> All 14 screens are implemented and working.
 
 ---
 

@@ -188,7 +188,7 @@ const SCRIPT_DOCS: Record<string, ScriptInfo['docs']> = {
     ],
     outputs: [
       'Vestara installed at /home/<user>/vestara/',
-      'Services: vestara-api.service, vestara-dashboard.service',
+      'Services: vestara-api.service, nginx',
       'Dashboard accessible at http://localhost:<DASHBOARD_PORT>',
     ],
     notes: [

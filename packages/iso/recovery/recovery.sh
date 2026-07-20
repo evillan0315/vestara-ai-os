@@ -97,7 +97,7 @@ factory_reset() {
 
     # Stop services
     systemctl stop vestara-api.service 2>/dev/null || true
-    systemctl stop vestara-dashboard.service 2>/dev/null || true
+    systemctl stop nginx 2>/dev/null || true
 
     # Remove user data
     rm -rf "$VESTARA_HOME/data"
@@ -118,7 +118,7 @@ factory_reset() {
 
     # Restart services
     systemctl start vestara-api.service
-    systemctl start vestara-dashboard.service
+    systemctl start nginx
 
     echo -e "${GREEN}Factory reset complete${NC}"
     read -p "Press Enter to continue..."
@@ -184,7 +184,7 @@ restore_data() {
 
     # Stop services
     systemctl stop vestara-api.service 2>/dev/null || true
-    systemctl stop vestara-dashboard.service 2>/dev/null || true
+    systemctl stop nginx 2>/dev/null || true
 
     # Restore database
     cp "$backup_file" "$VESTARA_HOME/data/vestara.db"
@@ -212,7 +212,7 @@ restore_data() {
 
     # Restart services
     systemctl start vestara-api.service
-    systemctl start vestara-dashboard.service
+    systemctl start nginx
 
     echo -e "${GREEN}Restore complete${NC}"
     read -p "Press Enter to continue..."

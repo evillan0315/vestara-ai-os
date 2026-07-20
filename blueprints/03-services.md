@@ -23,7 +23,7 @@ The unified API server. All Vestara services run in-process.
 
 ```
 Responsibilities:
-- REST endpoints for dashboard (15 route modules)
+- REST endpoints for dashboard (14 route modules)
 - WebSocket for real-time updates
 - AI provider routing (OpenAI, Anthropic, Google, Ollama)
 - OpenCode integration (CLI + chat history)

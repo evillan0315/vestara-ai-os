@@ -68,7 +68,7 @@ systemd starts `vestara.target`:
 
 ```
 1. vestara-api.service         (Fastify API server on port 3000)
-2. vestara-dashboard.service   (Opens browser in kiosk mode)
+2. nginx                       (Dashboard served on port 80)
 ```
 
 **Ollama does NOT start automatically.** It launches only when the user selects a local model.
@@ -121,7 +121,7 @@ WantedBy=graphical.target
 
 # Services
 Wants=vestara-api.service
-Wants=vestara-dashboard.service
+Wants=nginx.service
 ```
 
 ### Service Definitions
@@ -148,15 +148,17 @@ WantedBy=vestara.target
 ```
 
 ```ini
-# vestara-dashboard.service
+# nginx.service (dashboard)
 [Unit]
-Description=Vestara Dashboard
+Description=Nginx Dashboard Server
 After=vestara-api.service
 
 [Service]
-Type=simple
+Type=forking
 User=ai
-ExecStart=/usr/bin/chromium --kiosk --noerrdialogs --disable-infobars http://localhost:3000
+ExecStartPre=/usr/sbin/nginx -t
+ExecStart=/usr/sbin/nginx
+ExecReload=/bin/kill -s HUP $MAINPID
 Restart=on-failure
 
 [Install]

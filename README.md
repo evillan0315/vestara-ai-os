@@ -57,7 +57,7 @@ cd packages/cli && pnpm build
 ├─────────────────────────────────────┤
 │         Vestara API                 │
 │  Fastify 5 · WebSocket · REST      │
-│  13 route modules · SSE streaming   │
+│  14 route modules · SSE streaming   │
 ├─────────────────────────────────────┤
 │         AI Services                 │
 │  OpenCode · Agent Runtime ·         │
@@ -87,7 +87,7 @@ vestara-ai-os/
 │   │   ├── knowledge-service.ts# Knowledge base
 │   │   └── agent-runtime.ts    # Agent execution
 │   └── api/                    # Fastify API server
-│       ├── routes/             # 13 route modules
+│       ├── routes/             # 14 route modules
 │       ├── providers/          # AI provider abstraction
 │       └── types.ts            # VestaraApp type (Fastify)
 ├── packages/

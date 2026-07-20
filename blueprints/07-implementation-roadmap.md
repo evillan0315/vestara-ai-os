@@ -41,7 +41,7 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
   ├── @vestara/core library (SQLite, memory, knowledge, agents)
   └── SQLite schema (16 tables)
 
-✅ API Server (15 route modules)
+✅ API Server (14 route modules)
   ├── Auth routes (OS-based authentication + JWT)
   ├── System routes (stats, health, exec)
   ├── Provider routes (AI provider management)
@@ -184,8 +184,8 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 |---|---|---|
 | Monorepo setup | ✅ Complete | 1 |
 | Core library | ✅ Complete | 1 |
-| API server (15 modules) | ✅ Complete | 1 |
-| Dashboard (13 pages) | ✅ Complete | 1 |
+| API server (14 modules) | ✅ Complete | 1 |
+| Dashboard (14 pages) | ✅ Complete | 1 |
 | AI provider abstraction | ✅ Complete | 1 |
 | Agent runtime | ✅ Complete | 1 |
 | Memory service | ✅ Complete | 1 |
