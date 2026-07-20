@@ -15,6 +15,7 @@
     "build:dashboard": "turbo build --filter=@vestara/dashboard",
     "typecheck": "turbo typecheck",
     "lint": "turbo lint",
+    "test": "echo \"No tests yet\"",
     "clean": "turbo clean && rm -rf node_modules"
   },
   "devDependencies": {
