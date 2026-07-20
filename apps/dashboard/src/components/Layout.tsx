@@ -21,9 +21,7 @@ export function Layout() {
             </svg>
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-vestara-gold to-vestara-gold-light text-[10px] font-bold text-vestara-bg">
-              V
-            </div>
+            <img src="/logo.svg" alt="Vestara" className="h-6 w-6" />
             <span className="text-sm font-semibold text-vestara-text">Vestara AI OS</span>
           </div>
         </div>

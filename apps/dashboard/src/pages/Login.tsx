@@ -37,9 +37,7 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-vestara-bg">
       <div className="glass w-full max-w-sm p-8">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-vestara-gold to-vestara-gold-light text-lg font-bold text-vestara-bg">
-            V
-          </div>
+          <img src="/logo.svg" alt="Vestara" className="mx-auto mb-3 h-12 w-12" />
           <h1 className="text-xl font-bold text-vestara-text">Vestara AI OS</h1>
           <p className="mt-1 text-sm text-vestara-text-muted">Sign in with your system account</p>
         </div>

@@ -78,10 +78,8 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
         `}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2 border-b border-vestara-glass-border px-5 py-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-vestara-gold to-vestara-gold-light text-xs font-bold text-vestara-bg">
-            V
-          </div>
+        <div className="flex items-center gap-2.5 border-b border-vestara-glass-border px-5 py-4">
+          <img src="/logo.svg" alt="Vestara" className="h-8 w-8" />
           <span className="text-sm font-semibold text-vestara-text">Vestara AI OS</span>
         </div>
 
