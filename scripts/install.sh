@@ -182,11 +182,11 @@ configure_system() {
     # Enable services
     sudo systemctl enable vestara.target
     sudo systemctl enable vestara-api.service
-    sudo systemctl enable vestara-dashboard.service
+    sudo systemctl enable nginx
 
     # Start services
     sudo systemctl start vestara-api.service
-    sudo systemctl start vestara-dashboard.service
+    sudo systemctl start nginx
 
     log "System configured"
 }
@@ -199,19 +199,26 @@ post_install() {
     echo -e "${GREEN}  Vestara AI OS installed successfully!${NC}"
     echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
     echo
-    echo -e "  Dashboard:  ${CYAN}http://localhost:${DASHBOARD_PORT}${NC}"
+    echo -e "  Dashboard:  ${CYAN}http://localhost${NC}"
     echo -e "  API:        ${CYAN}http://localhost:${API_PORT}${NC}"
     echo -e "  CLI:        ${CYAN}vestara status${NC}"
+    echo
+    echo -e "  ${YELLOW}Dashboard Pages (13):${NC}"
+    echo -e "    Dashboard, AI Chat, OpenCode, Agents, Models"
+    echo -e "    Memory, Knowledge, Terminal, Files, Monitor"
+    echo -e "    Scripts, Users, Settings"
     echo
     echo -e "  ${YELLOW}Quick start:${NC}"
     echo -e "    vestara status     # Check services"
     echo -e "    vestara chat       # Start AI chat"
     echo -e "    vestara models     # List available models"
     echo
-    echo -e "  ${YELLOW}Default AI models:${NC}"
+    echo -e "  ${YELLOW}Default AI models (OpenCode free):${NC}"
     echo -e "    opencode/deepseek-v4-flash-free"
     echo -e "    opencode/mimo-v2.5-free"
     echo -e "    opencode/nemotron-3-ultra-free"
+    echo -e "    opencode/north-mini-code-free"
+    echo -e "    opencode/big-pickle"
     echo
 }
 

@@ -21,7 +21,7 @@ Vestara API starts
     ▼
 Dashboard opens in browser (kiosk mode)
     ▼
-AI Platform ready (12 pages)
+AI Platform ready (14 pages)
 ```
 
 ---
@@ -77,7 +77,7 @@ systemd starts `vestara.target`:
 
 ## Phase 4: Dashboard Loads
 
-**What the user sees:** Vestara AI OS dashboard with 12 pages.
+**What the user sees:** Vestara AI OS dashboard with 14 pages.
 
 ```
 ┌──────────────────────────────────────────────────────┐

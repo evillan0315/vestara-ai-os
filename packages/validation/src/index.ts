@@ -87,6 +87,22 @@ export const updateProjectSchema = z.object({
   status: z.enum(['active', 'paused', 'archived']).optional(),
 });
 
+// ── Task ──────────────────────────────────────
+
+export const createTaskSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
+  assigneeId: z.string().optional(),
+});
+
+export const updateTaskSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).optional(),
+  status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
+  assigneeId: z.string().optional(),
+});
+
 // ── Knowledge ─────────────────────────────────
 
 export const uploadDocumentSchema = z.object({
@@ -129,6 +145,8 @@ export type CreateAgentInput = z.infer<typeof createAgentSchema>;
 export type UpdateAgentInput = z.infer<typeof updateAgentSchema>;
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type UploadDocumentInput = z.infer<typeof uploadDocumentSchema>;
 export type SearchKnowledgeInput = z.infer<typeof searchKnowledgeSchema>;
 export type CreateMemoryInput = z.infer<typeof createMemorySchema>;

@@ -57,13 +57,14 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
   ├── File routes (list, read, write, mkdir, delete, rename, tree, search)
   └── WebSocket support
 
-✅ Dashboard (13 pages)
+✅ Dashboard (14 pages)
   ├── Dashboard — System overview (recharts: area, radial, pie)
   ├── AI Chat — Streaming chat with multi-model
   ├── OpenCode — CLI integration with chat history
   ├── Agents — Agent management (8 built-in)
   ├── Models — Provider and model selection
   ├── Memory — Memory store with search
+  ├── Projects — Project and task management
   ├── Knowledge — Knowledge base with RAG
   ├── Terminal — Full-width terminal with Vestara CLI
   ├── Files — File manager (tree, editor, operations)
@@ -121,7 +122,7 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
 
 **A Samsung T9 SSD that boots into Vestara AI OS on any x86-64 computer.**
 
-The user plugs in the SSD, powers on, selects USB boot, and enters a fully functional AI workstation with 13 dashboard pages. All services are running. The dashboard is ready.
+The user plugs in the SSD, powers on, selects USB boot, and enters a fully functional AI workstation with 14 dashboard pages. All services are running. The dashboard is ready.
 
 ---
 
@@ -223,13 +224,14 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 | 4 | Agents | `/agents` | 8 built-in agents, tool execution |
 | 5 | Models | `/models` | Provider management, connection testing |
 | 6 | Memory | `/memory` | Auto-consolidation, search, importance |
-| 7 | Knowledge | `/knowledge` | RAG search, document collections |
-| 8 | Terminal | `/terminal` | Vestara CLI, ⚡ menu, cd support |
-| 9 | Files | `/files` | Tree view, editor, context menu, search |
-| 10 | Monitor | `/monitor` | Real-time recharts, process table |
-| 11 | Scripts | `/scripts` | Categorized list, docs, source viewer |
-| 12 | Users | `/users` | CRUD, OS sync, role management |
-| 13 | Settings | `/settings` | Provider config, appearance |
+| 7 | Projects | `/projects` | Project CRUD, task board, status tracking |
+| 8 | Knowledge | `/knowledge` | RAG search, document collections |
+| 9 | Terminal | `/terminal` | Vestara CLI, ⚡ menu, cd support |
+| 10 | Files | `/files` | Tree view, editor, context menu, search |
+| 11 | Monitor | `/monitor` | Real-time recharts, process table |
+| 12 | Scripts | `/scripts` | Categorized list, docs, source viewer |
+| 13 | Users | `/users` | CRUD, OS sync, role management |
+| 14 | Settings | `/settings` | Provider config, appearance |
 
 ---
 
@@ -246,11 +248,11 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 | agents | 3 | Protected |
 | memory | 3 | Protected |
 | knowledge | 3 | Protected |
-| projects | 3 | Protected |
+| projects | 9 | Protected |
 | users | 5 | Admin |
 | scripts | 4 | Protected |
 | files | 8 | Protected |
-| **Total** | **57** | |
+| **Total** | **63** | |
 
 ---
 
@@ -260,7 +262,7 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 
 - [x] Build script creates bootable SSD image
 - [x] All services start and report healthy
-- [x] Dashboard loads with 13 pages
+- [x] Dashboard loads with 14 pages
 - [x] AI Chat works with cloud APIs and free OpenCode models
 - [x] Ollama starts on-demand
 - [x] CLI tool manages services

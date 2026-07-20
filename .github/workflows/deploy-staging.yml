@@ -102,7 +102,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'EOF'
             cd ${{ env.DEPLOY_PATH }}
             sudo systemctl restart vestara-api.service
-            sudo systemctl restart vestara-dashboard.service
+            sudo systemctl restart nginx
             sleep 5
           EOF
 

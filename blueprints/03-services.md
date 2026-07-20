@@ -61,7 +61,7 @@ React dashboard served via Nginx (production) or Vite dev server.
 
 ```
 Responsibilities:
-- Serve React SPA (12 pages)
+- Serve React SPA (14 pages)
 - Proxy API requests to localhost:3000
 - Static asset serving
 - SPA routing (try_files)

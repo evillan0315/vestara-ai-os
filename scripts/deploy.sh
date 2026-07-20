@@ -92,7 +92,7 @@ restart_services() {
     else
         # Production: restart systemd services
         sudo systemctl restart vestara-api.service
-        sudo systemctl restart vestara-dashboard.service
+        sudo systemctl restart nginx
         sleep 5
     fi
 

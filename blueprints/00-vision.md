@@ -18,7 +18,7 @@ Tiny Linux
 Auto Login (OS-based auth)
     ▼
 AI Platform
-    ├── Dashboard (12 pages)
+    ├── Dashboard (14 pages)
     ├── AI Chat (streaming)
     ├── OpenCode (CLI + chat history)
     ├── Agents (8 built-in + custom)

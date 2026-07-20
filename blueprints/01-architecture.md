@@ -11,7 +11,7 @@
 ┌─────────────────────────────────────┐
 │         Vestara Dashboard           │
 │  React 19 · Vite 6 · Tailwind 4    │
-│  12 Pages · Glassmorphism           │
+│  14 Pages · Glassmorphism           │
 ├─────────────────────────────────────┤
 │         Vestara API                 │
 │  Fastify 5 · WebSocket · REST      │
@@ -216,7 +216,7 @@ activity_log (id, user_id, action, resource, metadata, created_at)
 ```
 vestara-ai-os/
 ├── apps/
-│   └── dashboard/              # React dashboard (12 pages)
+│   └── dashboard/              # React dashboard (14 pages)
 ├── services/
 │   ├── core/                   # @vestara/core (DB, memory, knowledge, agents)
 │   └── api/                    # Fastify API server (15 route modules)
@@ -248,7 +248,7 @@ Conversation Routes /api/conversations/* Conversation CRUD
 Agent Routes       /api/agents/*        Agent management + runtime
 Memory Routes      /api/memory/*        Memory CRUD + search
 Knowledge Routes   /api/knowledge/*     Knowledge base CRUD + search
-Project Routes     /api/projects/*      Project management
+Project Routes     /api/projects/*      Project + task management
 User Routes        /api/users/*         User CRUD (admin only)
 Script Routes      /api/scripts/*       Script management + execution
 File Routes        /api/files/*         File manager operations
@@ -256,7 +256,7 @@ File Routes        /api/files/*         File manager operations
 
 ---
 
-## Dashboard Pages (12)
+## Dashboard Pages (14)
 
 | Page | Route | Purpose |
 |------|-------|---------|
@@ -266,6 +266,7 @@ File Routes        /api/files/*         File manager operations
 | Agents | `/agents` | Agent management and execution |
 | Models | `/models` | Provider and model selection |
 | Memory | `/memory` | Memory store with search |
+| Projects | `/projects` | Project and task management |
 | Knowledge | `/knowledge` | Knowledge base with RAG |
 | Terminal | `/terminal` | Full-width terminal with Vestara CLI |
 | Files | `/files` | File manager with tree, editor, operations |

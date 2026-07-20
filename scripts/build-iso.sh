@@ -106,7 +106,7 @@ install_vestara() {
 
     # Install Chromium
     chroot "$BUILD_DIR/chroot" bash -c '
-        apt-get install -y chromium
+        apt-get install -y chromium nginx
     '
 
     # Copy and install Vestara

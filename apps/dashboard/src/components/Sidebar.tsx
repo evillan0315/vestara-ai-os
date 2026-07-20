@@ -32,6 +32,7 @@ const navGroups: NavGroup[] = [
     label: 'Data',
     items: [
       { to: '/memory', label: 'Memory', icon: '💾' },
+      { to: '/projects', label: 'Projects', icon: '📋' },
       { to: '/knowledge', label: 'Knowledge', icon: '📚' },
     ],
   },

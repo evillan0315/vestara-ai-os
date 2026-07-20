@@ -61,7 +61,7 @@ pnpm test
 
 ### Apps (`apps/`)
 
-- `@vestara/dashboard` — React dashboard (12 pages)
+- `@vestara/dashboard` — React dashboard (14 pages)
 
 ## Code Conventions
 

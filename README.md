@@ -32,7 +32,7 @@ cd packages/cli && pnpm build
 
 ## Features
 
-- **12-screen Dashboard** — Dark glassmorphism AI command center with recharts visualizations
+- **14-screen Dashboard** — Dark glassmorphism AI command center with recharts visualizations
 - **OS Authentication** — Login with your system username/password
 - **AI Chat** — Stream responses from OpenAI, Anthropic, Google, Ollama
 - **OpenCode Integration** — First-class OpenCode support with chat history persistence
@@ -53,7 +53,7 @@ cd packages/cli && pnpm build
 ┌─────────────────────────────────────┐
 │         Vestara Dashboard           │
 │  React 19 · Tailwind 4 · Vite 6   │
-│  12 pages · Recharts · Auth        │
+│  14 pages · Recharts · Auth        │
 ├─────────────────────────────────────┤
 │         Vestara API                 │
 │  Fastify 5 · WebSocket · REST      │
@@ -79,7 +79,7 @@ cd packages/cli && pnpm build
 ```
 vestara-ai-os/
 ├── apps/
-│   └── dashboard/              # React dashboard (12 pages)
+│   └── dashboard/              # React dashboard (14 pages)
 ├── services/
 │   ├── core/                   # @vestara/core library
 │   │   ├── db.ts               # SQLite wrapper + schema
@@ -127,9 +127,12 @@ vestara-ai-os/
 | Agents | `/agents` | Agent management and execution |
 | Models | `/models` | AI model manager |
 | Memory | `/memory` | Memory store with search |
+| Projects | `/projects` | Project and task management |
 | Knowledge | `/knowledge` | Knowledge base |
 | Terminal | `/terminal` | Built-in terminal with Vestara CLI |
+| Files | `/files` | File manager (tree, editor, operations) |
 | System | `/monitor` | Resource monitor with charts |
+| Scripts | `/scripts` | Script runner with documentation |
 | Users | `/users` | User management (admin) |
 | Settings | `/settings` | Configuration |
 
@@ -320,7 +323,7 @@ sudo dd if=dist/vestara-ai-os.img of=/dev/sdX bs=4M status=progress
 - [Boot Experience](./blueprints/02-boot-experience.md) — Auto-login, systemd services
 - [Services](./blueprints/03-services.md) — Lightweight AI services
 - [Filesystem](./blueprints/04-filesystem.md) — Purpose-built filesystem layout
-- [Desktop](./blueprints/05-desktop.md) — 12-screen dark glassmorphism UI
+- [Desktop](./blueprints/05-desktop.md) — 14-screen dark glassmorphism UI
 - [Applications](./blueprints/06-applications.md) — Built-in AI applications
 - [Implementation Roadmap](./blueprints/07-implementation-roadmap.md) — 4-stage build plan
 

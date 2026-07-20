@@ -201,13 +201,13 @@ install_opencode() {
 # ── Install Chromium ─────────────────────────
 
 install_chromium() {
-    log "Installing Chromium..."
+    log "Installing Chromium and Nginx..."
 
     chroot "$MOUNT_POINT" bash -c '
-        apt-get install -y chromium
+        apt-get install -y chromium nginx
     '
 
-    log "Chromium installed"
+    log "Chromium and Nginx installed"
 }
 
 # ── Deploy Vestara ───────────────────────────

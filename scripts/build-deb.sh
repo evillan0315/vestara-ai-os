@@ -151,14 +151,21 @@ EOF
 
 Fastify API server for Vestara AI OS.
 
-## Endpoints
+## Endpoints (15 modules, 57 endpoints)
 
-- `/api/health` — Health check
-- `/api/chat` — AI chat
-- `/api/providers` — Provider management
-- `/api/agents` — Agent management
-- `/api/memory` — Memory store
-- `/api/knowledge` — Knowledge base
+- `/api/auth/*` — OS-based authentication
+- `/api/system/*` — System stats, health, exec
+- `/api/providers/*` — AI provider management
+- `/api/providers/opencode/*` — OpenCode CLI + chat history
+- `/api/chat/*` — AI chat (SSE streaming)
+- `/api/conversations/*` — Conversation CRUD
+- `/api/agents/*` — Agent management + runtime
+- `/api/memory/*` — Memory CRUD + search
+- `/api/knowledge/*` — Knowledge base CRUD + search
+- `/api/projects/*` — Project management
+- `/api/users/*` — User management (admin)
+- `/api/scripts/*` — Script management + execution
+- `/api/files/*` — File manager operations
 EOF
     
     echo -e "0.1.0" > "$pkg/usr/share/doc/vestara-api/changelog.Debian"
@@ -191,8 +198,9 @@ Architecture: amd64
 Depends: nginx, vestara-api
 Maintainer: Vestara <support@vestara.ai>
 Description: Vestara AI OS - Dashboard
- React dashboard for Vestara AI OS with 10 pages including
- AI chat, agents, memory, knowledge, and system monitor.
+ React 19 dashboard for Vestara AI OS with 13 pages including
+ AI chat, OpenCode, agents, models, memory, knowledge,
+ terminal, file manager, monitor, scripts, and users.
 EOF
     
     # Copy built files
@@ -236,12 +244,23 @@ EOF
     cat > "$pkg/usr/share/doc/vestara-dashboard/README.md" << 'EOF'
 # vestara-dashboard
 
-React dashboard for Vestara AI OS.
+React 19 dashboard for Vestara AI OS.
 
-## Pages
+## Pages (13)
 
-- Dashboard, AI Chat, OpenCode, Agents, Models
-- Memory, Knowledge, Terminal, System, Settings
+- Dashboard — System overview (recharts)
+- AI Chat — Streaming chat with multi-model
+- OpenCode — CLI integration with chat history
+- Agents — Agent management (8 built-in)
+- Models — Provider and model selection
+- Memory — Memory store with search
+- Knowledge — Knowledge base with RAG
+- Terminal — Full-width terminal with Vestara CLI
+- Files — File manager (tree, editor, operations)
+- Monitor — Real-time monitoring (recharts)
+- Scripts — Script runner with documentation
+- Users — User management (admin only)
+- Settings — System configuration
 EOF
     
     echo -e "0.1.0" > "$pkg/usr/share/doc/vestara-dashboard/changelog.Debian"

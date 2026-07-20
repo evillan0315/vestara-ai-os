@@ -33,7 +33,7 @@ pnpm dev
 
 ```
 vestara-ai-os/
-├── apps/dashboard/          # React frontend (12 pages)
+├── apps/dashboard/          # React frontend (14 pages)
 ├── services/core/           # Core library (SQLite, services)
 ├── services/api/            # Fastify API server
 ├── packages/                # Shared packages
@@ -196,9 +196,12 @@ docker build -t vestara-dashboard -f Dockerfile.dashboard .
 | Agents | `/agents` | Agent management |
 | Models | `/models` | AI model manager |
 | Memory | `/memory` | Memory store |
+| Projects | `/projects` | Project and task management |
 | Knowledge | `/knowledge` | Knowledge base |
 | Terminal | `/terminal` | Terminal with Vestara CLI |
+| Files | `/files` | File manager (tree, editor, operations) |
 | System | `/monitor` | Resource monitor with charts |
+| Scripts | `/scripts` | Script runner with documentation |
 | Users | `/users` | User management (admin) |
 | Settings | `/settings` | Configuration |
 

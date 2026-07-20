@@ -67,7 +67,7 @@ stop_services() {
     log "Stopping services..."
 
     sudo systemctl stop vestara-api.service 2>/dev/null || true
-    sudo systemctl stop vestara-dashboard.service 2>/dev/null || true
+    sudo systemctl stop nginx 2>/dev/null || true
 
     log "Services stopped"
 }
@@ -88,7 +88,7 @@ start_services() {
     log "Starting services..."
 
     sudo systemctl start vestara-api.service
-    sudo systemctl start vestara-dashboard.service
+    sudo systemctl start nginx
 
     log "Services started"
 }

@@ -15,6 +15,7 @@ import SystemMonitor from './pages/SystemMonitor';
 import Users from './pages/Users';
 import Scripts from './pages/Scripts';
 import FileManager from './pages/FileManager';
+import Projects from './pages/Projects';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -57,6 +58,7 @@ function AppRoutes() {
         <Route path="/agents" element={<Agents />} />
         <Route path="/models" element={<Models />} />
         <Route path="/memory" element={<Memory />} />
+        <Route path="/projects" element={<Projects />} />
         <Route path="/knowledge" element={<Knowledge />} />
         <Route path="/terminal" element={<Terminal />} />
         <Route path="/monitor" element={<SystemMonitor />} />
