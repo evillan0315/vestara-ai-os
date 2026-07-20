@@ -10,7 +10,6 @@ import { AgentRuntime } from '@vestara/core';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerConversationRoutes } from './routes/conversations.js';
-import { registerAgentRoutes } from './routes/agents.js';
 import { registerAgentRuntimeRoutes } from './routes/agent-runtime.js';
 import { registerSystemRoutes } from './routes/system.js';
 import { registerKnowledgeRoutes } from './routes/knowledge.js';
@@ -90,7 +89,6 @@ async function main() {
   registerAuthRoutes(vestaraApp);
   registerProviderRoutes(vestaraApp);
   registerConversationRoutes(vestaraApp);
-  registerAgentRoutes(vestaraApp);
   registerAgentRuntimeRoutes(vestaraApp);
   registerSystemRoutes(vestaraApp);
   registerKnowledgeRoutes(vestaraApp);
