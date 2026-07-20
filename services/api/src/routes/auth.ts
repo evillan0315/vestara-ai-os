@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import type { VestaraApp } from '../types.js';
 import { generateId, generateToken } from '@vestara/utils';
 import bcryptjs from 'bcryptjs';
@@ -14,6 +15,30 @@ interface UserRow {
   password_hash: string;
   role: string;
   created_at: string;
+}
+
+function getOsUser(): { username: string; homeDir: string; shell: string } | null {
+  try {
+    const username = execSync('whoami', { stdio: 'pipe', shell: '/usr/bin/sh' }).toString().trim();
+    const homeDir = execSync('echo $HOME', { stdio: 'pipe', shell: '/usr/bin/sh' }).toString().trim();
+    const shell = execSync('echo $SHELL', { stdio: 'pipe', shell: '/usr/bin/sh' }).toString().trim();
+    return { username, homeDir, shell };
+  } catch {
+    return null;
+  }
+}
+
+function verifyOsPassword(username: string, password: string): boolean {
+  try {
+    execSync(`echo '${password.replace(/'/g, "'\\''")}' | su -c 'echo ok' ${username}`, {
+      stdio: 'pipe',
+      shell: '/usr/bin/sh',
+      timeout: 5000,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function registerAuthRoutes(app: VestaraApp) {
@@ -109,6 +134,143 @@ export function registerAuthRoutes(app: VestaraApp) {
       app.db.run('DELETE FROM sessions WHERE token = ?', token);
     }
     return { message: 'Logged out' };
+  });
+
+  /**
+   * Get current OS user info
+   */
+  app.get('/api/auth/os-user', async () => {
+    const osUser = getOsUser();
+    if (!osUser) {
+      return { user: null };
+    }
+
+    // Find or create user in database
+    let user = app.db.get<UserRow>(
+      'SELECT * FROM users WHERE email = ?',
+      `${osUser.username}@os.local`,
+    );
+
+    if (!user) {
+      const id = generateId();
+      const passwordHash = await hash(osUser.username, 12);
+      app.db.run(
+        'INSERT INTO users (id, name, email, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+        id, osUser.username, `${osUser.username}@os.local`, passwordHash, 'admin',
+      );
+      user = app.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id);
+    }
+
+    return {
+      user: {
+        id: user!.id,
+        name: user!.name,
+        email: user!.email,
+        role: user!.role,
+        homeDir: osUser.homeDir,
+        shell: osUser.shell,
+      },
+    };
+  });
+
+  /**
+   * Login with OS user credentials
+   */
+  app.post<{ Body: { username: string; password: string } }>(
+    '/api/auth/os-login',
+    async (request, reply) => {
+      const { username, password } = request.body;
+
+      if (!username || !password) {
+        return reply.status(400).send({ error: 'Username and password required' });
+      }
+
+      // Verify against OS
+      const osUser = getOsUser();
+      if (!osUser) {
+        return reply.status(500).send({ error: 'Could not detect OS user' });
+      }
+
+      // Allow login as current OS user
+      if (username !== osUser.username) {
+        return reply.status(401).send({ error: 'Invalid credentials' });
+      }
+
+      // Verify password against OS
+      if (!verifyOsPassword(username, password)) {
+        return reply.status(401).send({ error: 'Invalid credentials' });
+      }
+
+      // Find or create user
+      let user = app.db.get<UserRow>(
+        'SELECT * FROM users WHERE email = ?',
+        `${username}@os.local`,
+      );
+
+      if (!user) {
+        const id = generateId();
+        const passwordHash = await hash(password, 12);
+        app.db.run(
+          'INSERT INTO users (id, name, email, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+          id, username, `${username}@os.local`, passwordHash, 'admin',
+        );
+        user = app.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id);
+      }
+
+      const token = sign({ userId: user!.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+      const sessionId = generateId();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      app.db.run(
+        'INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)',
+        sessionId, user!.id, token, expiresAt,
+      );
+
+      return {
+        user: { id: user!.id, name: user!.name, email: user!.email, role: user!.role },
+        token,
+      };
+    },
+  );
+
+  /**
+   * Auto-login as current OS user (no password required)
+   */
+  app.post('/api/auth/os-auto-login', async (request, reply) => {
+    const osUser = getOsUser();
+    if (!osUser) {
+      return reply.status(500).send({ error: 'Could not detect OS user' });
+    }
+
+    // Find or create user
+    let user = app.db.get<UserRow>(
+      'SELECT * FROM users WHERE email = ?',
+      `${osUser.username}@os.local`,
+    );
+
+    if (!user) {
+      const id = generateId();
+      const passwordHash = await hash(osUser.username, 12);
+      app.db.run(
+        'INSERT INTO users (id, name, email, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+        id, osUser.username, `${osUser.username}@os.local`, passwordHash, 'admin',
+      );
+      user = app.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id);
+    }
+
+    const token = sign({ userId: user!.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    const sessionId = generateId();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    app.db.run(
+      'INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)',
+      sessionId, user!.id, token, expiresAt,
+    );
+
+    return {
+      user: { id: user!.id, name: user!.name, email: user!.email, role: user!.role },
+      token,
+    };
   });
 }
 

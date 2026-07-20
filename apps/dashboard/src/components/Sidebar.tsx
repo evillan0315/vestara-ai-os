@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
@@ -19,6 +20,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open = true, onClose }: SidebarProps) {
+  const { user, logout } = useAuth();
+
   return (
     <>
       {/* Mobile overlay */}
@@ -63,10 +66,21 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
           ))}
         </nav>
         <div className="border-t border-vestara-glass-border p-3">
-          <div className="glass-sm flex items-center gap-2 px-3 py-2">
-            <div className="h-2 w-2 rounded-full bg-vestara-success"></div>
-            <span className="text-xs text-vestara-text-muted">All Systems Ready</span>
-          </div>
+          {user && (
+            <div className="mb-2 flex items-center gap-2 px-3 py-1.5">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-vestara-gold/20 text-[10px] font-bold text-vestara-gold">
+                {user.name[0]?.toUpperCase()}
+              </div>
+              <span className="truncate text-xs text-vestara-text-muted">{user.name}</span>
+            </div>
+          )}
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-vestara-text-muted hover:bg-white/5 hover:text-red-400"
+          >
+            <span className="text-base">🚪</span>
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
     </>

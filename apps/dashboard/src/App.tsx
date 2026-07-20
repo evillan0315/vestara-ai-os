@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Layout } from './components/Layout';
+import { LoginPage } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Chat } from './pages/Chat';
 import { Agents } from './pages/Agents';
@@ -11,10 +13,40 @@ import Knowledge from './pages/Knowledge';
 import Terminal from './pages/Terminal';
 import SystemMonitor from './pages/SystemMonitor';
 
-export default function App() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-vestara-bg">
+        <div className="text-sm text-vestara-text-muted">Loading...</div>
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-vestara-bg">
+        <div className="text-sm text-vestara-text-muted">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+      <Route
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/chat" element={<Chat />} />
@@ -28,5 +60,13 @@ export default function App() {
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
