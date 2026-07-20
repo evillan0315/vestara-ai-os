@@ -4,6 +4,8 @@ import websocket from '@fastify/websocket';
 import { getConfig } from '@vestara/config';
 import { createLogger } from '@vestara/core';
 import { createDatabase, migrate } from '@vestara/core';
+import { MemoryService } from '@vestara/core';
+import { KnowledgeService } from '@vestara/core';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerConversationRoutes } from './routes/conversations.js';
@@ -53,6 +55,11 @@ async function main() {
   migrate(db);
   app.decorate('db', db);
   app.decorate('aiRouter', aiRouter);
+
+  // Services
+  const events = (app as any).events || { emit: () => {}, on: () => {} };
+  app.decorate('memoryService', new MemoryService(db, events));
+  app.decorate('knowledgeService', new KnowledgeService(db, events));
 
   // CORS
   await app.register(cors, {

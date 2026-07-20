@@ -1,0 +1,26 @@
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@10.6.0 --activate
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* turbo.json tsconfig.base.json ./
+COPY packages/types ./packages/types
+COPY packages/constants ./packages/constants
+COPY packages/validation ./packages/validation
+COPY packages/utils ./packages/utils
+COPY packages/config ./packages/config
+COPY apps/dashboard ./apps/dashboard
+
+RUN pnpm install --frozen-lockfile || pnpm install
+RUN pnpm build --filter=@vestara/types --filter=@vestara/constants --filter=@vestara/validation --filter=@vestara/utils --filter=@vestara/config
+RUN pnpm --filter=@vestara/dashboard build
+
+FROM nginx:alpine
+
+COPY --from=builder /app/apps/dashboard/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

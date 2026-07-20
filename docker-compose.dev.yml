@@ -1,0 +1,40 @@
+# ──────────────────────────────────────────────
+# Vestara AI OS — Docker Compose (Development)
+# Quick start for local development
+# ──────────────────────────────────────────────
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vestara-api-dev
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE: /data/vestara.db
+    volumes:
+      - vestara_data:/data
+      - ./services/api/src:/app/services/api/src
+      - ./services/core/src:/app/services/core/src
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: vestara-dashboard-dev
+    ports:
+      - "5173:80"
+    volumes:
+      - ./apps/dashboard/src:/app/apps/dashboard/src
+    depends_on:
+      - api
+
+volumes:
+  vestara_data:

@@ -1,0 +1,46 @@
+/* Vestara AI OS — Plymouth Boot Theme */
+
+/* Background color */
+window {
+    background_color = 0.04, 0.04, 0.12;
+}
+
+/* Boot text */
+boot {
+    x = 0.5;
+    y = 0.85;
+    width = 0.6;
+    color = 0.4, 0.7, 1.0;
+    font = "Montserrat 18";
+    text = "Vestara AI OS";
+}
+
+/* Loading bar */
+progress_bar {
+    x = 0.3;
+    y = 0.9;
+    width = 0.4;
+    height = 0.03;
+    border_color = 0.2, 0.3, 0.5;
+    bar_color = 0.4, 0.7, 1.0;
+    bar_background_color = 0.08, 0.1, 0.2;
+    borderWidth = 1;
+    borderRadius = 4;
+}
+
+/* Spinner animation */
+animation {
+    x = 0.5;
+    y = 0.5;
+    width = 128;
+    height = 128;
+}
+
+/* Status message */
+message {
+    x = 0.5;
+    y = 0.95;
+    width = 0.6;
+    color = 0.3, 0.4, 0.6;
+    font = "Montserrat 14";
+}
