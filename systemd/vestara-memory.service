@@ -1,0 +1,23 @@
+[Unit]
+Description=Vestara Memory Service
+After=vestara-core.service
+Requires=vestara-core.service
+
+[Service]
+Type=simple
+User=ai
+Group=ai
+WorkingDirectory=/home/ai/vestara
+ExecStart=/usr/bin/node services/memory/dist/index.js
+Restart=on-failure
+RestartSec=5
+
+# Security
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ai/vestara/data /home/ai/vestara/logs
+PrivateTmp=yes
+
+[Install]
+WantedBy=vestara.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=Vestara AI Platform
+After=multi-user.target docker.service
+
+[Install]
+WantedBy=graphical.target
+
+Wants=vestara-core.service
+Wants=vestara-api.service
+Wants=vestara-dashboard.service

@@ -2,23 +2,28 @@
   "name": "vestara-ai-os",
   "version": "0.1.0",
   "private": true,
-  "description": "A complete AI workstation that boots from an external SSD",
   "type": "module",
-  "engines": {
-    "node": ">=22.0.0",
-    "pnpm": ">=10.0.0"
-  },
-  "packageManager": "pnpm@10.6.0",
+  "description": "Vestara AI OS — A portable AI operating system that boots from an external SSD",
   "scripts": {
-    "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "turbo lint",
-    "test": "turbo test",
+    "dev:api": "turbo dev --filter=@vestara/api",
+    "dev:dashboard": "turbo dev --filter=@vestara/dashboard",
+    "build": "turbo build",
+    "build:packages": "turbo build --filter='./packages/*'",
+    "build:core": "turbo build --filter=@vestara/core",
+    "build:api": "turbo build --filter=@vestara/api",
+    "build:dashboard": "turbo build --filter=@vestara/dashboard",
     "typecheck": "turbo typecheck",
-    "clean": "turbo clean"
+    "lint": "turbo lint",
+    "clean": "turbo clean && rm -rf node_modules"
   },
   "devDependencies": {
     "turbo": "^2.10.4",
     "typescript": "^5.7.0"
-  }
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "packageManager": "pnpm@10.6.0"
 }

@@ -1,0 +1,18 @@
+[Unit]
+Description=Vestara Dashboard
+After=vestara-api.service
+
+[Service]
+Type=simple
+User=ai
+Group=ai
+ExecStart=/usr/bin/chromium --kiosk --noerrdialogs --disable-infobars --no-first-run http://localhost:3000
+Restart=on-failure
+RestartSec=5
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=vestara.target

@@ -1,0 +1,28 @@
+[Unit]
+Description=Vestara API Server
+After=vestara-core.service
+Requires=vestara-core.service
+
+[Service]
+Type=simple
+User=ai
+Group=ai
+WorkingDirectory=/home/ai/vestara
+ExecStart=/usr/bin/node services/api/dist/index.js
+Restart=on-failure
+RestartSec=5
+
+# Security
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ai/vestara/data /home/ai/vestara/logs
+PrivateTmp=yes
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=DATABASE=/home/ai/vestara/data/vestara.db
+
+[Install]
+WantedBy=vestara.target
