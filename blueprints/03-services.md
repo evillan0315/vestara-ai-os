@@ -1,174 +1,103 @@
 # Vestara AI OS — Services
 
-> Each AI capability is a systemd service.
-> The OS manages them. The desktop consumes them.
+> Lightweight services that start automatically.
+> Ollama loads on-demand. Everything else is always ready.
 
 ---
 
 ## Service Overview
 
-| Service | Port | Purpose |
-|---|---|---|
-| `vestara-core` | — | Identity, config, event bus |
-| `vestara-database` | 5432/6379 | PostgreSQL + Redis lifecycle |
-| `vestara-ai-gateway` | 3000 | Unified AI provider API |
-| `vestara-model-router` | 3001 | Route to local/remote models |
-| `vestara-memory` | 3002 | Context window management |
-| `vestara-knowledge` | 3003 | RAG, document indexing, semantic search |
-| `vestara-agents` | 3004 | Agent lifecycle management |
-| `vestara-workflow` | 3005 | Multi-step AI automation |
-| `vestara-notifications` | 3006 | System and AI notifications |
-| `vestara-sync` | 3007 | Cross-device synchronization |
+| Service | Port | Auto-start | Purpose |
+|---|---|---|---|
+| `vestara-core` | — | Yes | Config, events, logging |
+| `vestara-api` | 3000 | Yes | Fastify REST + WebSocket |
+| `vestara-memory` | 3001 | Yes | Context management |
+| `vestara-agents` | 3002 | Yes | Agent lifecycle |
+| `vestara-notifications` | 3003 | Yes | System notifications |
+| `vestara-dashboard` | — | Yes | Browser kiosk mode |
+| `ollama` | 11434 | **No** | Local model inference |
 
 ---
 
 ## Service Definitions
 
-### vestara-core.service
+### vestara-core
 
-The foundation. All other services depend on this.
+The foundation. Configuration, event bus, logging.
 
 ```
 Responsibilities:
-- Organization management (create, switch, configure)
-- User authentication (JWT, sessions)
-- System configuration (read/write config files)
-- Internal event bus (Redis Pub/Sub)
-- Structured logging (Pino → journald)
+- Load system configuration
+- User session management
+- Internal event bus (Node.js EventEmitter)
+- Structured logging (Pino → file + stdout)
 - Encryption utilities
-- Database migrations
 
-Dependencies:
-- postgresql.service
-- redis.service
-
-Port: None (internal library, not HTTP)
+Dependencies: None
+Port: None (in-process library)
+RAM: ~10MB
 ```
 
-### vestara-database.service
+### vestara-api
 
-Manages PostgreSQL and Redis lifecycle.
+Unified API for the dashboard and all services.
 
 ```
 Responsibilities:
-- Start/stop PostgreSQL 17
-- Start/stop Redis 8
-- Run database migrations on startup
-- Health checks
-- Backup scheduling
-
-Dependencies:
-- network.target
-
-Ports:
-- PostgreSQL: 5432 (localhost only)
-- Redis: 6379 (localhost only)
-```
-
-### vestara-ai-gateway.service
-
-Unified API for all AI providers.
-
-```
-Responsibilities:
-- Accept AI requests from desktop/apps
-- Route to appropriate provider (OpenAI, Anthropic, Ollama, etc.)
-- API key management (encrypted storage)
-- Rate limiting per user/org
+- REST endpoints for dashboard
+- WebSocket for real-time updates
+- AI provider routing (OpenAI, Anthropic, Gemini, Ollama)
 - Request/response logging
-- Cost tracking
+- Rate limiting
+- CORS configuration
 
-Dependencies:
-- vestara-core.service
-
+Dependencies: vestara-core
 Port: 3000
+RAM: ~50MB
 
-Providers:
-- OpenAI (GPT-4o, GPT-4.1)
-- Anthropic (Claude Opus, Sonnet)
-- Google (Gemini 2.5)
-- Ollama (local models)
-- Custom endpoints
+Endpoints:
+GET  /api/health              → System health
+GET  /api/status              → Service status
+GET  /api/providers           → List AI providers
+POST /api/providers/:id/test  → Test provider connection
+GET  /api/models              → List available models
+POST /api/chat                → Send chat message (streaming)
+GET  /api/conversations       → List conversations
+GET  /api/conversations/:id   → Get conversation
+POST /api/agents              → Create agent
+GET  /api/agents              → List agents
+POST /api/agents/:id/run      → Run agent
+GET  /api/knowledge           → List knowledge base
+POST /api/knowledge/upload    → Upload document
+GET  /api/memory              → List memories
+GET  /api/projects            → List projects
+GET  /api/system/stats        → CPU, RAM, GPU, disk
+WebSocket /ws                 → Real-time updates
 ```
 
-### vestara-model-router.service
-
-Intelligent model selection.
-
-```
-Responsibilities:
-- Route requests to local or remote models
-- Load balancing across providers
-- Fallback logic (local → cloud)
-- Latency-based routing
-- Cost optimization
-- GPU awareness (prefer local when GPU available)
-
-Dependencies:
-- vestara-ai-gateway.service
-
-Port: 3001
-
-Routing Logic:
-- Simple query → small local model (Phi-4, Qwen3)
-- Complex reasoning → cloud model (Claude Opus, GPT-4o)
-- Code generation → code-specialized model
-- User override → respect explicit model choice
-```
-
-### vestara-memory.service
+### vestara-memory
 
 Context window management.
 
 ```
 Responsibilities:
-- Maintain conversation context
-- Summarize long conversations
-- Extract key facts and preferences
-- Store user preferences and habits
-- Provide context to AI queries
-- Automatic memory consolidation
-
-Dependencies:
-- vestara-core.service
-- vestara-database.service
-
-Port: 3002
-
-Memory Types:
 - Working memory (current conversation)
 - Short-term memory (recent conversations)
 - Long-term memory (persistent facts, preferences)
-- Procedural memory (how to do things)
+- Automatic memory consolidation
+- Memory retrieval for AI queries
+
+Dependencies: vestara-core
+Port: 3001
+RAM: ~30MB
+
+Memory Types:
+- Working: Current conversation context
+- Short-term: Last 24 hours of conversations
+- Long-term: User preferences, key facts, project context
 ```
 
-### vestara-knowledge.service
-
-RAG engine and document intelligence.
-
-```
-Responsibilities:
-- Document ingestion (PDF, MD, TXT, DOCX, HTML)
-- Text chunking and embedding
-- Vector storage (pgvector)
-- Semantic search
-- RAG query execution
-- Document relationship mapping
-- Automatic re-indexing
-
-Dependencies:
-- vestara-core.service
-- vestara-database.service
-- vestara-ai-gateway.service (for embeddings)
-
-Port: 3003
-
-Embedding Models:
-- Local: nomic-embed-text (via Ollama)
-- Remote: OpenAI text-embedding-3-small
-```
-
-### vestara-agents.service
+### vestara-agents
 
 Agent lifecycle management.
 
@@ -177,52 +106,25 @@ Responsibilities:
 - Register and configure agents
 - Execute agent workflows
 - Manage agent state (idle, running, paused)
-- Agent-to-agent communication
 - Tool execution sandboxing
 - Agent marketplace integration
 
-Dependencies:
-- vestara-core.service
-- vestara-ai-gateway.service
-- vestara-memory.service
+Dependencies: vestara-core, vestara-api
+Port: 3002
+RAM: ~40MB (per active agent)
 
-Port: 3004
-
-Agent Types:
-- Assistant (conversational)
-- Task-specific (coding, writing, research)
-- Autonomous (long-running workflows)
-- Custom (user-defined via Marketplace)
+Built-in Agents:
+- Planner (task decomposition)
+- Software Developer (code generation)
+- DevOps (infrastructure)
+- Cloud Engineer (cloud resources)
+- Research (web search, analysis)
+- Documentation (docs generation)
+- QA (testing)
+- Security (vulnerability scanning)
 ```
 
-### vestara-workflow.service
-
-Multi-step AI automation.
-
-```
-Responsibilities:
-- Define workflows (DAG-based)
-- Execute workflow steps
-- Parallel step execution
-- Error handling and retries
-- Workflow templates
-- Schedule-based triggers
-- Event-based triggers
-
-Dependencies:
-- vestara-core.service
-- vestara-agents.service
-
-Port: 3005
-
-Triggers:
-- Manual (user initiates)
-- Scheduled (cron-like)
-- Event-based (file change, webhook, message)
-- Condition-based (threshold, pattern)
-```
-
-### vestara-notifications.service
+### vestara-notifications
 
 System and AI notifications.
 
@@ -230,47 +132,64 @@ System and AI notifications.
 Responsibilities:
 - Collect notifications from all services
 - Priority-based routing
-- Desktop notification delivery
+- Desktop notification delivery (browser Notification API)
 - Notification history
 - Do Not Disturb mode
-- Notification preferences per service
 
-Dependencies:
-- vestara-core.service
-
-Port: 3006
-
-Notification Types:
-- System (updates, errors, warnings)
-- AI (task complete, needs input, suggestions)
-- Workflow (step complete, failed, awaiting review)
-- Sync (conflict, complete, error)
+Dependencies: vestara-core
+Port: 3003
+RAM: ~10MB
 ```
 
-### vestara-sync.service
+### ollama (On-Demand)
 
-Cross-device synchronization.
+Local model inference. NOT auto-started.
 
 ```
 Responsibilities:
-- Sync user data across devices
-- Conflict resolution
-- Selective sync (choose what to sync)
-- Encryption in transit
-- Offline support with queue
+- Run local AI models
+- Model management (pull, list, delete)
+- GPU detection and allocation
+- Memory management
 
-Dependencies:
-- vestara-core.service
-- vestara-database.service
+Dependencies: None (standalone)
+Port: 11434
+RAM: ~2GB base + model size
 
-Port: 3007
+Start condition: User selects local model in Model Manager
+Stop condition: User switches to cloud API or after 5min idle
+```
 
-Sync Data:
-- Conversations and memories
-- Knowledge base
-- Projects and tasks
-- Agent configurations
-- User preferences
+---
+
+## Resource Budget
+
+### Cloud API Mode (Default)
+
+```
+Tiny Linux:           500 MB
+vestara-core:          10 MB
+vestara-api:           50 MB
+vestara-memory:        30 MB
+vestara-agents:        40 MB
+vestara-notifications: 10 MB
+vestara-dashboard:    150 MB (Chromium)
+─────────────────────────────
+Total:                ~790 MB
+Available for work:  ~7.2 GB
+```
+
+### Local Model Mode
+
+```
+Tiny Linux:           500 MB
+All Vestara services: 150 MB
+vestara-dashboard:    150 MB (Chromium)
+Ollama base:        2000 MB
+Phi-4 model:        2400 MB
+─────────────────────────────
+Total:              ~5.2 GB
+Available for work: ~2.8 GB
 ```
 
 ---
@@ -279,50 +198,44 @@ Sync Data:
 
 ### HTTP (Primary)
 
-Services communicate via HTTP REST APIs on localhost.
+Dashboard communicates with API via HTTP.
 
 ```
-Desktop → AI Gateway (3000)
-Desktop → Model Router (3001)
-Desktop → Memory (3002)
-Desktop → Knowledge (3003)
-Desktop → Agents (3004)
-Desktop → Workflow (3005)
-Desktop → Notifications (3006)
-```
-
-### Redis Pub/Sub (Events)
-
-Cross-service event distribution.
-
-```
-Events:
-- user.created
-- user.login
-- conversation.started
-- message.created
-- document.indexed
-- agent.started
-- agent.completed
-- workflow.step.completed
-- notification.created
-- sync.completed
+Dashboard → API (localhost:3000)
+API → Memory (localhost:3001)
+API → Agents (localhost:3002)
 ```
 
 ### WebSocket (Real-time)
 
-Desktop receives real-time updates.
+Dashboard receives real-time updates.
 
 ```
-Socket.IO namespace: /vestara
+ws://localhost:3000/ws
 
 Events:
-- notification:new
-- agent:status
-- workflow:progress
-- memory:updated
-- knowledge:indexed
-- sync:progress
+notification:new
+agent:status
+chat:stream
+model:loaded
+model:unloaded
+system:stats
+```
+
+### EventEmitter (In-Process)
+
+Services communicate via Node.js EventEmitter for fast, local events.
+
+```
+Events:
+config:changed
+provider:connected
+provider:disconnected
+model:loaded
+model:unloaded
+agent:started
+agent:completed
+memory:updated
 ```
 
 ---
@@ -332,19 +245,18 @@ Events:
 ### Service Template
 
 ```ini
-# /etc/systemd/system/vestara-ai-gateway.service
+# /etc/systemd/system/vestara-api.service
 [Unit]
-Description=Vestara AI Gateway
-After=vestara-core.service vestara-database.service
+Description=Vestara API Server
+After=vestara-core.service
 Requires=vestara-core.service
-Wants=vestara-database.service
 
 [Service]
 Type=simple
-User=vestara
-Group=vestara
-WorkingDirectory=/opt/vestara/services/ai-gateway
-ExecStart=/usr/bin/node dist/index.js
+User=ai
+Group=ai
+WorkingDirectory=/home/ai/vestara
+ExecStart=/usr/bin/node services/api/dist/index.js
 Restart=on-failure
 RestartSec=5
 
@@ -352,41 +264,35 @@ RestartSec=5
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/opt/vestara/data /var/log/vestara
+ReadWritePaths=/home/ai/vestara/data /home/ai/vestara/logs
 PrivateTmp=yes
-ProtectKernelTunables=yes
-ProtectKernelModules=yes
-ProtectControlGroups=yes
 
 # Environment
-EnvironmentFile=/opt/vestara/.env
 Environment=NODE_ENV=production
 Environment=PORT=3000
+Environment=DATABASE=/home/ai/vestara/data/vestara.db
 
 [Install]
-WantedBy=vestara-workspace.target
+WantedBy=vestara.target
 ```
 
 ### Target Definition
 
 ```ini
-# /etc/systemd/system/vestara-workspace.target
+# /etc/systemd/system/vestara.target
 [Unit]
-Description=Vestara AI Workspace
-After=multi-user.target
-Wants=vestara-core.service
-Wants=vestara-database.service
-Wants=vestara-ai-gateway.service
-Wants=vestara-model-router.service
-Wants=vestara-memory.service
-Wants=vestara-knowledge.service
-Wants=vestara-agents.service
-Wants=vestara-workflow.service
-Wants=vestara-notifications.service
-Wants=vestara-sync.service
+Description=Vestara AI Platform
+After=multi-user.target docker.service
 
 [Install]
-Alias=vestara.target
+WantedBy=graphical.target
+
+Wants=vestara-core.service
+Wants=vestara-api.service
+Wants=vestara-memory.service
+Wants=vestara-agents.service
+Wants=vestara-notifications.service
+Wants=vestara-dashboard.service
 ```
 
 ---
@@ -396,23 +302,17 @@ Alias=vestara.target
 Each service exposes a health endpoint:
 
 ```
-GET /health → { status: "ok", uptime: 12345, version: "1.0.0" }
-```
-
-The `vestara-core` service aggregates health from all dependencies:
-
-```
-GET /health/all → {
+GET /api/health → {
   status: "ok",
+  uptime: 12345,
+  version: "1.0.0",
   services: {
-    "ai-gateway": "ok",
-    "model-router": "ok",
+    "core": "ok",
+    "api": "ok",
     "memory": "ok",
-    "knowledge": "ok",
     "agents": "ok",
-    "workflow": "ok",
     "notifications": "ok",
-    "sync": "ok"
+    "ollama": "stopped"
   }
 }
 ```
@@ -423,9 +323,9 @@ GET /health/all → {
 
 | Aspect | Development | Production |
 |---|---|---|
-| Process Manager | PM2 (ecosystem.config.cjs) | systemd |
-| Logging | pino-pretty (console) | journald + file |
-| Database | Docker Compose | System PostgreSQL |
-| Redis | Docker Compose | System Redis |
-| TLS | None (localhost) | Self-signed or Let's Encrypt |
-| Hot Reload | tsx watch | Compiled JS |
+| Process Manager | tsx watch / PM2 | systemd |
+| Logging | pino-pretty (console) | File + journald |
+| Database | SQLite (local file) | SQLite (encrypted partition) |
+| Dashboard | Vite dev server | Chromium kiosk mode |
+| TLS | None (localhost) | Self-signed or None (local) |
+| Hot Reload | Yes | No (compiled JS) |

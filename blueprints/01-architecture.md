@@ -1,7 +1,7 @@
 # Vestara AI OS — Architecture
 
 > Layered architecture from kernel to application.
-> Debian is the foundation. Vestara is the product.
+> A minimal Linux foundation with Vestara as the product.
 
 ---
 
@@ -9,125 +9,151 @@
 
 ```
 ┌─────────────────────────────────────┐
-│         Applications                │
-│  Assistant · Studio · Projects ·    │
-│  Knowledge · Terminal · Developer · │
-│  Marketplace                        │
+│         Vestara Dashboard           │
+│  React · Tailwind · Glassmorphism   │
 ├─────────────────────────────────────┤
-│         Vestara Workspace           │
-│  Desktop Shell · Dock · Sidebar ·   │
-│  Notification Center                │
+│         Vestara API                 │
+│  Fastify · WebSocket · REST         │
 ├─────────────────────────────────────┤
-│         Vestara Services            │
-│  AI Gateway · Model Router ·        │
-│  Memory · Knowledge · Agents ·      │
-│  Workflow Engine · Sync             │
+│         AI Services                 │
+│  OpenCode · Agent Runtime ·         │
+│  Memory · Provider Manager          │
 ├─────────────────────────────────────┤
-│         Vestara Core                │
-│  Identity · Auth · Config ·         │
-│  Event Bus · Logging                │
+│         Data Layer                  │
+│  SQLite · JSON · File Storage       │
 ├─────────────────────────────────────┤
-│         Vestara System Layer        │
-│  systemd · Plymouth · GDM ·         │
-│  Branding · Filesystem Layout       │
+│         System Layer                │
+│  systemd · Auto-login · Branding    │
 ├─────────────────────────────────────┤
-│         Debian 13 (Trixie)          │
-│  Linux Kernel · APT · Libraries     │
+│         Tiny Linux                  │
+│  Debian Minimal / Alpine            │
+│  Docker · OpenCode · Ollama         │
 └─────────────────────────────────────┘
 ```
 
 ---
 
-## Vestara Core
+## Technology Stack
 
-The foundational library that all Vestara services depend on.
+| Layer | Technology | Why |
+|---|---|---|
+| Language | TypeScript (strict) | Consistent with Vestara ecosystem |
+| Runtime | Node.js ≥22 | Same as vestara-admin, vestara-bk |
+| Package Manager | pnpm (workspace) | Fast, disk-efficient |
+| Build | Turborepo | Monorepo orchestration |
+| HTTP | Fastify 5 | 2-3x faster than Express, schema validation |
+| Database | SQLite (better-sqlite3) | Zero-config, portable, single-file |
+| Realtime | WebSocket (ws) | Lightweight, no Socket.IO overhead |
+| Validation | Zod 3 | Same as existing Vestara projects |
+| Logging | Pino | Fast, structured, JSON output |
+| Frontend | React 19 + Vite 6 | Same as vestara-admin |
+| Styling | Tailwind CSS 4 + Glassmorphism | Dark AI command center aesthetic |
+| Process Manager | systemd | First-class Linux service management |
+| Containerization | Docker | Isolated services, easy deployment |
+| Local AI | Ollama | On-demand local model inference |
+| AI Gateway | OpenCode | Core AI development environment |
+
+---
+
+## Why This Stack?
+
+### Fastify over Express
+
+- 2-3x faster request handling
+- Built-in JSON schema validation
+- Better TypeScript support
+- Lower memory footprint
+- Same mental model as Express
+
+### SQLite over PostgreSQL
+
+- Zero configuration
+- Single file, fully portable
+- No background daemon consuming RAM
+- Excellent performance for single-user workload
+- Easy backup (copy one file)
+- WAL mode for concurrent reads
+
+### Alpine/Debian Minimal over Full Desktop
+
+- Idle at 500-700MB RAM
+- No GNOME/KDE overhead
+- Browser-based UI (React dashboard)
+- Faster boot times
+- Smaller SSD footprint
+
+### WebSocket over Socket.IO
+
+- No Socket.IO library overhead
+- Native browser API
+- Lower latency
+- Smaller bundle size
+
+---
+
+## Vestara Core Library
 
 ```
 @vestara/core
-├── identity/          # Organization + user management
-│   ├── organization.ts
-│   ├── user.ts
-│   ├── session.ts
-│   └── auth.ts
 ├── config/            # System and user configuration
 │   ├── system.ts
 │   ├── user.ts
 │   └── schema.ts
+├── db/                # SQLite database
+│   ├── client.ts
+│   ├── migrations/
+│   └── queries/
+├── ai/                # AI provider abstraction
+│   ├── providers/
+│   │   ├── openai.ts
+│   │   ├── anthropic.ts
+│   │   ├── google.ts
+│   │   ├── openrouter.ts
+│   │   ├── ollama.ts
+│   │   └── lmstudio.ts
+│   ├── router.ts      # Model selection/routing
+│   └── types.ts
+├── agents/            # Agent lifecycle
+│   ├── registry.ts
+│   ├── runtime.ts
+│   └── types.ts
+├── memory/            # Context management
+│   ├── working.ts
+│   ├── short-term.ts
+│   ├── long-term.ts
+│   └── types.ts
 ├── events/            # Internal event bus
 │   ├── bus.ts
-│   ├── types.ts
-│   └── middleware.ts
-├── logging/           # Structured logging (Pino-based)
-│   ├── logger.ts
-│   └── transport.ts
-├── crypto/            # Encryption, hashing, key management
-│   ├── encryption.ts
-│   ├── keys.ts
-│   └── password.ts
-└── db/                # Database connection (Prisma)
-    ├── client.ts
-    └── migrations/
+│   └── types.ts
+├── logging/           # Structured logging
+│   └── logger.ts
+└── crypto/            # Encryption, hashing
+    ├── encryption.ts
+    └── keys.ts
 ```
-
-### Design Decisions
-
-- **TypeScript throughout** — Consistent with existing Vestara ecosystem (vestara-admin, vestara-bk)
-- **ESM modules** — `"type": "module"` across all packages
-- **Prisma ORM** — PostgreSQL for structured data, same pattern as backend services
-- **Organization-scoped** — Every entity has `organizationId`. Multi-tenant from day one.
 
 ---
 
-## Vestara Services
-
-Independent systemd-managed services. Each is a Node.js process with a specific responsibility.
+## Service Communication
 
 ```
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│  ai-gateway  │  │ model-router │  │   memory     │
-│              │  │              │  │              │
-│  Unified API │  │  Route to    │  │  Context     │
-│  for AI      │  │  local/remote│  │  window      │
-│  providers   │  │  models      │  │  management  │
-└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
-       │                 │                 │
-       └────────┬────────┘────────┬────────┘
-                │                 │
-         ┌──────┴──────┐  ┌──────┴──────┐
-         │  workflow   │  │  knowledge  │
-         │  engine     │  │  service    │
-         │             │  │             │
-         │  Automate   │  │  RAG, doc   │
-         │  multi-step │  │  indexing,  │
-         │  AI tasks   │  │  semantic   │
-         └─────────────┘  │  search     │
-                          └─────────────┘
+┌─────────────┐     HTTP      ┌──────────────┐
+│  Dashboard  │◄─────────────►│  Vestara API │
+│  (React)    │    WebSocket  │  (Fastify)   │
+└─────────────┘               └──────┬───────┘
+                                     │
+                          ┌──────────┼──────────┐
+                          │          │          │
+                   ┌──────┴──┐ ┌────┴────┐ ┌───┴──────┐
+                   │ OpenCode│ │ Memory  │ │ Provider │
+                   │         │ │ Service │ │ Manager  │
+                   └─────────┘ └─────────┘ └──────────┘
 ```
 
-### Service Communication
-
-- **Local IPC** — Unix domain sockets + HTTP (Express 5, same stack as vestara-bk)
-- **Event bus** — Redis Pub/Sub for cross-service events
-- **WebSocket** — Real-time updates to the desktop (Socket.IO)
-
----
-
-## Technology Stack
-
-| Layer | Technology |
-|---|---|
-| Language | TypeScript (strict mode) |
-| Runtime | Node.js ≥22 |
-| Package Manager | pnpm (workspace monorepo) |
-| Build | Turborepo |
-| HTTP | Express 5 |
-| ORM | Prisma 7 |
-| Database | PostgreSQL 17 |
-| Cache/PubSub | Redis 8 |
-| Realtime | Socket.IO 4 |
-| Validation | Zod 3 |
-| Logging | Pino |
-| Process Manager | systemd (production), PM2 (development) |
+- **Dashboard ↔ API**: HTTP REST + WebSocket for real-time updates
+- **API ↔ Services**: Direct function calls (in-process) or HTTP
+- **API ↔ SQLite**: Direct queries (better-sqlite3 is synchronous, fast)
+- **Services ↔ Ollama**: HTTP (Ollama runs on localhost:11434)
 
 ---
 
@@ -135,65 +161,68 @@ Independent systemd-managed services. Each is a Node.js process with a specific 
 
 ### Disk Encryption
 
-- LUKS2 full-disk encryption on the external SSD
-- Unlock at boot via passphrase (future: TPM-backed keys)
-- `/vestara` encrypted at rest
+- LUKS2 encryption on data partition
+- Unlock at boot via passphrase
+- `/home/ai/` encrypted at rest
 
 ### Service Isolation
 
-- Each service runs as a dedicated system user
-- systemd sandboxing (ReadOnlyPaths, ProtectSystem, NoNewPrivileges)
-- Network isolation between services where possible
+- Docker containers for AI services
+- systemd sandboxing for core services
+- Network isolation where possible
 
 ### Authentication
 
-- JWT-based sessions (same pattern as vestara-bk)
-- bcrypt password hashing
-- Future: Passkeys, FIDO2, biometric
+- Local-only authentication (no remote auth needed)
+- Optional password protection
+- Future: Passkeys, biometric
 
 ---
 
-## Database Schema (High-Level)
+## Database Schema (SQLite)
 
 ```sql
--- Organizations (multi-tenant root)
-organizations (id, name, slug, settings, created_at)
-
 -- Users
-users (id, org_id, email, name, password_hash, role, created_at)
+users (id, name, email, password_hash, avatar, created_at)
 
 -- Sessions
 sessions (id, user_id, token, expires_at, created_at)
 
--- AI Conversations
-conversations (id, org_id, user_id, title, model, created_at)
+-- AI Providers
+providers (id, name, type, api_key_encrypted, config, enabled, created_at)
+
+-- Models
+models (id, provider_id, name, context_window, ram_required, local, created_at)
+
+-- Conversations
+conversations (id, user_id, title, model_id, created_at)
 
 -- Messages
 messages (id, conversation_id, role, content, tokens, created_at)
 
 -- Knowledge Base
-documents (id, org_id, title, content, embedding, metadata, created_at)
+documents (id, user_id, title, content, embedding, metadata, created_at)
 
 -- Memory
-memories (id, org_id, user_id, key, value, context, created_at)
+memories (id, user_id, key, value, context, importance, created_at)
 
 -- Projects
-projects (id, org_id, name, description, status, created_at)
+projects (id, user_id, name, description, status, path, created_at)
 
 -- Tasks
 tasks (id, project_id, title, description, status, assignee_id, created_at)
 
 -- Agent Configurations
-agents (id, org_id, name, type, config, status, created_at)
+agents (id, user_id, name, type, provider_id, model_id, config, status, created_at)
 
--- Workflows
-workflows (id, org_id, name, steps, triggers, status, created_at)
+-- Agent Executions
+agent_executions (id, agent_id, input, output, tokens, cost, started_at, completed_at)
 
--- Plugins / Marketplace
+-- Plugins
 plugins (id, name, version, author, config, installed_at)
 
--- Audit Log
-audit_log (id, org_id, user_id, action, resource, metadata, created_at)
+-- Activity Log
+activity_log (id, user_id, action, resource, metadata, created_at)
 ```
 
 ---
@@ -203,32 +232,28 @@ audit_log (id, org_id, user_id, action, resource, metadata, created_at)
 ```
 vestara-ai-os/
 ├── apps/
-│   ├── desktop/              # Vestara Workspace (Electron/Tauri)
-│   ├── assistant/            # AI Assistant UI
-│   ├── studio/               # Prompt engineering workspace
-│   ├── terminal/             # AI-powered terminal
-│   └── marketplace/          # Plugin marketplace
+│   └── dashboard/              # React dashboard (Vite + Tailwind)
 ├── services/
-│   ├── core/                 # @vestara/core library
-│   ├── ai-gateway/           # Unified AI provider gateway
-│   ├── model-router/         # Local/remote model routing
-│   ├── memory/               # Context window management
-│   ├── knowledge/            # RAG, indexing, semantic search
-│   ├── agents/               # Agent lifecycle management
-│   ├── workflow-engine/      # Multi-step AI automation
-│   ├── notifications/        # Notification service
-│   └── sync/                 # Cross-device synchronization
+│   ├── core/                   # @vestara/core library
+│   ├── api/                    # Fastify API server
+│   ├── ai-gateway/             # Unified AI provider gateway
+│   ├── memory/                 # Context window management
+│   ├── knowledge/              # RAG, indexing, semantic search
+│   ├── agents/                 # Agent lifecycle management
+│   └── notifications/          # Notification service
 ├── packages/
-│   ├── types/                # Shared TypeScript types
-│   ├── validation/           # Zod schemas
-│   ├── constants/            # Shared constants
-│   ├── utils/                # Shared utilities
-│   └── config/               # Shared configuration
-├── installer/                # Vestara Installer scripts
-├── branding/                 # Plymouth, GDM, wallpapers, icons
-├── systemd/                  # Service unit files
-├── filesystem/               # Filesystem layout scripts
-├── scripts/                  # Build and deployment scripts
-├── blueprints/               # This documentation
-└── docs/                     # Additional documentation
+│   ├── types/                  # Shared TypeScript types
+│   ├── validation/             # Zod schemas
+│   ├── constants/              # Shared constants
+│   ├── utils/                  # Shared utilities
+│   └── config/                 # Shared configuration
+├── os/
+│   ├── iso/                    # ISO build scripts
+│   ├── branding/               # Plymouth, GDM, wallpapers
+│   ├── systemd/                # Service unit files
+│   ├── filesystem/             # Filesystem layout
+│   └── installer/              # Installation scripts
+├── scripts/                    # Build and deployment
+├── blueprints/                 # This documentation
+└── docs/                       # Additional documentation
 ```

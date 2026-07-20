@@ -1,8 +1,8 @@
 # Vestara AI OS
 
-A complete AI workstation that boots from an external SSD.
+A portable AI operating system that boots from an external SSD.
 
-Plug into any x86-64 computer, power on, and enter the Vestara ecosystem.
+Plug into any x86-64 computer, power on, and your complete AI environment is ready. Models, projects, memories, settings — everything travels with you.
 
 ---
 
@@ -13,7 +13,7 @@ Plug into any x86-64 computer, power on, and enter the Vestara ecosystem.
 curl -sSL https://get.vestara.ai | bash
 
 # Or clone and build locally
-git clone https://github.com/vestara/vestara-ai-os.git
+git clone https://github.com/evillan0315/vestara-ai-os.git
 cd vestara-ai-os
 pnpm install
 pnpm build
@@ -22,29 +22,48 @@ pnpm build
 ## Documentation
 
 - [Vision](./blueprints/00-vision.md) — What Vestara AI OS is and why it exists
-- [Architecture](./blueprints/01-architecture.md) — Layered architecture from kernel to application
-- [Boot Experience](./blueprints/02-boot-experience.md) — From power-on to desktop
-- [Services](./blueprints/03-services.md) — systemd-managed AI services
+- [Architecture](./blueprints/01-architecture.md) — Fastify + SQLite + React stack
+- [Boot Experience](./blueprints/02-boot-experience.md) — Auto-login, systemd services
+- [Services](./blueprints/03-services.md) — Lightweight AI services
 - [Filesystem](./blueprints/04-filesystem.md) — Purpose-built filesystem layout
-- [Desktop](./blueprints/05-desktop.md) — The Vestara Workspace
+- [Desktop](./blueprints/05-desktop.md) — 12-screen dark glassmorphism UI
 - [Applications](./blueprints/06-applications.md) — Built-in AI applications
-- [Implementation Roadmap](./blueprints/07-implementation-roadmap.md) — Four-stage build plan
+- [Implementation Roadmap](./blueprints/07-implementation-roadmap.md) — 4-stage build plan
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────┐
-│         Applications                │
+│         Vestara Dashboard           │
+│  React · Tailwind · Glassmorphism   │
 ├─────────────────────────────────────┤
-│         Vestara Workspace           │
+│         Vestara API                 │
+│  Fastify · WebSocket · REST         │
 ├─────────────────────────────────────┤
-│         Vestara Services            │
+│         AI Services                 │
+│  OpenCode · Agent Runtime ·         │
+│  Memory · Provider Manager          │
 ├─────────────────────────────────────┤
-│         Vestara Core                │
+│         Data Layer                  │
+│  SQLite · JSON · File Storage       │
 ├─────────────────────────────────────┤
-│         Debian 13 (Trixie)          │
+│         System Layer                │
+│  systemd · Auto-login · Branding    │
+├─────────────────────────────────────┤
+│         Tiny Linux                  │
+│  Debian Minimal · Docker · Ollama   │
 └─────────────────────────────────────┘
 ```
+
+## Resource Budget
+
+| Component | RAM |
+|---|---|
+| Tiny Linux | 500–700 MB |
+| Vestara services | ~150 MB |
+| Dashboard (Chromium) | ~150 MB |
+| **Total (cloud APIs)** | **~1 GB** |
+| **Available for work** | **~7 GB** |
 
 ## License
 

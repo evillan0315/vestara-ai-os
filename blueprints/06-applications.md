@@ -1,427 +1,422 @@
 # Vestara AI OS — Applications
 
 > Built-in applications that make the AI workstation complete.
-> No need to install anything. Everything is ready.
+> MVP focuses on 6 core screens. Everything else follows.
 
 ---
 
 ## Application Overview
 
-| App | Purpose | Priority |
+### MVP (Phase 1)
+
+| App | Screen | Purpose |
 |---|---|---|
-| Vestara Assistant | Voice, chat, vision, memory, planning | P0 |
-| Vestara Studio | AI workspace, prompt engineering, automation | P0 |
-| Vestara Projects | Kanban, tasks, roadmaps, blueprints | P0 |
-| Vestara Knowledge | Document indexing, semantic search, RAG | P0 |
-| Vestara Terminal | AI-powered terminal with suggestions | P1 |
-| Vestara Developer | Monaco, Git, Docker, Kubernetes, OpenCode | P1 |
-| Vestara Marketplace | AI plugins, agents, templates, skills | P2 |
+| Dashboard | 1 | System overview, quick actions |
+| AI Chat | 2 | Primary AI interface |
+| Agent Manager | 3 | Agent configuration and execution |
+| Model Manager | 4 | Provider and model selection |
+| Settings | 6 | System configuration |
+
+### Phase 2
+
+| App | Screen | Purpose |
+|---|---|---|
+| Projects | 5 | Project management, Kanban |
+| Knowledge Base | 6 | RAG, document indexing |
+| Files | 7 | File browser with preview |
+| Terminal | 10 | AI-powered terminal |
+
+### Phase 3
+
+| App | Screen | Purpose |
+|---|---|---|
+| Docker Manager | 8 | Container management |
+| Git Manager | 9 | Lightweight Git client |
+| Marketplace | 11 | Plugin ecosystem |
+
+### Future
+
+| App | Purpose |
+|---|---|
+| AI Workflow Builder | Visual LangGraph editor |
+| Prompt Library | Organize and version prompts |
+| AI Analytics | Token usage, cost tracking |
+| Memory Inspector | View and manage memories |
+| Multi-Agent Dashboard | Agent collaboration view |
+| Kubernetes Dashboard | K8s management |
+| Cloud Manager | AWS, Azure, GCP |
+| ComfyUI Studio | Image generation |
+| Voice Assistant | Voice interaction |
 
 ---
 
-## Vestara Assistant
+## Dashboard
 
-The primary AI interface. Think ChatGPT, but local-first and memory-aware.
+The home screen after boot.
 
-```
-┌──────────────────────────────────────────────────────┐
-│ Vestara Assistant                          [New Chat] │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ Conversations                                        │
-│ ├── Today                                           │
-│ │   ├── "Research AI market trends"                  │
-│ │   ├── "Help me refactor auth module"               │
-│ │   └── "Summarize Q3 report"                        │
-│ ├── Yesterday                                        │
-│ │   └── "Draft investor email"                       │
-│ └── Last Week                                         │
-│     └── "Architecture review"                        │
-│                                                      │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ ┌──────────────────────────────────────────────────┐ │
-│ │                                                  │ │
-│ │  What can I help you with, Eddie?                │ │
-│ │                                                  │ │
-│ │  ┌─────────┐ ┌──────────┐ ┌───────────────┐     │ │
-│ │  │  Chat   │ │  Voice   │ │    Vision     │     │ │
-│ │  └─────────┘ └──────────┘ └───────────────┘     │ │
-│ │                                                  │ │
-│ │  I know you're working on Vestara AI OS.         │ │
-│ │  Want me to continue the architecture review?    │ │
-│ │                                                  │ │
-│ │  ┌──────────────────────────────────────────┐    │ │
-│ │  │ Type a message...                  [Send]│    │ │
-│ │  └──────────────────────────────────────────┘    │ │
-│ │                                                  │ │
-│ └──────────────────────────────────────────────────┘ │
-│                                                      │
-│ Model: Claude Opus 4  │  Memory: Active  │  Context: 128K │
-└──────────────────────────────────────────────────────┘
-```
-
-### Capabilities
-
-- **Multi-model support** — Switch between local and cloud models mid-conversation
-- **Voice input/output** — Speech-to-text and text-to-speech
-- **Vision** — Analyze images, screenshots, documents
-- **Memory-aware** — Remembers past conversations, user preferences
-- **Context-aware** — Knows about your projects, files, and active tasks
-- **Tool use** — Can execute terminal commands, search files, manage projects
-- **Streaming** — Real-time response streaming
-- **Markdown rendering** — Rich text, code blocks, tables, math
-- **Code execution** — Run code snippets directly in conversation
-
-### Architecture
+### Components
 
 ```
-vestara-assistant/
-├── src/
-│   ├── components/
-│   │   ├── ConversationList/
-│   │   ├── ChatInterface/
-│   │   ├── MessageBubble/
-│   │   ├── CodeBlock/
-│   │   ├── ToolPanel/
-│   │   └── ModelSelector/
-│   ├── hooks/
-│   │   ├── useConversation.ts
-│   │   ├── useStreaming.ts
-│   │   ├── useVoice.ts
-│   │   └── useMemory.ts
-│   ├── services/
-│   │   ├── conversation.ts
-│   │   ├── message.ts
-│   │   └── model.ts
-│   └── types/
-│       └── assistant.ts
-├── package.json
-└── tsconfig.json
+Dashboard/
+├── StatusCards/
+│   ├── AIStatusCard.tsx          # Service health
+│   ├── ProviderCard.tsx          # Active AI provider
+│   ├── RAMCard.tsx               # Memory usage
+│   ├── CPUCard.tsx               # CPU usage
+│   ├── GPUCard.tsx               # GPU usage (if available)
+│   ├── DiskCard.tsx              # SSD space
+│   ├── AgentsCard.tsx            # Running agents
+│   └── StorageCard.tsx           # Storage breakdown
+├── QuickActions/
+│   ├── NewChatButton.tsx
+│   ├── OpenTerminalButton.tsx
+│   ├── ProjectsButton.tsx
+│   └── SettingsButton.tsx
+├── RecentActivity/
+│   ├── RecentConversations.tsx
+│   ├── RecentProjects.tsx
+│   └── RecentDocuments.tsx
+└── Dashboard.tsx                 # Main dashboard layout
+```
+
+### Data Sources
+
+```typescript
+// API calls
+GET /api/system/stats         → CPU, RAM, disk
+GET /api/providers            → Provider status
+GET /api/agents               → Agent list + status
+GET /api/conversations?limit=5 → Recent conversations
+GET /api/projects?limit=3     → Recent projects
 ```
 
 ---
 
-## Vestara Studio
+## AI Chat
 
-AI workspace for prompt engineering and automation building.
+The primary AI interface. Think ChatGPT + VS Code + OpenCode.
+
+### Components
 
 ```
-┌──────────────────────────────────────────────────────┐
-│ Vestara Studio                        [New Project]  │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ ┌──────────┐ ┌──────────────────────────────────────┐│
-│ │          │ │                                      ││
-│ │ Prompts  │ │  Prompt Editor                       ││
-│ │          │ │  ┌────────────────────────────────┐  ││
-│ │ ├── New  │ │  │ You are a research assistant... │  ││
-│ │ │  PRD   │ │  │                                  │  ││
-│ │ ├── Code │ │  │ {{context}}                      │  ││
-│ │ │  Review│ │  │                                  │  ││
-│ │ └── Docs │ │  │ Please analyze: {{input}}        │  ││
-│ │          │ │  └────────────────────────────────┘  ││
-│ │ Workflows│ │                                      ││
-│ │          │ │  Variables:                          ││
-│ │ ├── Daily│ │  ├── context: Knowledge search      ││
-│ │ │  Report│ │  └── input: User query              ││
-│ │ └── Code │ │                                      ││
-│ │   Gen    │ │  [Test] [Save] [Deploy]              ││
-│ │          │ │                                      ││
-│ └──────────┘ └──────────────────────────────────────┘│
-│                                                      │
-└──────────────────────────────────────────────────────┘
+Chat/
+├── ConversationList/
+│   ├── ConversationItem.tsx
+│   └── ConversationList.tsx
+├── ChatInterface/
+│   ├── MessageList.tsx
+│   ├── MessageBubble.tsx
+│   ├── CodeBlock.tsx
+│   ├── ToolPanel.tsx
+│   └── ChatInput.tsx
+├── ModelSelector/
+│   └── ModelSelector.tsx
+├── Tabs/
+│   ├── CodeTab.tsx
+│   ├── FilesTab.tsx
+│   ├── ArtifactsTab.tsx
+│   ├── ReasoningTab.tsx
+│   └── UsageTab.tsx
+└── Chat.tsx                     # Main chat layout
 ```
 
-### Capabilities
+### Features
 
-- **Prompt library** — Organize and version prompts
-- **Variable system** — Dynamic prompt templates
-- **A/B testing** — Compare prompt variants
-- **Workflow builder** — Visual multi-step AI pipelines
-- **Analytics** — Track token usage, costs, quality scores
-- **Export** — Share prompts and workflows
+- **Multi-model** — Switch between providers mid-conversation
+- **Streaming** — Real-time response rendering
+- **Code blocks** — Syntax highlighting, copy, apply to file
+- **File attachments** — Drag & drop, paste images
+- **Action buttons** — Apply to File, Copy, Explain, Refactor
+- **Token tracking** — Real-time token count and cost estimation
+- **Markdown** — Full markdown rendering (tables, math, lists)
+- **Voice input** — Speech-to-text (future)
+
+### API Endpoints
+
+```typescript
+POST /api/chat                 → Send message (streaming)
+GET  /api/conversations        → List conversations
+GET  /api/conversations/:id    → Get conversation
+DELETE /api/conversations/:id  → Delete conversation
+POST /api/conversations/:id/title → Auto-generate title
+```
 
 ---
 
-## Vestara Projects
+## Agent Manager
 
-Project management built for AI-assisted development.
+The heart of the platform. Configure, run, and monitor AI agents.
+
+### Components
 
 ```
-┌──────────────────────────────────────────────────────┐
-│ Vestara Projects                    [+ New Project]  │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ Vestara AI OS                                        │
-│ ├── Roadmap                                         │
-│ │   ├── Stage 1: Vestara Layer         ████████░░ 80%│
-│ │   ├── Stage 2: Distribution          ███░░░░░░ 30%│
-│ │   ├── Stage 3: Custom ISO            ░░░░░░░░░  0%│
-│ │   └── Stage 4: Immutable OS          ░░░░░░░░░  0%│
-│ │                                                   │
-│ ├── Kanban                                          │
-│ │   ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌────────┐ │
-│ │   │ Todo    │ │ In Prog │ │ Review  │ │ Done   │ │
-│ │   │         │ │         │ │         │ │        │ │
-│ │   │ Build   │ │ Plymouth│ │ Service │ │ Boot   │ │
-│ │   │ Desktop │ │ Theme   │ │ Config  │ │ Splash │ │
-│ │   │         │ │         │ │         │ │        │ │
-│ │   │ Create  │ │ GDM     │ │         │ │ File   │ │
-│ │   │ ISO     │ │ Theming │ │         │ │ Layout │ │
-│ │   └─────────┘ └─────────┘ └─────────┘ └────────┘ │
-│ │                                                   │
-│ ├── Blueprints                                      │
-│ │   ├── Architecture                                │
-│ │   ├── Boot Experience                             │
-│ │   └── Services                                    │
-│ └── Tasks                                           │
-│     ├── [ ] Plymouth theme design                   │
-│     ├── [x] Repository setup                        │
-│     ├── [ ] Service unit files                      │
-│     └── [ ] GDM theming                             │
-│                                                      │
-└──────────────────────────────────────────────────────┘
+Agents/
+├── AgentGrid/
+│   ├── AgentCard.tsx
+│   └── AgentGrid.tsx
+├── AgentDetail/
+│   ├── AgentInfo.tsx
+│   ├── AgentConfig.tsx
+│   ├── AgentHistory.tsx
+│   └── AgentMetrics.tsx
+├── AgentCreator/
+│   ├── AgentForm.tsx
+│   ├── ToolSelector.tsx
+│   └── ModelSelector.tsx
+└── AgentManager.tsx            # Main agents layout
 ```
 
-### Capabilities
+### Built-in Agents
 
-- **Kanban boards** — Drag-and-drop task management
-- **Roadmaps** — Milestone-based planning
-- **Blueprints** — Architecture and design documents
-- **AI-assisted planning** — "Break this feature into tasks"
-- **Git integration** — Link tasks to commits and PRs
-- **Time tracking** — Optional time logging
+| Agent | Description | Tools |
+|---|---|---|
+| Planner | Decomposes tasks into steps | Read, Write |
+| Software Developer | Writes and refactors code | Read, Write, Execute, Search |
+| DevOps | Infrastructure management | Docker, Shell, HTTP |
+| Cloud Engineer | Cloud resource management | AWS/Azure/GCP APIs |
+| Research | Web search and analysis | Search, Fetch, Summarize |
+| Documentation | Generates documentation | Read, Write |
+| QA | Testing and bug detection | Read, Execute, Report |
+| Security | Vulnerability scanning | Read, Execute, Report |
+
+### Agent Execution Flow
+
+```
+User Input
+    ↓
+Agent Manager
+    ↓
+Select Agent + Model
+    ↓
+Agent Runtime
+    ├── Load agent config
+    ├── Load tools
+    ├── Load memory context
+    └── Execute loop
+        ├── Think (reasoning)
+        ├── Act (tool use)
+        ├── Observe (result)
+        └── Repeat until done
+    ↓
+Return Result
+    ↓
+Update Memory
+    ↓
+Notify User
+```
 
 ---
 
-## Vestara Knowledge
+## Model Manager
 
-RAG engine and document intelligence center.
+Provider and model selection.
+
+### Components
 
 ```
-┌──────────────────────────────────────────────────────┐
-│ Vestara Knowledge                    [+ Add Document]│
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ Search: "How does the model router work?"     [🔍]  │
-│                                                      │
-│ Results (3):                                         │
-│                                                      │
-│ 1. Model Router Architecture (98% match)             │
-│    "The model router uses a priority-based..."       │
-│    Source: blueprints/03-services.md:45              │
-│                                                      │
-│ 2. AI Gateway Integration (87% match)                │
-│    "Requests flow from the desktop through..."       │
-│    Source: blueprints/01-architecture.md:112         │
-│                                                      │
-│ 3. Service Communication (72% match)                 │
-│    "Services communicate via HTTP REST..."           │
-│    Source: blueprints/03-services.md:89              │
-│                                                      │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ Documents (47)     Collections (5)     Indexes (3)  │
-│ ├── Blueprints (12) ├── Vestara Docs   ├── Default  │
-│ ├── Code (23)       ├── Research       ├── Code     │
-│ └── Notes (12)      └── Personal       └── Notes    │
-│                                                      │
-└──────────────────────────────────────────────────────┘
+Models/
+├── ProviderList/
+│   ├── ProviderItem.tsx
+│   └── ProviderList.tsx
+├── ModelList/
+│   ├── ModelCard.tsx
+│   └── ModelList.tsx
+├── ModelDetail/
+│   ├── ModelInfo.tsx
+│   ├── ModelConfig.tsx
+│   └── ModelMetrics.tsx
+├── ProviderSetup/
+│   ├── APIKeyForm.tsx
+│   └── ConnectionTest.tsx
+└── ModelManager.tsx            # Main models layout
 ```
 
-### Capabilities
+### Provider Configuration
 
-- **Multi-format ingestion** — PDF, Markdown, DOCX, HTML, code files
-- **Automatic chunking** — Smart text splitting for embeddings
-- **Semantic search** — Natural language queries
-- **RAG queries** — AI-powered answers with source citations
-- **Document collections** — Organize by project or topic
-- **Incremental indexing** — Auto-reindex on document changes
-- **Source citations** — Every answer links to source location
+```typescript
+interface Provider {
+  id: string;
+  name: string;
+  type: 'openai' | 'anthropic' | 'google' | 'openrouter' | 'ollama' | 'lmstudio';
+  apiKey?: string;           // Encrypted
+  baseUrl?: string;
+  enabled: boolean;
+  models: Model[];
+}
+
+interface Model {
+  id: string;
+  providerId: string;
+  name: string;
+  contextWindow: number;
+  speed: 'fast' | 'medium' | 'slow';
+  ramRequired?: number;      // For local models
+  costPer1kInput: number;
+  costPer1kOutput: number;
+}
+```
+
+### Ollama Management
+
+```typescript
+// Start Ollama (on-demand)
+POST /api/ollama/start
+
+// Stop Ollama
+POST /api/ollama/stop
+
+// Pull model
+POST /api/ollama/pull { model: "phi4" }
+
+// List local models
+GET /api/ollama/models
+```
 
 ---
 
-## Vestara Terminal
+## Knowledge Base
 
-AI-powered terminal with intelligent suggestions.
+RAG engine and document intelligence.
+
+### Components
 
 ```
-┌──────────────────────────────────────────────────────┐
-│ Vestara Terminal                              [+]    │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ $ vestara services status                            │
-│                                                      │
-│ Service            Status    Uptime    Memory        │
-│ ─────────────────────────────────────────────────    │
-│ vestara-core       ● running  2d 4h    128MB         │
-│ vestara-ai-gateway ● running  2d 4h    256MB         │
-│ vestara-memory     ● running  2d 4h    512MB         │
-│ vestara-knowledge  ● running  2d 4h    384MB         │
-│ vestara-agents     ● running  2d 4h    196MB         │
-│                                                      │
-│ $ _                                                   │
-│                                                      │
-│ ┌────────────────────────────────────────────────┐   │
-│ │ 💡 Suggestion: Try `vestara models list`       │   │
-│ │    to see available AI models                   │   │
-│ └────────────────────────────────────────────────┘   │
-│                                                      │
-└──────────────────────────────────────────────────────┘
+Knowledge/
+├── DocumentList/
+│   ├── DocumentItem.tsx
+│   └── DocumentList.tsx
+├── Search/
+│   ├── SearchBar.tsx
+│   └── SearchResult.tsx
+├── Upload/
+│   ├── UploadZone.tsx
+│   └── ProcessingStatus.tsx
+├── Collections/
+│   ├── CollectionList.tsx
+│   └── CollectionDetail.tsx
+└── Knowledge.tsx               # Main knowledge layout
 ```
 
-### Capabilities
+### Supported Formats
 
-- **AI command suggestions** — Context-aware command recommendations
-- **Natural language → command** — "show me running services" → `vestara services status`
-- **Auto-complete** — Smart completions for Vestara CLI
-- **Error explanation** — AI explains error messages and suggests fixes
-- **Command history** — Searchable, with AI-powered categorization
-- **Multi-tab** — Multiple terminal sessions
-- **Split panes** — Side-by-side terminals
+- PDF
+- DOCX
+- Markdown
+- HTML
+- Plain text
+- Code files (any language)
+- JSON/YAML
+
+### Features
+
+- Automatic chunking
+- Embedding generation (local or API)
+- Semantic search
+- RAG queries with source citations
+- Document collections
+- Incremental re-indexing
 
 ---
 
-## Vestara Developer
+## Settings
 
-Full development environment.
+System configuration.
+
+### Categories
 
 ```
-┌──────────────────────────────────────────────────────┐
-│ Vestara Developer                                     │
-├──────┬───────────────────────────────────────────────┤
-│ Files│  ┌───────────────────────────────────────────┐│
-│      │  │ // vestara/services/ai-gateway/src/       ││
-│ src/ │  │ // routes/chat.ts                         ││
-│ ├── a│  │                                           ││
-│ │  ga│  │ import { Router } from 'express';          ││
-│ │  te│  │ import { validate } from '@vestara/valid'; ││
-│ │  wa│  │                                           ││
-│ │  y │  │ export const chatRouter = Router();        ││
-│ ├── m│  │                                           ││
-│ │  mo│  │ chatRouter.post('/', async (req, res) => {││
-│ │  de│  │   const { message, model } = req.body;    ││
-│ │  l │  │   // AI-powered code review               ││
-│ │  ro│  │   const response = await routeModel({     ││
-│ │  ut│  │     message,                              ││
-│ │  er│  │     model: model || 'auto',               ││
-│ │    │  │   });                                     ││
-│ └────│  │   res.json(response);                     ││
-│      │  │ });                                       ││
-│      │  └───────────────────────────────────────────┘│
-│ Git  │  ┌───────────────────────────────────────────┐│
-│ Log  │  │ AI: "This route could benefit from        ││
-│      │  │  rate limiting. Add express-rate-limit     ││
-│ │    │  │  middleware before the POST handler."      ││
-│      │  └───────────────────────────────────────────┘│
-│ Docker│                                              │
-│ K8s  │                                              │
-└──────┴───────────────────────────────────────────────┘
+Settings/
+├── Appearance/
+│   ├── ThemeSelector.tsx
+│   ├── FontSelector.tsx
+│   └── WallpaperSelector.tsx
+├── AIProviders/
+│   ├── ProviderList.tsx
+│   ├── APIKeyManager.tsx
+│   └── ConnectionTest.tsx
+├── LocalModels/
+│   ├── OllamaConfig.tsx
+│   ├── ModelDownloader.tsx
+│   └── ResourceLimits.tsx
+├── Storage/
+│   ├── DiskUsage.tsx
+│   ├── BackupManager.tsx
+│   └── CleanupTools.tsx
+├── Memory/
+│   ├── MemoryConfig.tsx
+│   ├── RetentionPolicy.tsx
+│   └── ExportImport.tsx
+├── Security/
+│   ├── PasswordChange.tsx
+│   ├── EncryptionStatus.tsx
+│   └── APIKeyRotation.tsx
+├── Startup/
+│   ├── ServiceManager.tsx
+│   └── BootConfig.tsx
+├── Updates/
+│   ├── UpdateChecker.tsx
+│   └── UpdateHistory.tsx
+└── Settings.tsx                # Main settings layout
 ```
-
-### Capabilities
-
-- **Monaco editor** — VS Code's editor in the browser
-- **Git integration** — Visual diff, commit, branch management
-- **Docker management** — Container lifecycle, logs, exec
-- **Kubernetes** — Pod management, deployment visualization
-- **AI code review** — Inline suggestions and improvements
-- **Terminal integration** — Built-in terminal panel
-- **Debugger** — Breakpoints, variable inspection
 
 ---
 
-## Vestara Marketplace
+## Design System
 
-Plugin and extension ecosystem.
+### Glassmorphism Components
 
-```
-┌──────────────────────────────────────────────────────┐
-│ Vestara Marketplace                [Search plugins]   │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ Featured                                             │
-│ ┌────────────┐ ┌────────────┐ ┌────────────┐        │
-│ │ 🤖 GitHub  │ │ 📊 Analytics│ │ 🔐 Security│        │
-│ │ Integration│ │ Dashboard  │ │ Scanner    │        │
-│ │ ★ 4.8      │ │ ★ 4.6      │ │ ★ 4.9      │        │
-│ │ 12K installs│ │ 8K installs│ │ 15K installs│       │
-│ └────────────┘ └────────────┘ └────────────┘        │
-│                                                      │
-│ Categories                                           │
-│ ├── AI Agents                                       │
-│ │   ├── Research Agent                              │
-│ │   ├── Coding Agent                                │
-│ │   └── Writing Agent                               │
-│ ├── Prompts                                         │
-│ │   ├── PRD Generator                               │
-│ │   ├── Code Review                                 │
-│ │   └── Documentation                               │
-│ ├── Workflows                                       │
-│ │   ├── Daily Standup                               │
-│ │   ├── Sprint Planning                             │
-│ │   └── Release Notes                               │
-│ ├── Integrations                                    │
-│ │   ├── GitHub                                      │
-│ │   ├── Linear                                      │
-│ │   └── Slack                                       │
-│ └── Templates                                       │
-│     ├── React App                                   │
-│     ├── API Server                                  │
-│     └── CLI Tool                                    │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
+```css
+/* Glass card */
+.glass-card {
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 24px;
+}
 
-### Capabilities
+/* Glass panel */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+}
 
-- **Browse plugins** — Search by category, rating, popularity
-- **One-click install** — Install agents, prompts, workflows, templates
-- **Auto-updates** — Keep plugins updated
-- **Ratings and reviews** — Community feedback
-- **Publisher portal** — Create and publish your own plugins
-- **Dependency management** — Resolve plugin conflicts
+/* Gold accent button */
+.btn-gold {
+  background: linear-gradient(135deg, #C9A84C, #E4C76B);
+  color: #06060C;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 16px;
+  transition: all 0.2s;
+}
 
----
+.btn-gold:hover {
+  background: linear-gradient(135deg, #E4C76B, #C9A84C);
+  box-shadow: 0 0 20px rgba(201, 168, 76, 0.3);
+}
 
-## Application Architecture
+/* AI activity indicator */
+.ai-active {
+  color: #4F8CFF;
+  animation: pulse 2s infinite;
+}
 
-All applications share:
-
-```
-├── React 19                    # UI framework
-├── Vite 6                      # Build tool
-├── Tailwind CSS 4              # Styling
-├── MUI 7                       # Component library
-├── TanStack React Query v5     # Data fetching
-├── React Router DOM v7         # Routing
-├── Zod v3                      # Validation
-├── Socket.IO client            # Real-time
-└── @vestara/*                  # Shared Vestara packages
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 ```
 
-### Shared Components
+### Component Library
 
-```
-packages/ui/
-├── src/
-│   ├── components/
-│   │   ├── Button/
-│   │   ├── Input/
-│   │   ├── Card/
-│   │   ├── Modal/
-│   │   ├── Sidebar/
-│   │   ├── StatusBar/
-│   │   └── CommandPalette/
-│   ├── hooks/
-│   │   ├── useVestara.ts
-│   │   ├── useService.ts
-│   │   └── useNotification.ts
-│   └── theme/
-│       ├── colors.ts
-│       ├── typography.ts
-│       └── spacing.ts
-```
+All components follow:
 
-Each application imports from `@vestara/ui` for consistent look and behavior.
+- Dark backgrounds with glassmorphism
+- Gold accents for primary actions
+- Blue/purple for AI-related elements
+- Consistent spacing (4px grid)
+- Smooth transitions (200ms)
+- Hover states with glow effects

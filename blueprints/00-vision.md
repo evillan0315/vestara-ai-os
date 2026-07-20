@@ -1,7 +1,8 @@
 # Vestara AI OS — Vision
 
-> A complete AI workstation that boots from an external SSD.
-> Plug into any x86-64 computer, power on, and enter the Vestara ecosystem.
+> A portable AI operating system that boots from an external SSD.
+> Plug into any x86-64 computer, power on, and your complete AI environment is ready.
+> Models, projects, memories, settings — everything travels with you.
 
 ---
 
@@ -10,32 +11,33 @@
 ```
 Power On
     ▼
-VESTARA Logo
+Portable SSD
     ▼
-AI OS Boot Animation
+Tiny Linux
     ▼
-Encrypted Disk Unlock
+Auto Login
     ▼
-Vestara Login
-    ▼
-Desktop
-    ▼
-AI Companion automatically starts
+AI Platform
+    ├── OpenCode
+    ├── Dashboard
+    ├── API
+    └── Agent Runtime
     ▼
 Everything is ready
 ```
 
-The user never sees Debian. Debian becomes merely the kernel and package ecosystem. The experience is **Vestara**.
+The user never sees Debian. The OS is a lightweight foundation. The experience is **Vestara**.
 
 ---
 
 ## Core Principles
 
-1. **Identity-first** — Every service is scoped to an organization and user. Multi-tenant from day one.
-2. **Portable** — Boot from an external SSD. Nothing installed on the host computer. Your entire AI workstation in your pocket.
-3. **Branded** — Every touchpoint (boot, login, desktop, apps) carries the Vestara identity. No exposed Debian branding.
-4. **Service-oriented** — AI capabilities are systemd services. The desktop is just another consumer.
-5. **Stable foundation** — Debian Stable as the base. We add layers, not forks.
+1. **Portable** — Boot from an external SSD. Nothing installed on the host computer. Your entire AI workstation in your pocket.
+2. **Lightweight** — Idle under 700MB RAM. Leave headroom for development and AI tasks.
+3. **Branded** — Every touchpoint carries the Vestara identity. No exposed Debian branding.
+4. **Auto-start** — OpenCode, Dashboard, API, Memory, Provider Manager start automatically. Ollama loads only when you select a local model.
+5. **Offline-capable** — Works with local models (Ollama) or cloud APIs. No internet required.
+6. **Zero footprint** — Leaves no traces on the host system after shutdown.
 
 ---
 
@@ -48,15 +50,29 @@ The user never sees Debian. Debian becomes merely the kernel and package ecosyst
 
 ---
 
+## Resource Budget (8GB Machine)
+
+| Component | RAM |
+|---|---|
+| Tiny Linux | 500–700 MB |
+| OpenCode | ~300 MB |
+| Dashboard/API | ~200 MB |
+| SQLite | negligible |
+| **Total (cloud APIs)** | **~1–2 GB** |
+| **Available for local model** | **~6 GB** |
+
+---
+
 ## What Makes This Different
 
 | Traditional Linux Distros | Vestara AI OS |
 |---|---|
-| Generic desktop environment | Purpose-built AI workspace |
-| Manual AI tool setup | AI services pre-configured |
-| App-by-app installation | Integrated AI applications |
+| Generic desktop environment | Purpose-built AI workstation |
+| Manual AI tool setup | Everything pre-configured |
+| App-by-app installation | Integrated AI platform |
 | User manages everything | Automated service orchestration |
-| One-size-fits-all | Identity-scoped, multi-tenant |
+| One-size-fits-all | Portable, private, personal |
+| Leaves traces on host | Zero footprint |
 
 ---
 

@@ -1,7 +1,7 @@
 # Vestara AI OS — Filesystem Layout
 
-> A purpose-built filesystem that reflects the platform's architecture.
-> Generic Linux conventions where appropriate, Vestara-specific where meaningful.
+> A clean, purpose-built filesystem.
+> User data lives under `/home/ai/`. Platform code lives in `/opt/vestara/`.
 
 ---
 
@@ -12,22 +12,19 @@
 ├── boot/                   # Kernel and bootloader
 │   ├── vmlinuz             # Linux kernel
 │   ├── initrd.img          # Initial ramdisk
-│   └── grub/               # GRUB bootloader config
+│   └── grub/               # GRUB bootloader
 ├── etc/
 │   ├── systemd/
 │   │   └── system/
-│   │       ├── vestara-*.service      # Service unit files
-│   │       └── vestara-workspace.target
-│   ├── vestara/
-│   │   ├── system.toml               # System-wide configuration
-│   │   └── versions.toml             # Installed component versions
-│   └── plymouth/
-│       └── plymouthd.conf            # Boot splash config
+│   │       ├── vestara-*.service     # Service unit files
+│   │       └── vestara.target
+│   └── vestara/
+│       └── system.toml               # System configuration
 ├── opt/
-│   └── vestara/                       # Main installation directory
+│   └── vestara/                       # Platform installation
 │       ├── bin/                       # CLI tools
-│       │   ├── vestara                # Main CLI entrypoint
-│       │   ├── vestara-setup          # Initial setup wizard
+│       │   ├── vestara                # Main CLI
+│       │   ├── vestara-setup          # Initial setup
 │       │   └── vestara-update         # System updater
 │       ├── lib/                       # Shared libraries
 │       │   └── @vestara/
@@ -35,221 +32,72 @@
 │       │       ├── types/             # @vestara/types
 │       │       ├── validation/        # @vestara/validation
 │       │       ├── constants/         # @vestara/constants
-│       │       ├── utils/             # @vestara/utils
-│       │       └── config/            # @vestara/config
+│       │       └── utils/             # @vestara/utils
 │       ├── services/                  # Service applications
-│       │   ├── ai-gateway/
-│       │   ├── model-router/
-│       │   ├── memory/
-│       │   ├── knowledge/
-│       │   ├── agents/
-│       │   ├── workflow/
-│       │   ├── notifications/
-│       │   └── sync/
-│       ├── apps/                      # Desktop applications
-│       │   ├── desktop/
-│       │   ├── assistant/
-│       │   ├── studio/
-│       │   ├── terminal/
-│       │   └── marketplace/
-│       ├── desktop/                   # Desktop shell assets
-│       │   ├── themes/
-│       │   ├── icons/
-│       │   └── fonts/
-│       ├── data/                      # Runtime data (encrypted)
-│       │   ├── postgres/              # PostgreSQL data directory
-│       │   ├── redis/                 # Redis data directory
-│       │   ├── models/                # Local AI models (GGUF, etc.)
-│       │   └── cache/                 # Application cache
-│       ├── .env                       # Environment variables
-│       └── config.toml               # Master configuration
-├── vestara/                           # Platform-specific (user-facing)
-│   ├── ai/                            # AI configurations and prompts
-│   │   ├── prompts/                   # System prompts
-│   │   ├── models/                    # Model configurations
-│   │   └── providers/                 # Provider API configs
-│   ├── agents/                        # Agent definitions
-│   │   ├── builtin/                   # Built-in agents
-│   │   └── custom/                    # User-created agents
-│   ├── knowledge/                     # Knowledge base data
-│   │   ├── documents/                 # Indexed documents
-│   │   ├── embeddings/                # Vector embeddings
-│   │   └── indexes/                   # Search indexes
-│   ├── memory/                        # Memory storage
-│   │   ├── working/                   # Current session memory
-│   │   ├── short-term/               # Recent conversations
-│   │   └── long-term/                # Persistent memories
-│   ├── models/                        # Downloaded AI models
-│   │   ├── ollama/                    # Ollama model storage
-│   │   └── custom/                    # Custom model files
-│   ├── plugins/                       # Installed plugins
-│   ├── projects/                      # User projects
-│   └── workspace/                     # Workspace state
-│       ├── conversations/             # Chat history
-│       ├── workflows/                 # Saved workflows
-│       └── preferences/              # User preferences
+│       │   ├── api/                   # Fastify API
+│       │   ├── memory/                # Memory service
+│       │   ├── agents/                # Agent manager
+│       │   └── notifications/         # Notification service
+│       └── dashboard/                 # React dashboard build
 ├── home/
-│   └── vestara/                       # Default user home
-│       ├── .vestara/                  # User-level config
-│       │   ├── config.toml           # User configuration
-│       │   ├── credentials/          # Encrypted credentials
-│       │   └── sessions/             # Session data
-│       ├── Documents/                 # User documents
-│       ├── Downloads/                 # Downloads
-│       └── .local/
-│           └── share/
-│               └── vestara/          # User-specific data
+│   └── ai/                            # Default user
+│       ├── vestara/                   # Vestara home
+│       │   ├── data/
+│       │   │   └── vestara.db         # SQLite database
+│       │   ├── logs/                  # Service logs
+│       │   ├── backups/               # Database backups
+│       │   └── config.toml            # User configuration
+│       ├── workspace/                 # Working directory
+│       ├── projects/                  # User projects
+│       ├── memory/                    # Memory storage
+│       │   ├── working/               # Current session
+│       │   ├── short-term/            # Recent (24h)
+│       │   └── long-term/             # Persistent
+│       ├── knowledge/                 # Knowledge base
+│       │   ├── documents/             # Indexed documents
+│       │   ├── embeddings/            # Vector data
+│       │   └── collections/           # Document groups
+│       ├── models/                    # Downloaded AI models
+│       │   ├── ollama/                # Ollama model storage
+│       │   └── custom/                # Custom models
+│       ├── agents/                    # Agent configurations
+│       │   ├── builtin/               # Built-in agents
+│       │   └── custom/                # User-created agents
+│       ├── plugins/                   # Installed plugins
+│       └── .vestara/                  # Internal config
+│           ├── credentials/           # Encrypted API keys
+│           └── sessions/              # Session data
 └── var/
     ├── log/
-    │   └── vestara/                   # Service logs
-    │       ├── ai-gateway.log
-    │       ├── model-router.log
-    │       └── ...
+    │   └── vestara/                   # System logs
     └── lib/
-        └── vestara/                   # Variable state data
-            ├── migrations/           # Database migrations
-            └── tmp/                  # Temporary files
+        └── vestara/                   # Variable state
+            └── migrations/            # Database migrations
 ```
 
 ---
 
-## Key Directories Explained
+## Key Directories
 
 ### `/opt/vestara/` — Installation
 
-The read-only (or read-mostly) installation directory. Contains all binaries, libraries, and service code. Updated via `vestara-update` with atomic swaps.
+Read-only platform code. Updated via `vestara-update`.
 
-**Why `/opt`?**
-- Follows FHS convention for third-party software
-- Clean separation from Debian packages
-- Easy to snapshot, backup, or replace
-- Supports A/B update strategy (Stage 4)
+### `/home/ai/` — User Home
 
-### `/vestara/` — Platform Data
+The `ai` user's home directory. Auto-logged in at boot.
 
-The user-facing data directory. This is what Vestara "owns."
+### `/home/ai/vestara/` — Vestara Home
 
-**Why a top-level `/vestara`?**
-- Immediately identifies Vestara-specific data
-- Easy to encrypt as a single mount point
-- Clear mental model: `/vestara` = Vestara's world
-- Separated from user home (supports multi-user)
+All Vestara-specific user data lives here.
 
-### `/etc/vestara/` — System Configuration
+### `/home/ai/workspace/` — Working Directory
 
-System-wide configuration files. Managed by administrators.
-
-### `/home/vestara/` — Default User
-
-The default user account. Created during installation.
+Default working directory for projects and development.
 
 ---
 
-## Encryption Layout
-
-```
-┌─────────────────────────────────────┐
-│ LUKS2 Encrypted Partition           │
-│ /dev/sda2 (or USB SSD)             │
-│                                     │
-│ ┌─────────────────────────────────┐ │
-│ │ /vestara                        │ │
-│ │ ├── knowledge/                  │ │
-│ │ ├── memory/                     │ │
-│ │ ├── models/                     │ │
-│ │ └── workspace/                  │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│ ┌─────────────────────────────────┐ │
-│ │ /opt/vestara/data/              │ │
-│ │ ├── postgres/                   │ │
-│ │ └── redis/                      │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│ ┌─────────────────────────────────┐ │
-│ │ /home/vestara/.vestara/         │ │
-│ │ └── credentials/                │ │
-│ └─────────────────────────────────┘ │
-└─────────────────────────────────────┘
-```
-
-**What's encrypted:**
-- All user data (knowledge, memory, conversations)
-- AI models
-- Database files
-- Credentials and API keys
-- Workspace state
-
-**What's NOT encrypted:**
-- `/opt/vestara/` binaries (read-only, public)
-- `/etc/vestara/` config (may contain non-sensitive settings)
-- `/boot/` (kernel, bootloader)
-
----
-
-## Filesystem Mount Options
-
-```fstab
-# /etc/fstab (excerpt)
-
-# Root filesystem
-UUID=xxxx  /        ext4  errors=remount-ro  0 1
-
-# EFI partition
-UUID=yyyy  /boot/efi vfat  umask=0077        0 1
-
-# Vestara encrypted data
-/dev/mapper/vestara-data  /vestara  ext4  defaults  0 2
-
-# Vestara runtime data
-/dev/mapper/vestara-data  /opt/vestara/data  none  bind  0 0
-```
-
----
-
-## Permissions Model
-
-```
-/vestara/                    root:vestara   775
-/vestara/knowledge/          vestara:vestara 770
-/vestara/memory/             vestara:vestara 770
-/vestara/models/             vestara:vestara 770
-/vestara/projects/           vestara:vestara 770
-/vestara/workspace/          vestara:vestara 770
-
-/opt/vestara/                root:root     755
-/opt/vestara/services/       root:vestara  750
-/opt/vestara/data/           vestara:vestara 770
-
-/etc/vestara/                root:vestara  660
-/etc/vestara/system.toml     root:vestara  640
-```
-
-**Service user:** `vestara` — dedicated system user for all Vestara services.
-
-```bash
-# Create vestara user
-useradd --system --shell /usr/sbin/nologin --home-dir /opt/vestara vestara
-usermod -aG vestara $USER  # Add real user to vestara group
-```
-
----
-
-## Comparison with Standard Linux
-
-| Path | Standard Linux | Vestara AI OS |
-|---|---|---|
-| `/etc/` | System config | System config + Vestara config |
-| `/opt/` | Third-party software | Vestara installation |
-| `/var/lib/` | Variable state | Service state + Vestara data |
-| `/home/` | User data | User data + Vestara workspace |
-| `/vestara/` | — | **Vestara platform data** |
-
-The key difference: Vestara has a **dedicated top-level directory** that makes the platform's data immediately identifiable and manageable.
-
----
-
-## Disk Layout (External SSD)
+## Storage Layout (External SSD)
 
 ```
 Samsung T9 (500GB)
@@ -261,16 +109,87 @@ Samsung T9 (500GB)
 │   ext4, /boot
 │   Kernel, initrd, GRUB
 │
-├── Partition 3: Root (50GB)
+├── Partition 3: Root (20GB)
 │   ext4, /
-│   Debian + Vestara installation
-│   Read-only (Stage 4)
+│   Debian Minimal + Vestara
 │
-└── Partition 4: Vestara Data (448GB)
+└── Partition 4: Data (478GB)
     LUKS2 encrypted
-    ├── /vestara (platform data)
-    ├── /opt/vestara/data (runtime data)
-    └── /home/vestara (user home)
+    ├── /home/ai/vestara/data/    (database)
+    ├── /home/ai/models/          (AI models)
+    ├── /home/ai/knowledge/       (documents)
+    ├── /home/ai/projects/        (user projects)
+    └── /home/ai/vestara/backups/ (backups)
 ```
 
-Total: ~500GB external SSD fits a complete AI workstation with room for large models.
+---
+
+## Permissions
+
+```
+/home/ai/                    ai:ai       755
+/home/ai/vestara/            ai:ai       755
+/home/ai/vestara/data/       ai:ai       700
+/home/ai/vestara/logs/       ai:ai       755
+/home/ai/workspace/          ai:ai       755
+/home/ai/projects/           ai:ai       755
+
+/opt/vestara/                root:root   755
+/opt/vestara/services/       root:ai     750
+
+/etc/vestara/                root:ai     660
+```
+
+---
+
+## Encryption Layout
+
+```
+┌─────────────────────────────────────┐
+│ LUKS2 Encrypted Partition           │
+│ /dev/sda4 (Data partition)         │
+│                                     │
+│ ┌─────────────────────────────────┐ │
+│ │ /home/ai/vestara/data/         │ │
+│ │ └── vestara.db                 │ │
+│ ├─────────────────────────────────┤ │
+│ │ /home/ai/models/               │ │
+│ │ ├── ollama/                    │ │
+│ │ └── custom/                    │ │
+│ ├─────────────────────────────────┤ │
+│ │ /home/ai/knowledge/            │ │
+│ │ ├── documents/                 │ │
+│ │ └── embeddings/                │ │
+│ ├─────────────────────────────────┤ │
+│ │ /home/ai/projects/             │ │
+│ └─────────────────────────────────┘ │
+│ ┌─────────────────────────────────┐ │
+│ │ /home/ai/.vestara/credentials/ │ │
+│ │ └── (encrypted API keys)       │ │
+│ └─────────────────────────────────┘ │
+└─────────────────────────────────────┘
+```
+
+**What's encrypted:**
+- All user data (knowledge, memory, conversations)
+- AI models
+- Database
+- Credentials and API keys
+- Projects and code
+
+**What's NOT encrypted:**
+- `/opt/vestara/` binaries (read-only, public)
+- `/boot/` (kernel, bootloader)
+
+---
+
+## Comparison with Standard Linux
+
+| Path | Standard Linux | Vestara AI OS |
+|---|---|---|
+| `/home/user/` | User data | User data + Vestara workspace |
+| `/opt/` | Third-party software | Vestara installation |
+| `/etc/` | System config | System config + Vestara config |
+| `/var/lib/` | Variable state | Service state |
+| `/home/ai/vestara/` | — | **Vestara platform data** |
+| `/home/ai/workspace/` | — | **Working directory** |

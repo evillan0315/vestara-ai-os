@@ -1,26 +1,27 @@
 # Vestara AI OS — Boot Experience
 
-> From power-on to desktop. Every frame is branded.
+> From power-on to desktop. Fast, branded, automatic.
 
 ---
 
 ## Boot Sequence
 
 ```
-┌─────────────────────────────────────────┐
-│                                         │
-│              VESTARA                     │
-│         AI Operating System             │
-│            Version 1.0                  │
-│                                         │
-│         Initializing Core...            │
-│         Loading AI Services...          │
-│         Loading Knowledge...            │
-│         Starting Workspace...           │
-│                                         │
-│         [━━━━━━━━━━━━━━░░░░░] 75%       │
-│                                         │
-└─────────────────────────────────────────┘
+Power On
+    ▼
+Portable SSD
+    ▼
+Tiny Linux (Debian Minimal)
+    ▼
+Auto Login (ai user)
+    ▼
+systemd starts vestara.target
+    ▼
+Vestara API starts
+    ▼
+Dashboard opens in browser (kiosk mode)
+    ▼
+AI Platform ready
 ```
 
 ---
@@ -34,227 +35,191 @@
 - Select USB SSD
 
 **Technical:**
-- GRUB2 (standard Debian bootloader, Stage 1)
-- Future: Replace with systemd-boot or rEFInd for cleaner branding
+- GRUB2 or systemd-boot
+- Minimal boot configuration
 
 ---
 
-## Phase 2: Bootloader → Kernel
+## Phase 2: Kernel → Init
 
-**What the user sees:** Nothing branded yet.
+**What the user sees:** Fast text scroll, then auto-login.
 
-- GRUB loads Linux kernel
-- Initial ramdisk loads
+- Linux kernel loads
+- Init system starts (systemd)
+- Minimal services initialize
+- Auto-login as `ai` user
 
 **Technical:**
-- `vmlinuz` + `initrd.img`
-- Kernel parameters: `quiet splash`
-
----
-
-## Phase 3: Plymouth Splash
-
-**This is where branding begins.**
-
-### Plymouth Theme: `vestara-boot`
-
 ```
-┌─────────────────────────────────────────┐
-│                                         │
-│              VESTARA                     │
-│         AI Operating System             │
-│                                         │
-│         Initializing Core...            │
-│         [━━━━━━━━━━━━━━░░░░░]           │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-**Design Requirements:**
-- Dark background (#0A0A0F or similar deep navy)
-- Vestara logo (centered, crisp rendering)
-- Progress bar with smooth animation
-- Status text cycling through boot phases
-- 1920x1080 and 3840x2160 support
-- No Debian branding visible
-
-**Boot Phase Messages:**
-```
-Initializing Core...
-Loading AI Services...
-Loading Knowledge...
-Preparing Workspace...
-Starting Vestara...
-```
-
-### Implementation
-
-```
-/usr/share/plymouth/themes/vestara-boot/
-├── vestara-boot.plymouth     # Theme definition
-├── vestara-boot.script       # Plymouth script
-├── vestara-logo.png          # Logo image (SVG where supported)
-├── progress-bar.png          # Progress bar asset
-├── progress-fill.png         # Progress bar fill
-└── background.png            # Background image
-```
-
-** Plymouth Configuration:**
-
-```ini
-# /etc/plymouth/plymouthd.conf
-[Daemon]
-Theme=vestara-boot
-DeviceTimeout=8
-ShowDelay=0
-
-# /usr/share/plymouth/themes/vestara-boot/vestara-boot.plymouth
-[Plymouth Theme]
-Name=Vestara AI OS
-Description=Vestara AI Operating System
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/vestara-boot
-ScriptFile=/usr/share/plymouth/themes/vestara-boot/vestara-boot.script
+# Auto-login configuration
+# /etc/systemd/system/getty@tty1.service.d/autologin.conf
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin ai --noclear %I $TERM
 ```
 
 ---
 
-## Phase 4: Disk Encryption Unlock
+## Phase 3: Vestara Services Start
 
-**What the user sees:**
+**What the user sees:** Brief splash, then dashboard.
+
+systemd starts `vestara.target`:
 
 ```
-┌─────────────────────────────────────────┐
-│                                         │
-│              VESTARA                     │
-│         Encrypted Disk                  │
-│                                         │
-│         Passphrase: __________           │
-│                                         │
-│         [ Unlock ]                      │
-│                                         │
-└─────────────────────────────────────────┘
+1. vestara-core.service        (Config, events, logging)
+2. vestara-api.service         (Fastify API server)
+3. vestara-memory.service      (Context management)
+4. vestara-agents.service      (Agent lifecycle)
+5. vestara-notifications.service
+6. vestara-dashboard.service   (Opens browser in kiosk mode)
 ```
 
-**Technical:**
-- Plymouth prompts for LUKS2 passphrase
-- Custom Plymouth script renders the unlock screen
-- Uses same Vestara branding and color scheme
-- No visible `/dev/sdX` device names — just "Vestara Encrypted Disk"
+**Ollama does NOT start automatically.** It launches only when the user selects a local model.
 
 ---
 
-## Phase 5: GDM Login Screen
+## Phase 4: Dashboard Loads
 
-**Replace default GDM branding with Vestara theming.**
-
-```
-┌─────────────────────────────────────────┐
-│                                         │
-│              VESTARA AI OS               │
-│            Welcome Back                 │
-│                                         │
-│         ┌───────────────────┐           │
-│         │  [Avatar]         │           │
-│         │  Eddie Villanueva │           │
-│         │  Password: •••••• │           │
-│         │                   │           │
-│         │     Sign In       │           │
-│         └───────────────────┘           │
-│                                         │
-│  ─────────────────────────────────────  │
-│                                         │
-│  AI Status                              │
-│  ✓ Memory Ready                         │
-│  ✓ Knowledge Ready                      │
-│  ✓ Models Available                     │
-│                                         │
-│  ─────────────────────────────────────  │
-│                                         │
-│  [ Power ] [ Settings ] [ Network ]     │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-**Design Requirements:**
-- Dark theme (matches boot experience)
-- Vestara logo at top
-- User avatar (local, not network-dependent)
-- AI service status indicators
-- Time and date display
-- Power/settings controls
-
-### Implementation
-
-- GDM with custom theme (CSS override)
-- Alternatively: SDDM with custom QML theme (more flexible)
-- Future: Custom display manager (minimal Wayland compositor + auth)
-
-### GDM Theming
+**What the user sees:** Vestara AI OS dashboard.
 
 ```
-/usr/share/gnome-shell/extensions/vestara-login/
-├── extension.js
-├── stylesheet.css
-└── metadata.json
-
-/etc/dconf/profile/gdm:
-user-db:user
-system-db:vestara
-
-/etc/dconf/db/gdm.d/vestara:
-[org/gnome/desktop/interface]
-cursor-theme='vestara'
-icon-theme='vestara'
-font-name='Plus Jakarta Sans 11'
+┌──────────────────────────────────────────────┐
+│                                              │
+│              VESTARA AI OS                    │
+│         Loading Workspace...                 │
+│         [━━━━━━━━━━━━━━░░░░░]                │
+│                                              │
+└──────────────────────────────────────────────┘
 ```
 
----
-
-## Phase 6: Desktop Loading
-
-**What the user sees:**
+Then the full dashboard appears:
 
 ```
-┌─────────────────────────────────────────┐
-│                                         │
-│              VESTARA                     │
-│         Loading Workspace...            │
-│         [━━━━━━━━━━━━━━░░░░░]           │
-│                                         │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ Vestara AI OS          🟢 All Systems Ready  │
+├─────────────┬────────────────────────────────┤
+│ Dashboard   │                                │
+│ Chat        │       Welcome Back, Eddie       │
+│ Agents      │                                │
+│ Projects    │  ┌──────┐ ┌──────┐ ┌──────┐   │
+│ Knowledge   │  │ AI   │ │ RAM  │ │ CPU  │   │
+│ Models      │  │ Ready│ │ 1.2GB│ │ 12%  │   │
+│ Files       │  └──────┘ └──────┘ └──────┘   │
+│ Docker      │                                │
+│ Git         │  Quick Actions                 │
+│ Terminal    │  ┌─────────┐ ┌─────────┐       │
+│ Marketplace │  │New Chat │ │Open Term│       │
+│ Settings    │  └─────────┘ └─────────┘       │
+└─────────────┴────────────────────────────────┘
 ```
-
-This is a brief transitional screen while the Vestara Workspace loads.
-
-**Technical:**
-- Custom splash shown by the desktop environment during initialization
-- Vestara Core services start in parallel
-- Desktop shell loads and takes over
 
 ---
 
 ## Startup Program Order
 
-```
-systemd target: vestara-workspace.target
+```ini
+# /etc/systemd/system/vestara.target
+[Unit]
+Description=Vestara AI Platform
+After=multi-user.target docker.service
 
-1. vestara-core.service           (Identity, config, events)
-2. vestara-database.service       (PostgreSQL + Redis)
-3. vestara-memory.service         (Context management)
-4. vestara-knowledge.service      (RAG, indexing)
-5. vestara-ai-gateway.service     (AI provider connections)
-6. vestara-model-router.service   (Model selection)
-7. vestara-agents.service         (Agent lifecycle)
-8. vestara-workflow.service       (Automation engine)
-9. vestara-notifications.service  (Notification center)
-10. vestara-sync.service          (Cross-device sync)
-11. vestara-desktop.service       (Workspace shell)
+[Install]
+WantedBy=graphical.target
+
+# Services
+Wants=vestara-core.service
+Wants=vestara-api.service
+Wants=vestara-memory.service
+Wants=vestara-agents.service
+Wants=vestara-notifications.service
+Wants=vestara-dashboard.service
 ```
 
-Each service has `After=` dependencies to enforce ordering. Services 3-10 can start in parallel after service 2 completes.
+### Service Definitions
+
+```ini
+# vestara-core.service
+[Unit]
+Description=Vestara Core
+After=docker.service
+
+[Service]
+Type=simple
+User=ai
+WorkingDirectory=/home/ai/vestara
+ExecStart=/usr/bin/node services/core/dist/index.js
+Restart=on-failure
+
+[Install]
+WantedBy=vestara.target
+```
+
+```ini
+# vestara-api.service
+[Unit]
+Description=Vestara API
+After=vestara-core.service
+
+[Service]
+Type=simple
+User=ai
+WorkingDirectory=/home/ai/vestara
+ExecStart=/usr/bin/node services/api/dist/index.js
+Restart=on-failure
+Environment=PORT=3000
+Environment=DATABASE=/home/ai/vestara/data/vestara.db
+
+[Install]
+WantedBy=vestara.target
+```
+
+```ini
+# vestara-dashboard.service
+[Unit]
+Description=Vestara Dashboard
+After=vestara-api.service
+
+[Service]
+Type=simple
+User=ai
+ExecStart=/usr/bin/chromium --kiosk --noerrdialogs --disable-infobars http://localhost:3000
+Restart=on-failure
+
+[Install]
+WantedBy=vestara.target
+```
+
+---
+
+## Ollama Management
+
+Ollama is installed but NOT auto-started.
+
+```bash
+# Start Ollama (when user selects local model)
+systemctl start vestara-ollama
+
+# Stop Ollama (when switching to cloud API)
+systemctl stop vestara-ollama
+```
+
+**Resource-aware startup:**
+- If < 4GB RAM available: Show warning, suggest cloud API
+- If 4-6GB RAM: Start with small models only (Phi-4, Qwen3)
+- If 6GB+ RAM: Start with any model
+
+---
+
+## Boot Time Targets
+
+| Phase | Target |
+|---|---|
+| Kernel load | < 5s |
+| Init → auto-login | < 3s |
+| Services start | < 5s |
+| Dashboard load | < 3s |
+| **Total power-on to ready** | **< 16s** |
 
 ---
 
@@ -262,10 +227,9 @@ Each service has `After=` dependencies to enforce ordering. Services 3-10 can st
 
 | Phase | Priority | Effort |
 |---|---|---|
-| Plymouth boot splash | P0 | 1-2 days |
-| GDM theming | P0 | 2-3 days |
-| Boot animation assets | P0 | 1 day |
-| Disk unlock screen | P1 | 1 day |
-| Desktop loading screen | P1 | 1 day |
-| systemd-boot bootloader | P2 | 2-3 days |
-| Custom display manager | P3 | 2-4 weeks |
+| Auto-login configuration | P0 | 1 hour |
+| systemd service files | P0 | 1 day |
+| Plymouth boot splash | P1 | 1-2 days |
+| Kiosk mode browser | P0 | 1 day |
+| Service health checks | P1 | 1 day |
+| Boot time optimization | P2 | 2-3 days |
