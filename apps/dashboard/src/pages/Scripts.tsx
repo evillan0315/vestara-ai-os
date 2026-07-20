@@ -1,12 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
+interface ScriptDocs {
+  summary: string;
+  description: string;
+  prerequisites: string[];
+  options: { flag: string; description: string }[];
+  examples: string[];
+  outputs: string[];
+  notes: string[];
+}
+
 interface Script {
   name: string;
   filename: string;
   description: string;
   usage: string;
   size: number;
+  category: 'build' | 'deploy' | 'maintain';
+  docs?: ScriptDocs;
+}
+
+interface ScriptDetail extends Script {
+  content: string;
 }
 
 interface ScriptResult {
@@ -15,24 +31,17 @@ interface ScriptResult {
   exitCode: number;
 }
 
-const SCRIPT_CATEGORIES: Record<string, string[]> = {
-  'Build': ['build-ssd', 'build-deb', 'build-iso', 'build-repo'],
-  'Deploy': ['deploy', 'install', 'upgrade'],
-  'Maintain': ['backup'],
-};
-
-const getScriptCategory = (name: string) => {
-  for (const [cat, scripts] of Object.entries(SCRIPT_CATEGORIES)) {
-    if (scripts.includes(name)) return cat;
-  }
-  return 'Other';
+const CATEGORY_LABELS: Record<string, string> = {
+  build: 'Build',
+  deploy: 'Deploy',
+  maintain: 'Maintain',
 };
 
 const getCategoryColor = (cat: string) => {
   switch (cat) {
-    case 'Build': return 'text-amber-400 bg-amber-400/10';
-    case 'Deploy': return 'text-green-400 bg-green-400/10';
-    case 'Maintain': return 'text-blue-400 bg-blue-400/10';
+    case 'build': return 'text-amber-400 bg-amber-400/10';
+    case 'deploy': return 'text-green-400 bg-green-400/10';
+    case 'maintain': return 'text-blue-400 bg-blue-400/10';
     default: return 'text-vestara-text-muted bg-white/5';
   }
 };
@@ -40,8 +49,7 @@ const getCategoryColor = (cat: string) => {
 export default function Scripts() {
   const { token } = useAuth();
   const [scripts, setScripts] = useState<Script[]>([]);
-  const [selectedScript, setSelectedScript] = useState<Script | null>(null);
-  const [scriptContent, setScriptContent] = useState('');
+  const [selectedScript, setSelectedScript] = useState<ScriptDetail | null>(null);
   const [args, setArgs] = useState('');
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState('');
@@ -72,15 +80,14 @@ export default function Scripts() {
   };
 
   const selectScript = async (script: Script) => {
-    setSelectedScript(script);
     setOutput('');
     setExitCode(null);
     setArgs('');
     try {
       const res = await fetch(`/api/scripts/${script.name}`, { headers });
       if (res.ok) {
-        const data = await res.json();
-        setScriptContent(data.content || '');
+        const data: ScriptDetail = await res.json();
+        setSelectedScript(data);
       }
     } catch {}
   };
@@ -131,7 +138,7 @@ export default function Scripts() {
           ) : (
             <div className="space-y-1">
               {scripts.map((script) => {
-                const cat = getScriptCategory(script.name);
+                const cat = script.category || 'maintain';
                 return (
                   <button
                     key={script.name}
@@ -145,7 +152,7 @@ export default function Scripts() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-vestara-text font-medium">{script.name}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${getCategoryColor(cat)}`}>
-                        {cat}
+                        {CATEGORY_LABELS[cat] || cat}
                       </span>
                     </div>
                     <p className="mt-0.5 text-[11px] text-vestara-text-dim line-clamp-1">{script.description}</p>
@@ -164,19 +171,91 @@ export default function Scripts() {
               <div className="glass p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-vestara-text">{selectedScript.filename}</h3>
-                    <p className="text-sm text-vestara-text-muted">{selectedScript.description}</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-vestara-text">{selectedScript.filename}</h3>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${getCategoryColor(selectedScript.category || 'maintain')}`}>
+                        {CATEGORY_LABELS[selectedScript.category || 'maintain']}
+                      </span>
+                    </div>
+                    <p className="text-sm text-vestara-text-muted mt-1">{selectedScript.docs?.summary || selectedScript.description}</p>
                   </div>
                   <span className="text-xs text-vestara-text-dim">{formatSize(selectedScript.size)}</span>
                 </div>
 
-                <div className="mb-3 rounded-lg bg-vestara-bg p-3">
-                  <p className="text-[10px] text-vestara-text-dim mb-1">Usage</p>
-                  <code className="text-xs text-vestara-gold font-mono">{selectedScript.usage}</code>
-                </div>
+                {/* Full description */}
+                {selectedScript.docs?.description && (
+                  <p className="text-xs text-vestara-text-dim mb-4 leading-relaxed">{selectedScript.docs.description}</p>
+                )}
 
-                {/* Args input */}
-                <div className="flex gap-2">
+                {/* Usage examples */}
+                {selectedScript.docs?.examples && selectedScript.docs.examples.length > 0 && (
+                  <div className="mb-3 rounded-lg bg-vestara-bg p-3">
+                    <p className="text-[10px] text-vestara-text-dim mb-1.5">Usage</p>
+                    {selectedScript.docs.examples.map((ex, i) => (
+                      <code key={i} className="block text-xs text-vestara-gold font-mono mb-0.5">{ex}</code>
+                    ))}
+                  </div>
+                )}
+
+                {/* Prerequisites */}
+                {selectedScript.docs?.prerequisites && selectedScript.docs.prerequisites.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[10px] text-vestara-text-dim mb-1.5">Prerequisites</p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedScript.docs.prerequisites.map((dep, i) => (
+                        <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-vestara-text-dim border border-vestara-glass-border">{dep}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Options */}
+                {selectedScript.docs?.options && selectedScript.docs.options.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[10px] text-vestara-text-dim mb-1.5">Options</p>
+                    <div className="space-y-1">
+                      {selectedScript.docs.options.map((opt, i) => (
+                        <div key={i} className="flex gap-2 text-xs">
+                          <code className="text-vestara-gold font-mono whitespace-nowrap">{opt.flag}</code>
+                          <span className="text-vestara-text-dim">{opt.description}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Outputs */}
+                {selectedScript.docs?.outputs && selectedScript.docs.outputs.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[10px] text-vestara-text-dim mb-1.5">Outputs</p>
+                    <div className="space-y-0.5">
+                      {selectedScript.docs.outputs.map((out, i) => (
+                        <div key={i} className="flex items-start gap-1.5 text-xs">
+                          <span className="text-green-400 mt-0.5">→</span>
+                          <code className="text-vestara-text font-mono text-[11px]">{out}</code>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {selectedScript.docs?.notes && selectedScript.docs.notes.length > 0 && (
+                  <div className="mb-3 rounded-lg bg-amber-400/5 border border-amber-400/20 p-3">
+                    <p className="text-[10px] text-amber-400 mb-1.5">Notes</p>
+                    <ul className="space-y-0.5">
+                      {selectedScript.docs.notes.map((note, i) => (
+                        <li key={i} className="text-[11px] text-vestara-text-dim flex items-start gap-1.5">
+                          <span className="text-amber-400/60 mt-0.5">•</span>
+                          {note}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Args input + Run */}
+                <div className="flex gap-2 mt-4">
                   <input
                     type="text"
                     value={args}
@@ -201,7 +280,7 @@ export default function Scripts() {
                   <span className="text-[10px] text-vestara-text-dim">{selectedScript.filename}</span>
                 </div>
                 <pre className="max-h-64 overflow-auto p-4 text-xs text-vestara-text font-mono whitespace-pre-wrap">
-                  {scriptContent || 'Loading...'}
+                  {selectedScript.content || 'Loading...'}
                 </pre>
               </div>
 
