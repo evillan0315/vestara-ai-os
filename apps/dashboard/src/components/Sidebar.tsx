@@ -6,6 +6,8 @@ const navItems = [
   { to: '/opencode', label: 'OpenCode', icon: '⚡' },
   { to: '/agents', label: 'Agents', icon: '🤖' },
   { to: '/models', label: 'Models', icon: '🧠' },
+  { to: '/memory', label: 'Memory', icon: '💾' },
+  { to: '/knowledge', label: 'Knowledge', icon: '📚' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 

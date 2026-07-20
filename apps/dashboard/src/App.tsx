@@ -6,6 +6,8 @@ import { Agents } from './pages/Agents';
 import { Models } from './pages/Models';
 import { OpenCodePage } from './pages/OpenCode';
 import { Settings } from './pages/Settings';
+import Memory from './pages/Memory';
+import Knowledge from './pages/Knowledge';
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
         <Route path="/opencode" element={<OpenCodePage />} />
         <Route path="/agents" element={<Agents />} />
         <Route path="/models" element={<Models />} />
+        <Route path="/memory" element={<Memory />} />
+        <Route path="/knowledge" element={<Knowledge />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>

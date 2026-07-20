@@ -6,10 +6,12 @@ import { createLogger } from '@vestara/core';
 import { createDatabase, migrate } from '@vestara/core';
 import { MemoryService } from '@vestara/core';
 import { KnowledgeService } from '@vestara/core';
+import { AgentRuntime } from '@vestara/core';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerConversationRoutes } from './routes/conversations.js';
 import { registerAgentRoutes } from './routes/agents.js';
+import { registerAgentRuntimeRoutes } from './routes/agent-runtime.js';
 import { registerSystemRoutes } from './routes/system.js';
 import { registerKnowledgeRoutes } from './routes/knowledge.js';
 import { registerMemoryRoutes } from './routes/memory.js';
@@ -60,6 +62,7 @@ async function main() {
   const events = (app as any).events || { emit: () => {}, on: () => {} };
   app.decorate('memoryService', new MemoryService(db, events));
   app.decorate('knowledgeService', new KnowledgeService(db, events));
+  app.decorate('agentRuntime', new AgentRuntime(db, events));
 
   // CORS
   await app.register(cors, {
@@ -87,6 +90,7 @@ async function main() {
   registerProviderRoutes(app);
   registerConversationRoutes(app);
   registerAgentRoutes(app);
+  registerAgentRuntimeRoutes(app);
   registerSystemRoutes(app);
   registerKnowledgeRoutes(app);
   registerMemoryRoutes(app);
