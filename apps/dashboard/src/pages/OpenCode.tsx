@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface Chat {
   id: string;
@@ -14,6 +14,13 @@ interface Message {
   content: string;
   model: string | null;
   created_at: string;
+}
+
+interface BrowserEntry {
+  name: string;
+  path: string;
+  type: string;
+  icon: string;
 }
 
 const defaultModels = [
@@ -33,10 +40,34 @@ export function OpenCodePage() {
   const [model, setModel] = useState('opencode/deepseek-v4-flash-free');
   const [cwd, setCwd] = useState('/home/eddie/workspace');
   const [showSidebar, setShowSidebar] = useState(true);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const [browserPath, setBrowserPath] = useState('');
+  const [browserEntries, setBrowserEntries] = useState<BrowserEntry[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const loadBrowserDir = useCallback(async (path: string) => {
+    try {
+      const res = await fetch(`/api/files/list?path=${encodeURIComponent(path)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBrowserPath(data.path || '');
+        setBrowserEntries((data.entries || []).filter((e: BrowserEntry) => e.type === 'directory'));
+      }
+    } catch {}
+  }, []);
+
+  const openBrowser = (currentPath?: string) => {
+    loadBrowserDir(currentPath || '');
+    setShowBrowser(true);
+  };
+
+  const selectBrowserDir = (path: string) => {
+    setCwd(path);
+    setShowBrowser(false);
   };
 
   useEffect(() => {
@@ -232,6 +263,13 @@ export function OpenCodePage() {
               placeholder="/path/to/project"
               className="w-64 rounded border border-vestara-glass-border bg-vestara-bg px-2 py-1 text-xs text-vestara-text outline-none focus:border-vestara-gold/50"
             />
+            <button
+              onClick={() => openBrowser(cwd)}
+              className="px-2 py-1 rounded border border-vestara-glass-border bg-vestara-bg text-xs text-vestara-text-muted hover:text-vestara-text hover:bg-vestara-glass"
+              title="Browse directories"
+            >
+              ...
+            </button>
           </div>
           <select
             value={model}
@@ -317,6 +355,63 @@ export function OpenCodePage() {
           </div>
         </div>
       </div>
+
+      {/* Directory Browser Modal */}
+      {showBrowser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <h2 className="text-xl font-bold mb-4 text-white">Select Working Directory</h2>
+            <div className="flex items-center gap-2 mb-4 text-sm">
+              <span className="text-gray-400">Current:</span>
+              <span className="text-white font-mono">{browserPath || '~'}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto border border-[#1e1e2e] rounded-lg bg-[#0a0a12] min-h-[300px]">
+              {browserPath && (
+                <button
+                  onClick={() => {
+                    const parent = browserPath.substring(0, browserPath.lastIndexOf('/')) || '';
+                    loadBrowserDir(parent);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-400 hover:bg-white/5 border-b border-[#1e1e2e] flex items-center gap-2"
+                >
+                  <span>..</span>
+                  <span className="text-gray-500">Parent directory</span>
+                </button>
+              )}
+              {browserEntries.length === 0 ? (
+                <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
+                  No subdirectories
+                </div>
+              ) : (
+                browserEntries.map((entry) => (
+                  <button
+                    key={entry.path}
+                    onClick={() => loadBrowserDir(entry.path)}
+                    className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 border-b border-[#1e1e2e] flex items-center gap-2"
+                  >
+                    <span>{entry.icon || '📁'}</span>
+                    <span className="font-mono">{entry.name}</span>
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowBrowser(false)}
+                className="flex-1 px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => selectBrowserDir(browserPath)}
+                className="flex-1 px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef] text-white"
+              >
+                Select
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
