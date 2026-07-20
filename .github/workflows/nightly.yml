@@ -2,7 +2,7 @@ name: Nightly Build
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # Every day at 2 AM UTC
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 env:
@@ -16,8 +16,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: '10'
 
       - uses: actions/setup-node@v4
         with:
@@ -117,7 +115,6 @@ jobs:
               a.name.startsWith('nightly-')
             );
             
-            // Keep only last 7 nightlies
             const toDelete = nightlies.slice(7);
             
             for (const artifact of toDelete) {
