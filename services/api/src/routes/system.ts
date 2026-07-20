@@ -1,6 +1,9 @@
 import type { VestaraApp } from '../types.js';
 import { cpus, totalmem, freemem, loadavg, hostname, networkInterfaces } from 'node:os';
-import { execSync } from 'node:child_process';
+import { exec, execSync } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execAsync = promisify(exec);
 
 export function registerSystemRoutes(app: VestaraApp) {
   app.get('/api/system/stats', async () => {
@@ -138,5 +141,40 @@ export function registerSystemRoutes(app: VestaraApp) {
       arch: process.arch,
       nodeVersion: process.version,
     };
+  });
+
+  app.post<{
+    Body: { command: string };
+  }>('/api/system/exec', async (request, reply) => {
+    const { command } = request.body;
+
+    if (!command || typeof command !== 'string') {
+      return reply.status(400).send({ error: 'command is required' });
+    }
+
+    // Block dangerous commands
+    const blocked = ['rm -rf /', 'mkfs', ':(){', 'dd if=/dev/zero'];
+    if (blocked.some((b) => command.includes(b))) {
+      return reply.status(403).send({ error: 'Command blocked for safety' });
+    }
+
+    try {
+      const { stdout, stderr } = await execAsync(command, {
+        timeout: 30000,
+        maxBuffer: 1024 * 1024,
+        env: { ...process.env, TERM: 'dumb' },
+      });
+      return reply.send({
+        stdout: stdout || '',
+        stderr: stderr || '',
+        exitCode: 0,
+      });
+    } catch (err: any) {
+      return reply.send({
+        stdout: err.stdout || '',
+        stderr: err.stderr || err.message || 'Command failed',
+        exitCode: err.code || 1,
+      });
+    }
   });
 }
