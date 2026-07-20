@@ -42,3 +42,10 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# pnpm
+.pnpmbuilds.json
+.pnpm-store/
+
+# Docker
+docker-compose.override.yml

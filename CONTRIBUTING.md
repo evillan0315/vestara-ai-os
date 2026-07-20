@@ -33,7 +33,7 @@ pnpm dev
 
 ```
 vestara-ai-os/
-├── apps/dashboard/          # React frontend
+├── apps/dashboard/          # React frontend (10 pages)
 ├── services/core/           # Core library (SQLite, services)
 ├── services/api/            # Fastify API server
 ├── packages/                # Shared packages
@@ -43,9 +43,14 @@ vestara-ai-os/
 │   ├── utils/               # Utilities
 │   ├── config/              # Configuration
 │   └── cli/                 # CLI tool
-├── scripts/                 # Build scripts
+├── scripts/                 # Build and deployment scripts
 ├── systemd/                 # Service files
-└── blueprints/              # Documentation
+├── branding/                # Plymouth boot theme
+├── docker-compose.yml       # Full stack Docker
+├── docker-compose.dev.yml   # Development Docker
+├── Dockerfile               # API server image
+├── Dockerfile.dashboard     # Dashboard image
+└── .github/workflows/       # CI/CD pipelines
 ```
 
 ## Code Style
@@ -74,16 +79,23 @@ vestara-ai-os/
 
 ### API Routes
 
-- RESTful conventions
-- Use auth middleware for protected routes
+- All route functions accept `VestaraApp` (from `../types.ts`), not `FastifyInstance`
+- Use `authMiddleware` for protected routes
 - Return appropriate HTTP status codes
 - Validate input with Zod schemas
+
+### Database
+
+- Use `better-sqlite3` wrapper (`Database` class from `@vestara/core`)
+- Tables use `snake_case` columns
+- Always include `created_at` and `updated_at` timestamps
 
 ## Git Workflow
 
 ### Branches
 
 - `main` — Production-ready code
+- `develop` — Development branch
 - `feat/*` — New features
 - `fix/*` — Bug fixes
 - `docs/*` — Documentation changes
@@ -100,6 +112,7 @@ style: formatting changes
 refactor: code restructuring
 test: add tests
 chore: maintenance tasks
+ci: CI/CD changes
 ```
 
 ### Pull Requests
@@ -108,8 +121,32 @@ chore: maintenance tasks
 2. Make your changes
 3. Run `pnpm build` to ensure everything compiles
 4. Run `pnpm lint` to check code style
-5. Commit with a clear message
-6. Push and create a pull request
+5. Run `pnpm typecheck` to verify types
+6. Commit with a clear message
+7. Push and create a pull request
+
+## CI/CD
+
+### GitHub Actions
+
+The project uses GitHub Actions with 6 workflows:
+
+| Workflow | Trigger | Description |
+|----------|---------|-------------|
+| CI | Push to `main`/`develop`, PRs | Lint, typecheck, build, test, Docker build, security scan |
+| Deploy Development | Push to `develop` | Auto-deploy to development |
+| Deploy Staging | Push to `main` | Auto-deploy to staging |
+| Deploy Production | Manual dispatch | Deploy to production |
+| Nightly Build | Daily at 2 AM UTC | Build nightly Docker images |
+| Release | Push tag `v*` | Build and release packages |
+
+### Running CI Locally
+
+Before pushing, run all CI checks locally:
+
+```bash
+pnpm lint && pnpm typecheck && pnpm build && pnpm test
+```
 
 ## Testing
 
@@ -120,8 +157,32 @@ pnpm test
 # Run tests for a specific package
 pnpm --filter=@vestara/core test
 
-# Run tests in watch mode
+# Run tests in watch mode (if configured)
 pnpm test:watch
+```
+
+## Docker
+
+### Full Stack
+
+```bash
+docker compose up -d
+```
+
+### Development Mode
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+### Building Images
+
+```bash
+# Build API image
+docker build -t vestara-api .
+
+# Build Dashboard image
+docker build -t vestara-dashboard -f Dockerfile.dashboard .
 ```
 
 ## Documentation
@@ -129,6 +190,7 @@ pnpm test:watch
 - Keep blueprints updated when adding features
 - Update API documentation for new endpoints
 - Add JSDoc comments for public APIs
+- Update AGENTS.md if adding new conventions
 
 ## Questions?
 

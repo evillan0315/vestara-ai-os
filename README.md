@@ -4,6 +4,10 @@ A portable AI operating system that boots from an external SSD.
 
 Plug into any x86-64 computer, power on, and your complete AI environment is ready. Models, projects, memories, settings — everything travels with you.
 
+[![CI](https://github.com/evillan0315/vestara-ai-os/actions/workflows/ci.yml/badge.svg)](https://github.com/evillan0315/vestara-ai-os/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/evillan0315/vestara-ai-os)](https://github.com/evillan0315/vestara-ai-os/releases)
+[![License](https://img.shields.io/badge/license-proprietary-blue)](LICENSE)
+
 ---
 
 ## Quick Start
@@ -38,6 +42,7 @@ cd packages/cli && pnpm build
 - **Terminal** — Built-in command execution
 - **CLI Tool** — Command-line interface for service management
 - **Docker Support** — Full stack containerized deployment
+- **CI/CD** — GitHub Actions for testing, building, and deployment
 - **OS Build Scripts** — Create bootable portable SSDs
 
 ## Architecture
@@ -50,7 +55,7 @@ cd packages/cli && pnpm build
 ├─────────────────────────────────────┤
 │         Vestara API                 │
 │  Fastify 5 · WebSocket · REST      │
-│  12 route modules · SSE streaming   │
+│  11 route modules · SSE streaming   │
 ├─────────────────────────────────────┤
 │         AI Services                 │
 │  OpenCode · Agent Runtime ·         │
@@ -75,13 +80,14 @@ vestara-ai-os/
 │   └── dashboard/              # React dashboard (10 pages)
 ├── services/
 │   ├── core/                   # @vestara/core library
-│   │   ├── db.ts               # SQLite schema (16 tables)
+│   │   ├── db.ts               # SQLite wrapper + schema
 │   │   ├── memory-service.ts   # Memory consolidation
 │   │   ├── knowledge-service.ts# Knowledge base
 │   │   └── agent-runtime.ts    # Agent execution
 │   └── api/                    # Fastify API server
-│       ├── routes/             # 12 route modules
-│       └── providers/          # AI provider abstraction
+│       ├── routes/             # 11 route modules
+│       ├── providers/          # AI provider abstraction
+│       └── types.ts            # VestaraApp type (Fastify)
 ├── packages/
 │   ├── types/                  # Shared TypeScript types
 │   ├── validation/             # Zod schemas
@@ -93,11 +99,19 @@ vestara-ai-os/
 │   └── plymouth/               # Boot splash theme
 ├── scripts/
 │   ├── build-ssd.sh            # OS build script
+│   ├── build-deb.sh            # Debian package builder
+│   ├── build-repo.sh           # APT repository builder
+│   ├── build-iso.sh            # ISO builder
+│   ├── install.sh              # One-command installer
+│   ├── upgrade.sh              # Upgrade script
+│   ├── deploy.sh               # Deployment script
 │   └── backup.sh               # Backup/restore
 ├── systemd/                    # Service unit files
-├── docker-compose.yml          # Full stack
+├── docker-compose.yml          # Full stack (PostgreSQL, Redis, API, Dashboard)
+├── docker-compose.dev.yml      # Development mode
 ├── Dockerfile                  # API server
-└── Dockerfile.dashboard        # Dashboard
+├── Dockerfile.dashboard        # Dashboard
+└── .github/workflows/          # CI/CD pipelines
 ```
 
 ## Dashboard Pages
@@ -132,6 +146,8 @@ Additional providers: OpenAI, Anthropic, Google, Ollama (local).
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/health` | Health check |
+| POST | `/api/auth/register` | Register user |
+| POST | `/api/auth/login` | Login |
 | POST | `/api/chat` | Non-streaming chat |
 | POST | `/api/chat/stream` | SSE streaming chat |
 | GET | `/api/providers` | List providers |
@@ -143,8 +159,9 @@ Additional providers: OpenAI, Anthropic, Google, Ollama (local).
 | POST | `/api/memory` | Add memory |
 | GET | `/api/knowledge` | List knowledge entries |
 | POST | `/api/knowledge` | Add knowledge entry |
+| GET | `/api/projects` | List projects |
 | GET | `/api/system/info` | System information |
-| GET | `/api/opencode/status` | OpenCode status |
+| GET | `/api/providers/opencode/status` | OpenCode status |
 
 ## CLI Commands
 
@@ -153,26 +170,80 @@ vestara init          # Initialize Vestara
 vestara status        # Show service status
 vestara start         # Start services
 vestara stop          # Stop services
+vestara restart       # Restart services
 vestara logs          # View logs
 vestara chat          # Interactive AI chat
 vestara models        # List available models
 vestara config        # Manage configuration
+vestara upgrade       # Upgrade Vestara
 ```
 
 ## Docker
 
 ```bash
-# Full stack
+# Full stack (API + Dashboard + PostgreSQL + Redis)
 docker compose up -d
 
-# Development mode
+# Development mode (with hot reload)
 docker compose -f docker-compose.dev.yml up
 
-# With GPU support (Ollama)
+# With Ollama (CPU)
+docker compose --profile ai up -d
+
+# With Ollama (GPU)
 docker compose --profile ai --profile gpu up -d
 ```
 
-## OS Build
+## CI/CD
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+### Workflows
+
+| Workflow | Trigger | Description |
+|----------|---------|-------------|
+| CI | Push to `main`/`develop`, PRs | Lint, typecheck, build, test, Docker build, security scan |
+| Deploy Development | Push to `develop` | Auto-deploy to development environment |
+| Deploy Staging | Push to `main` | Auto-deploy to staging environment |
+| Deploy Production | Manual dispatch | Deploy to production |
+| Nightly Build | Daily at 2 AM UTC | Build and push nightly Docker images |
+| Release | Push tag `v*` | Build Docker images, .deb packages, ISO, create GitHub release |
+
+### Running CI Locally
+
+```bash
+# Run all CI checks
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm test
+
+# Or run them sequentially
+pnpm lint && pnpm typecheck && pnpm build && pnpm test
+```
+
+## Installation
+
+### From Source
+
+```bash
+git clone https://github.com/evillan0315/vestara-ai-os.git
+cd vestara-ai-os
+pnpm install
+pnpm build
+```
+
+### Debian Package
+
+```bash
+# Install from APT repository
+curl -fsSL https://raw.githubusercontent.com/evillan0315/vestara-ai-os/main/scripts/install.sh | sudo bash
+
+# Or install .deb package directly
+sudo dpkg -i vestara-*.deb
+```
+
+### Bootable SSD
 
 ```bash
 # Build bootable SSD image
@@ -233,6 +304,9 @@ pnpm test
 
 # Lint
 pnpm lint
+
+# Type check
+pnpm typecheck
 ```
 
 ## License

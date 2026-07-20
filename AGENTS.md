@@ -12,12 +12,13 @@ Vestara AI OS is a portable AI operating system that boots from an external SSD.
 
 - **Language**: TypeScript (strict mode)
 - **Runtime**: Node.js ≥22
-- **Package Manager**: pnpm (workspace)
+- **Package Manager**: pnpm ≥10 (workspace)
 - **Build**: Turborepo
 - **API**: Fastify 5
 - **Database**: SQLite (better-sqlite3)
 - **Frontend**: React 19 + Vite 6 + Tailwind CSS 4
 - **AI**: OpenCode, OpenAI, Anthropic, Google, Ollama
+- **CI/CD**: GitHub Actions
 
 ## Commands
 
@@ -77,15 +78,63 @@ pnpm test
 
 ### API Routes
 
+- All route functions accept `VestaraApp` (from `../types.ts`), not `FastifyInstance`
+- `VestaraApp` extends `FastifyInstance` with typed `db`, `aiRouter`, `memoryService`, `knowledgeService`, `agentRuntime`, and `broadcast`
 - Use `authMiddleware` for protected routes
 - Validate input with Zod schemas
 - Return appropriate HTTP status codes
 
 ### Database
 
-- Use `better-sqlite3` for SQLite
+- Use `better-sqlite3` wrapper (`Database` class from `@vestara/core`)
+- The `Database` class wraps `better-sqlite3.Database` and exposes `run()`, `get()`, `all()`, `prepare()`, `transaction()`, `close()`, `pragma()`
 - Tables use `snake_case` columns
 - Always include `created_at` and `updated_at` timestamps
+
+## Core Services
+
+### Database Wrapper (`services/core/src/db.ts`)
+
+The `Database` class provides a typed wrapper around `better-sqlite3`:
+
+```typescript
+import { Database } from '@vestara/core';
+
+const db = new Database('/path/to/vestara.db');
+db.run('INSERT INTO ...');
+const row = db.get<T>('SELECT * FROM ...');
+const rows = db.all<T>('SELECT * FROM ...');
+```
+
+### Memory Service (`services/core/src/memory-service.ts`)
+
+Manages user memories with automatic consolidation:
+
+```typescript
+const memoryService = new MemoryService(db, events);
+await memoryService.addMemory(userId, 'fact', 'User prefers dark mode');
+const memories = await memoryService.searchMemories(userId, 'dark mode');
+```
+
+### Knowledge Service (`services/core/src/knowledge-service.ts`)
+
+Manages knowledge base entries with full-text search:
+
+```typescript
+const knowledgeService = new KnowledgeService(db, events);
+await knowledgeService.addKnowledge({ content: '...', type: 'document' });
+const results = await knowledgeService.searchKnowledge(query);
+```
+
+### Agent Runtime (`services/core/src/agent-runtime.ts`)
+
+Creates and executes AI agents with tools:
+
+```typescript
+const agentRuntime = new AgentRuntime(db, events);
+const agent = await agentRuntime.createAgent({ name: 'assistant', ... });
+const result = await agentRuntime.executeAgent(agent.id, task);
+```
 
 ## Default Models
 
@@ -122,6 +171,36 @@ DATABASE=/path/to/vestara.db
 - Run `pnpm build` before committing
 - Keep commits focused and atomic
 
+## CI/CD
+
+The project uses GitHub Actions with 6 workflows:
+
+- **CI** — Lint, typecheck, build, test, Docker build, security scan (runs on push to `main`/`develop` and PRs)
+- **Deploy Development** — Auto-deploy to development on push to `develop`
+- **Deploy Staging** — Auto-deploy to staging on push to `main`
+- **Deploy Production** — Manual deployment to production
+- **Nightly Build** — Daily build and push of Docker images
+- **Release** — Build Docker images, .deb packages, ISO, and create GitHub release on tag push
+
+### Running CI Checks Locally
+
+```bash
+pnpm lint && pnpm typecheck && pnpm build && pnpm test
+```
+
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `scripts/build-ssd.sh` | Build bootable SSD image |
+| `scripts/build-deb.sh` | Build Debian packages |
+| `scripts/build-repo.sh` | Build APT repository |
+| `scripts/build-iso.sh` | Build custom ISO |
+| `scripts/install.sh` | One-command installer |
+| `scripts/upgrade.sh` | Upgrade Vestara |
+| `scripts/deploy.sh` | Deployment script |
+| `scripts/backup.sh` | Backup/restore |
+
 ## Important Notes
 
 1. **OpenCode is the default provider** — All chat features work without API keys
@@ -129,3 +208,4 @@ DATABASE=/path/to/vestara.db
 3. **SQLite is the database** — No PostgreSQL, no MySQL
 4. **No comments in code** — Unless explicitly requested
 5. **Follow existing patterns** — Look at neighboring files before adding new code
+6. **Use `VestaraApp` type** — Not `FastifyInstance` for route functions
