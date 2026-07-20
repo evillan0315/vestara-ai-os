@@ -1,18 +1,54 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { to: '/chat', label: 'AI Chat', icon: '💬' },
-  { to: '/opencode', label: 'OpenCode', icon: '⚡' },
-  { to: '/agents', label: 'Agents', icon: '🤖' },
-  { to: '/models', label: 'Models', icon: '🧠' },
-  { to: '/memory', label: 'Memory', icon: '💾' },
-  { to: '/knowledge', label: 'Knowledge', icon: '📚' },
-  { to: '/terminal', label: 'Terminal', icon: '💻' },
-  { to: '/monitor', label: 'System', icon: '📈' },
-  { to: '/users', label: 'Users', icon: '👥' },
-  { to: '/settings', label: 'Settings', icon: '⚙️' },
+interface NavItem {
+  to: string;
+  label: string;
+  icon: string;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: '',
+    items: [
+      { to: '/dashboard', label: 'Dashboard', icon: '📊' },
+    ],
+  },
+  {
+    label: 'AI',
+    items: [
+      { to: '/chat', label: 'AI Chat', icon: '💬' },
+      { to: '/opencode', label: 'OpenCode', icon: '⚡' },
+      { to: '/agents', label: 'Agents', icon: '🤖' },
+      { to: '/models', label: 'Models', icon: '🧠' },
+    ],
+  },
+  {
+    label: 'Data',
+    items: [
+      { to: '/memory', label: 'Memory', icon: '💾' },
+      { to: '/knowledge', label: 'Knowledge', icon: '📚' },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { to: '/terminal', label: 'Terminal', icon: '💻' },
+      { to: '/monitor', label: 'Monitor', icon: '📈' },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { to: '/users', label: 'Users', icon: '👥' },
+      { to: '/settings', label: 'Settings', icon: '⚙️' },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -41,38 +77,57 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
           ${open ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
+        {/* Logo */}
         <div className="flex items-center gap-2 border-b border-vestara-glass-border px-5 py-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-vestara-gold to-vestara-gold-light text-xs font-bold text-vestara-bg">
             V
           </div>
           <span className="text-sm font-semibold text-vestara-text">Vestara AI OS</span>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                  isActive
-                    ? 'bg-vestara-gold/10 text-vestara-gold'
-                    : 'text-vestara-text-muted hover:bg-white/5 hover:text-vestara-text'
-                }`
-              }
-            >
-              <span className="text-base">{item.icon}</span>
-              <span>{item.label}</span>
-            </NavLink>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+          {navGroups.map((group, gi) => (
+            <div key={gi}>
+              {group.label && (
+                <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-vestara-text-dim">
+                  {group.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        isActive
+                          ? 'bg-vestara-gold/10 text-vestara-gold'
+                          : 'text-vestara-text-muted hover:bg-white/5 hover:text-vestara-text'
+                      }`
+                    }
+                  >
+                    <span className="text-base">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
+
+        {/* User section */}
         <div className="border-t border-vestara-glass-border p-3">
           {user && (
             <div className="mb-2 flex items-center gap-2 px-3 py-1.5">
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-vestara-gold/20 text-[10px] font-bold text-vestara-gold">
                 {user.name[0]?.toUpperCase()}
               </div>
-              <span className="truncate text-xs text-vestara-text-muted">{user.name}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs text-vestara-text">{user.name}</p>
+                <p className="truncate text-[10px] text-vestara-text-dim">{user.role}</p>
+              </div>
             </div>
           )}
           <button

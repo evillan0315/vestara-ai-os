@@ -17,6 +17,7 @@ Vestara AI OS is a portable AI operating system that boots from an external SSD.
 - **API**: Fastify 5
 - **Database**: SQLite (better-sqlite3)
 - **Frontend**: React 19 + Vite 6 + Tailwind CSS 4
+- **Charts**: Recharts
 - **AI**: OpenCode, OpenAI, Anthropic, Google, Ollama
 - **CI/CD**: GitHub Actions
 
@@ -60,7 +61,7 @@ pnpm test
 
 ### Apps (`apps/`)
 
-- `@vestara/dashboard` — React dashboard (10 pages)
+- `@vestara/dashboard` — React dashboard (12 pages)
 
 ## Code Conventions
 
@@ -158,10 +159,34 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 GOOGLE_API_KEY=AI...
 
+# OpenCode Configuration
+OPENCODE_API_KEY=sk-...
+OPENCODE_BASE_URL=https://opencode.ai/zen/v1
+NVIDIA_API_KEY=nvapi-...
+VERCEL_AI_GATEWAY_API_KEY=vck_...
+
 # API Configuration
 PORT=3000
 NODE_ENV=development
 DATABASE=/path/to/vestara.db
+```
+
+## Authentication
+
+Vestara uses OS-based authentication:
+
+- **Login**: Users authenticate with their OS username/password
+- **Auto-login**: Skip password by detecting the current OS user
+- **JWT**: Sessions are managed via JWT tokens stored in localStorage
+- **Roles**: `admin` (full access), `editor` (limited), `user` (read-only)
+
+### Auth Endpoints
+
+```
+GET  /api/auth/os-user      — Detect current OS user
+POST /api/auth/os-login     — Login with OS credentials
+POST /api/auth/os-auto-login— Auto-login (no password)
+GET  /api/auth/me           — Get current user
 ```
 
 ## Git Workflow
@@ -209,3 +234,6 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm test
 4. **No comments in code** — Unless explicitly requested
 5. **Follow existing patterns** — Look at neighboring files before adding new code
 6. **Use `VestaraApp` type** — Not `FastifyInstance` for route functions
+7. **System routes are public** — `/api/system/*` endpoints don't require auth
+8. **OpenCode routes are public** — `/api/providers/opencode/*` endpoints don't require auth
+9. **Shell is `/usr/bin/sh`** — Use `shell: '/usr/bin/sh'` for `execSync` and `spawn`

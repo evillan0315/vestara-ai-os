@@ -32,14 +32,16 @@ cd packages/cli && pnpm build
 
 ## Features
 
-- **10-screen Dashboard** — Dark glassmorphism AI command center
+- **12-screen Dashboard** — Dark glassmorphism AI command center with recharts visualizations
+- **OS Authentication** — Login with your system username/password
 - **AI Chat** — Stream responses from OpenAI, Anthropic, Google, Ollama
-- **OpenCode Integration** — First-class OpenCode support with free models
+- **OpenCode Integration** — First-class OpenCode support with chat history persistence
 - **Agent Runtime** — Create and execute AI agents with tools
 - **Memory System** — Store and recall information across sessions
 - **Knowledge Base** — Document storage with search and retrieval
-- **System Monitor** — Real-time CPU, memory, disk, network stats
-- **Terminal** — Built-in command execution
+- **User Management** — Admin panel for managing dashboard users
+- **System Monitor** — Real-time CPU, memory, disk, network charts
+- **Terminal** — Built-in terminal with Vestara CLI integration
 - **CLI Tool** — Command-line interface for service management
 - **Docker Support** — Full stack containerized deployment
 - **CI/CD** — GitHub Actions for testing, building, and deployment
@@ -51,11 +53,11 @@ cd packages/cli && pnpm build
 ┌─────────────────────────────────────┐
 │         Vestara Dashboard           │
 │  React 19 · Tailwind 4 · Vite 6   │
-│  10 pages · Dark Glassmorphism      │
+│  12 pages · Recharts · Auth        │
 ├─────────────────────────────────────┤
 │         Vestara API                 │
 │  Fastify 5 · WebSocket · REST      │
-│  11 route modules · SSE streaming   │
+│  13 route modules · SSE streaming   │
 ├─────────────────────────────────────┤
 │         AI Services                 │
 │  OpenCode · Agent Runtime ·         │
@@ -77,7 +79,7 @@ cd packages/cli && pnpm build
 ```
 vestara-ai-os/
 ├── apps/
-│   └── dashboard/              # React dashboard (10 pages)
+│   └── dashboard/              # React dashboard (12 pages)
 ├── services/
 │   ├── core/                   # @vestara/core library
 │   │   ├── db.ts               # SQLite wrapper + schema
@@ -85,7 +87,7 @@ vestara-ai-os/
 │   │   ├── knowledge-service.ts# Knowledge base
 │   │   └── agent-runtime.ts    # Agent execution
 │   └── api/                    # Fastify API server
-│       ├── routes/             # 11 route modules
+│       ├── routes/             # 13 route modules
 │       ├── providers/          # AI provider abstraction
 │       └── types.ts            # VestaraApp type (Fastify)
 ├── packages/
@@ -118,15 +120,17 @@ vestara-ai-os/
 
 | Page | Route | Description |
 |------|-------|-------------|
-| Dashboard | `/dashboard` | System overview with stats |
+| Dashboard | `/dashboard` | System overview with recharts (CPU, RAM, Disk, Network) |
+| Login | `/login` | OS-based authentication |
 | AI Chat | `/chat` | Chat with AI models (streaming) |
-| OpenCode | `/opencode` | OpenCode integration |
+| OpenCode | `/opencode` | OpenCode integration with chat history |
 | Agents | `/agents` | Agent management and execution |
 | Models | `/models` | AI model manager |
 | Memory | `/memory` | Memory store with search |
 | Knowledge | `/knowledge` | Knowledge base |
-| Terminal | `/terminal` | Built-in terminal |
-| System | `/monitor` | Resource monitor |
+| Terminal | `/terminal` | Built-in terminal with Vestara CLI |
+| System | `/monitor` | Resource monitor with charts |
+| Users | `/users` | User management (admin) |
 | Settings | `/settings` | Configuration |
 
 ## Default AI Models
@@ -143,11 +147,53 @@ Additional providers: OpenAI, Anthropic, Google, Ollama (local).
 
 ## API Endpoints
 
+### Authentication
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/health` | Health check |
-| POST | `/api/auth/register` | Register user |
-| POST | `/api/auth/login` | Login |
+| GET | `/api/auth/os-user` | Detect current OS user |
+| POST | `/api/auth/os-login` | Login with OS credentials |
+| POST | `/api/auth/os-auto-login` | Auto-login as current user |
+| GET | `/api/auth/me` | Get current user |
+| DELETE | `/api/auth/logout` | Logout |
+
+### System
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/system/stats` | System stats (CPU, RAM, Disk) |
+| GET | `/api/system/health` | Health check |
+| GET | `/api/system/info` | Full system info |
+| POST | `/api/system/exec` | Execute shell command |
+
+### OpenCode
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/providers/opencode/status` | OpenCode status |
+| GET | `/api/providers/opencode/models` | List available models |
+| POST | `/api/providers/opencode/chat` | Send prompt to OpenCode |
+| GET | `/api/providers/opencode/chats` | List chat sessions |
+| POST | `/api/providers/opencode/chats` | Create new chat |
+| GET | `/api/providers/opencode/chats/:id` | Get chat with messages |
+| DELETE | `/api/providers/opencode/chats/:id` | Delete chat |
+| POST | `/api/providers/opencode/chats/:id/messages` | Send message |
+
+### Users (Admin)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users` | List all users |
+| GET | `/api/users/system` | List OS users |
+| POST | `/api/users` | Create user |
+| PUT | `/api/users/:id` | Update user |
+| DELETE | `/api/users/:id` | Delete user |
+| POST | `/api/users/sync-os` | Import OS user |
+
+### Other
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
 | POST | `/api/chat` | Non-streaming chat |
 | POST | `/api/chat/stream` | SSE streaming chat |
 | GET | `/api/providers` | List providers |
@@ -160,8 +206,6 @@ Additional providers: OpenAI, Anthropic, Google, Ollama (local).
 | GET | `/api/knowledge` | List knowledge entries |
 | POST | `/api/knowledge` | Add knowledge entry |
 | GET | `/api/projects` | List projects |
-| GET | `/api/system/info` | System information |
-| GET | `/api/providers/opencode/status` | OpenCode status |
 
 ## CLI Commands
 
@@ -170,7 +214,6 @@ vestara init          # Initialize Vestara
 vestara status        # Show service status
 vestara start         # Start services
 vestara stop          # Stop services
-vestara restart       # Restart services
 vestara logs          # View logs
 vestara chat          # Interactive AI chat
 vestara models        # List available models
@@ -213,12 +256,6 @@ The project uses GitHub Actions for continuous integration and deployment:
 
 ```bash
 # Run all CI checks
-pnpm lint
-pnpm typecheck
-pnpm build
-pnpm test
-
-# Or run them sequentially
 pnpm lint && pnpm typecheck && pnpm build && pnpm test
 ```
 

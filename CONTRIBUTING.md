@@ -33,7 +33,7 @@ pnpm dev
 
 ```
 vestara-ai-os/
-├── apps/dashboard/          # React frontend (10 pages)
+├── apps/dashboard/          # React frontend (12 pages)
 ├── services/core/           # Core library (SQLite, services)
 ├── services/api/            # Fastify API server
 ├── packages/                # Shared packages
@@ -184,6 +184,41 @@ docker build -t vestara-api .
 # Build Dashboard image
 docker build -t vestara-dashboard -f Dockerfile.dashboard .
 ```
+
+## Dashboard Pages
+
+| Page | Route | Description |
+|------|-------|-------------|
+| Dashboard | `/dashboard` | System overview with charts |
+| Login | `/login` | OS-based authentication |
+| AI Chat | `/chat` | Chat with AI models |
+| OpenCode | `/opencode` | OpenCode with chat history |
+| Agents | `/agents` | Agent management |
+| Models | `/models` | AI model manager |
+| Memory | `/memory` | Memory store |
+| Knowledge | `/knowledge` | Knowledge base |
+| Terminal | `/terminal` | Terminal with Vestara CLI |
+| System | `/monitor` | Resource monitor with charts |
+| Users | `/users` | User management (admin) |
+| Settings | `/settings` | Configuration |
+
+## API Routes
+
+### Public Routes (no auth required)
+
+- `/api/health` — Health check
+- `/api/system/*` — System stats, info, exec
+- `/api/providers/opencode/*` — OpenCode endpoints
+
+### Protected Routes (auth required)
+
+- `/api/auth/*` — Authentication endpoints
+- `/api/users/*` — User management
+- `/api/chat/*` — AI chat
+- `/api/agents/*` — Agent management
+- `/api/memory/*` — Memory operations
+- `/api/knowledge/*` — Knowledge base
+- `/api/projects/*` — Project management
 
 ## Documentation
 
