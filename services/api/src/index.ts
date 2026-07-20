@@ -14,9 +14,29 @@ import { registerMemoryRoutes } from './routes/memory.js';
 import { registerProjectRoutes } from './routes/projects.js';
 import { registerWebSocketHandler } from './websocket.js';
 import { registerOpenCodeRoutes } from './routes/opencode.js';
+import { registerChatRoutes } from './routes/chat.js';
+import { AIRouter, type ProviderConfig } from './providers/router.js';
+import type { Database } from '@vestara/core';
 
 const config = getConfig();
 const logger = createLogger('api', config.logLevel);
+
+// Load provider config from environment
+const providerConfig: ProviderConfig = {};
+if (process.env.OPENAI_API_KEY) {
+  providerConfig.openai = { apiKey: process.env.OPENAI_API_KEY };
+}
+if (process.env.ANTHROPIC_API_KEY) {
+  providerConfig.anthropic = { apiKey: process.env.ANTHROPIC_API_KEY };
+}
+if (process.env.GOOGLE_API_KEY) {
+  providerConfig.google = { apiKey: process.env.GOOGLE_API_KEY };
+}
+// Ollama is always available if running
+providerConfig.ollama = { baseUrl: config.ollama?.baseUrl || 'http://localhost:11434' };
+
+// Create AI router
+const aiRouter = new AIRouter(providerConfig, config.ai?.defaultProvider || 'openai');
 
 async function main() {
   const app = Fastify({
@@ -32,6 +52,7 @@ async function main() {
   const db = createDatabase(config.database);
   migrate(db);
   app.decorate('db', db);
+  app.decorate('aiRouter', aiRouter);
 
   // CORS
   await app.register(cors, {
@@ -43,12 +64,16 @@ async function main() {
   await app.register(websocket);
 
   // Health check
-  app.get('/api/health', async () => ({
-    status: 'ok',
-    uptime: process.uptime(),
-    version: '0.1.0',
-    timestamp: new Date().toISOString(),
-  }));
+  app.get('/api/health', async () => {
+    const availability = await aiRouter.checkAvailability();
+    return {
+      status: 'ok',
+      uptime: process.uptime(),
+      version: '0.1.0',
+      timestamp: new Date().toISOString(),
+      providers: availability,
+    };
+  });
 
   // Register routes
   registerAuthRoutes(app);
@@ -60,12 +85,14 @@ async function main() {
   registerMemoryRoutes(app);
   registerProjectRoutes(app);
   registerOpenCodeRoutes(app);
+  registerChatRoutes(app);
   registerWebSocketHandler(app);
 
   // Start
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });
     logger.info(`Vestara API running on http://localhost:${config.port}`);
+    logger.info({ providers: Object.keys(providerConfig) }, 'AI providers configured');
   } catch (err) {
     logger.error(err);
     process.exit(1);

@@ -1,10 +1,18 @@
 import { useState } from 'react';
 
+const defaultModels = [
+  { id: 'opencode/deepseek-v4-flash-free', name: 'DeepSeek V4 Flash (Free)' },
+  { id: 'opencode/mimo-v2.5-free', name: 'Mimo V2.5 (Free)' },
+  { id: 'opencode/nemotron-3-ultra-free', name: 'Nemotron 3 Ultra (Free)' },
+  { id: 'opencode/north-mini-code-free', name: 'North Mini Code (Free)' },
+  { id: 'opencode/big-pickle', name: 'Big Pickle' },
+];
+
 export function OpenCodePage() {
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
-  const [model, setModel] = useState('anthropic/claude-sonnet-4-5-20250929');
+  const [model, setModel] = useState('opencode/deepseek-v4-flash-free');
 
   const handleSend = async () => {
     if (!prompt.trim() || loading) return;
@@ -37,7 +45,7 @@ export function OpenCodePage() {
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-vestara-text">OpenCode</h1>
         <p className="text-sm text-vestara-text-muted">
-          AI coding agent — 75+ models, tool use, code generation
+          AI coding agent — free models, tool use, code generation
         </p>
       </div>
 
@@ -50,11 +58,9 @@ export function OpenCodePage() {
             onChange={(e) => setModel(e.target.value)}
             className="rounded border border-vestara-glass-border bg-vestara-bg px-2 py-1 text-xs text-vestara-text outline-none"
           >
-            <option value="anthropic/claude-opus-4-5-20251101">Claude Opus 4.5</option>
-            <option value="anthropic/claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
-            <option value="openai/gpt-4o">GPT-4o</option>
-            <option value="openai/gpt-5.1-codex">GPT-5.1 Codex</option>
-            <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
+            {defaultModels.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
           </select>
         </div>
 

@@ -53,15 +53,11 @@ export const PROVIDER_DEFAULTS = {
   opencode: {
     baseUrl: 'http://localhost:4096',
     models: [
-      'anthropic/claude-opus-4-5-20251101',
-      'anthropic/claude-sonnet-4-5-20250929',
-      'anthropic/claude-haiku-4-5-20251001',
-      'openai/gpt-4o',
-      'openai/gpt-4o-mini',
-      'openai/gpt-5.1-codex',
-      'google/gemini-2.5-pro',
-      'google/gemini-2.5-flash',
-      'google/gemini-2.0-flash',
+      'opencode/deepseek-v4-flash-free',
+      'opencode/mimo-v2.5-free',
+      'opencode/nemotron-3-ultra-free',
+      'opencode/north-mini-code-free',
+      'opencode/big-pickle',
     ],
   },
 } as const;

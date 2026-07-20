@@ -313,15 +313,11 @@ export async function listModels(): Promise<Array<{ id: string; name: string; pr
 
   // Return known OpenCode models
   return [
-    { id: 'anthropic/claude-opus-4-5-20251101', name: 'Claude Opus 4.5', provider: 'anthropic' },
-    { id: 'anthropic/claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'anthropic' },
-    { id: 'anthropic/claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'anthropic' },
-    { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai' },
-    { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai' },
-    { id: 'openai/gpt-5.1-codex', name: 'GPT-5.1 Codex', provider: 'openai' },
-    { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'google' },
-    { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'google' },
-    { id: 'google/gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'google' },
+    { id: 'opencode/deepseek-v4-flash-free', name: 'DeepSeek V4 Flash (Free)', provider: 'opencode' },
+    { id: 'opencode/mimo-v2.5-free', name: 'Mimo V2.5 (Free)', provider: 'opencode' },
+    { id: 'opencode/nemotron-3-ultra-free', name: 'Nemotron 3 Ultra (Free)', provider: 'opencode' },
+    { id: 'opencode/north-mini-code-free', name: 'North Mini Code (Free)', provider: 'opencode' },
+    { id: 'opencode/big-pickle', name: 'Big Pickle', provider: 'opencode' },
   ];
 }
 

@@ -34,8 +34,8 @@ const defaults: VestaraConfig = {
     autoStart: false,
   },
   ai: {
-    defaultProvider: 'openai',
-    defaultModel: 'gpt-4o',
+    defaultProvider: 'opencode',
+    defaultModel: 'opencode/deepseek-v4-flash-free',
     maxTokens: 4096,
     temperature: 0.7,
   },
