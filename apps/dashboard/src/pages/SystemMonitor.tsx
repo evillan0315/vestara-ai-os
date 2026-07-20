@@ -1,32 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, RadialBarChart, RadialBar, Legend } from 'recharts';
 
 interface SystemInfo {
-  cpu: {
-    model: string;
-    cores: number;
-    usage: number;
-    temperature: number;
-  };
-  memory: {
-    total: number;
-    used: number;
-    free: number;
-    usage: number;
-  };
-  disk: {
-    total: number;
-    used: number;
-    free: number;
-    usage: number;
-  };
-  network: {
-    interfaces: Array<{
-      name: string;
-      ip: string;
-      rx: number;
-      tx: number;
-    }>;
-  };
+  cpu: { model: string; cores: number; usage: number; temperature: number };
+  memory: { total: number; used: number; free: number; usage: number };
+  disk: { total: number; used: number; free: number; usage: number };
+  network: { interfaces: Array<{ name: string; ip: string; rx: number; tx: number }> };
   uptime: number;
   loadAvg: number[];
   processes: number;
@@ -40,269 +19,307 @@ interface Process {
   status: string;
 }
 
+const COLORS = ['#d4af37', '#4ade80', '#60a5fa', '#f87171', '#a78bfa', '#facc15'];
+
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+};
+
+const formatUptime = (seconds: number) => {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+};
+
+const getUsageColor = (usage: number) => {
+  if (usage >= 90) return 'text-red-400';
+  if (usage >= 70) return 'text-yellow-400';
+  return 'text-green-400';
+};
+
 export default function SystemMonitor() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(5);
+  const [refreshInterval, setRefreshInterval] = useState(3);
+  const [cpuHistory, setCpuHistory] = useState<Array<{ time: string; value: number }>>([]);
+  const [memHistory, setMemHistory] = useState<Array<{ time: string; value: number }>>([]);
+  const [netHistory, setNetHistory] = useState<Array<{ time: string; rx: number; tx: number }>>([]);
 
-  useEffect(() => {
-    fetchSystemInfo();
-    const interval = setInterval(fetchSystemInfo, refreshInterval * 1000);
-    return () => clearInterval(interval);
-  }, [refreshInterval]);
-
-  const fetchSystemInfo = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [sysRes, procRes] = await Promise.all([
         fetch('/api/system/info'),
-        fetch('/api/system/processes?limit=20'),
+        fetch('/api/system/processes?limit=15'),
       ]);
 
       if (sysRes.ok) {
-        const sysData = await sysRes.json();
-        setSystemInfo(sysData);
+        const data = await sysRes.json();
+        setSystemInfo(data);
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setCpuHistory((prev) => [...prev.slice(-59), { time: now, value: data.cpu.usage }]);
+        setMemHistory((prev) => [...prev.slice(-59), { time: now, value: data.memory.usage }]);
+        if (data.network.interfaces.length > 0) {
+          const iface = data.network.interfaces[0];
+          setNetHistory((prev) => [...prev.slice(-59), { time: now, rx: iface.rx, tx: iface.tx }]);
+        }
       }
-
       if (procRes.ok) {
         const procData = await procRes.json();
         setProcesses(procData.processes || []);
       }
-    } catch (error) {
-      console.error('Failed to fetch system info:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    } catch {} finally { setLoading(false); }
+  }, []);
 
-  const formatBytes = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-  };
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, refreshInterval * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData, refreshInterval]);
 
-  const formatUptime = (seconds: number) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-  };
+  const gaugeData = systemInfo ? [
+    { name: 'CPU', value: systemInfo.cpu.usage, fill: '#d4af37' },
+    { name: 'RAM', value: systemInfo.memory.usage, fill: '#4ade80' },
+    { name: 'Disk', value: systemInfo.disk.usage, fill: '#60a5fa' },
+  ] : [];
 
-  const getUsageColor = (usage: number) => {
-    if (usage >= 90) return 'text-red-400';
-    if (usage >= 70) return 'text-yellow-400';
-    return 'text-green-400';
-  };
+  const diskPie = systemInfo ? [
+    { name: 'Used', value: systemInfo.disk.used },
+    { name: 'Free', value: systemInfo.disk.free },
+  ] : [];
 
-  const getUsageBarColor = (usage: number) => {
-    if (usage >= 90) return 'bg-red-500';
-    if (usage >= 70) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
-
-  const getBarColor = (usage: number) => {
-    if (usage >= 90) return 'bg-red-500';
-    if (usage >= 70) return 'bg-yellow-500';
-    return 'bg-[#4a9eff]';
-  };
+  const processChart = processes.slice(0, 8).map((p) => ({ name: p.name.slice(0, 12), cpu: p.cpu, mem: p.memory }));
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a12] flex items-center justify-center">
-        <div className="text-[#4a9eff] text-lg">Loading system info...</div>
+      <div className="flex h-full items-center justify-center">
+        <div className="text-sm text-vestara-text-muted">Loading system info...</div>
       </div>
     );
   }
 
   return (
-    <div className="text-white p-0">
-      <div className="max-w-6xl mx-auto p-4 md:p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white">System Monitor</h1>
-            <p className="text-gray-400 mt-1">Real-time system resource monitoring</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-vestara-text">System Monitor</h1>
+          <p className="text-sm text-vestara-text-muted">Real-time resource monitoring</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={refreshInterval}
+            onChange={(e) => setRefreshInterval(Number(e.target.value))}
+            className="rounded-lg border border-vestara-glass-border bg-vestara-bg px-3 py-2 text-sm text-vestara-text outline-none"
+          >
+            <option value={1}>1s</option>
+            <option value={3}>3s</option>
+            <option value={5}>5s</option>
+            <option value={10}>10s</option>
+          </select>
+          <button onClick={fetchData} className="btn-gold px-4 py-2 text-sm">Refresh</button>
+        </div>
+      </div>
+
+      {/* Top stats */}
+      {systemInfo && (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            { label: 'Uptime', value: formatUptime(systemInfo.uptime) },
+            { label: 'Load Avg', value: systemInfo.loadAvg.map((l) => l.toFixed(2)).join(' / ') },
+            { label: 'Processes', value: String(systemInfo.processes) },
+            { label: 'CPU Cores', value: String(systemInfo.cpu.cores) },
+          ].map((s) => (
+            <div key={s.label} className="glass p-4">
+              <p className="text-xs text-vestara-text-muted">{s.label}</p>
+              <p className="mt-1 text-lg font-bold text-vestara-text">{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Main charts */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* CPU + Memory history */}
+        <div className="glass p-4 lg:col-span-2">
+          <div className="flex items-center gap-6 mb-3">
+            <h2 className="text-sm font-semibold text-vestara-gold">Resource History</h2>
+            <div className="flex items-center gap-4 text-[10px] text-vestara-text-dim">
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-amber-400" /> CPU</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-green-400" /> Memory</span>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <select
-              value={refreshInterval}
-              onChange={(e) => setRefreshInterval(Number(e.target.value))}
-              className="px-3 py-2 bg-[#12121e] border border-[#1e1e2e] rounded-lg text-sm"
-            >
-              <option value={1}>1s refresh</option>
-              <option value={5}>5s refresh</option>
-              <option value={10}>10s refresh</option>
-              <option value={30}>30s refresh</option>
-            </select>
-            <button
-              onClick={fetchSystemInfo}
-              className="px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef] transition-colors"
-            >
-              Refresh
-            </button>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={cpuHistory.map((c, i) => ({ ...c, mem: memHistory[i]?.value || 0 }))}>
+                <defs>
+                  <linearGradient id="cpuG" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="memG" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4ade80" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#4ade80" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="time" tick={{ fontSize: 9, fill: '#666' }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: '#666' }} />
+                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }} />
+                <Area type="monotone" dataKey="value" stroke="#f59e0b" fill="url(#cpuG)" strokeWidth={2} />
+                <Area type="monotone" dataKey="mem" stroke="#4ade80" fill="url(#memG)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {systemInfo && (
-          <>
-            {/* System Overview */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-                <div className="text-gray-400 text-sm">Uptime</div>
-                <div className="text-2xl font-bold text-white mt-1">
-                  {formatUptime(systemInfo.uptime)}
-                </div>
-              </div>
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-                <div className="text-gray-400 text-sm">Load Average</div>
-                <div className="text-2xl font-bold text-white mt-1">
-                  {systemInfo.loadAvg.map(l => l.toFixed(2)).join(' / ')}
-                </div>
-              </div>
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-                <div className="text-gray-400 text-sm">Processes</div>
-                <div className="text-2xl font-bold text-white mt-1">{systemInfo.processes}</div>
-              </div>
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-                <div className="text-gray-400 text-sm">CPU Cores</div>
-                <div className="text-2xl font-bold text-white mt-1">{systemInfo.cpu.cores}</div>
-              </div>
-            </div>
-
-            {/* Resource Cards */}
-            <div className="grid grid-cols-3 gap-6 mb-6">
-              {/* CPU */}
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">CPU</h3>
-                  <span className={`text-2xl font-bold ${getUsageColor(systemInfo.cpu.usage)}`}>
-                    {systemInfo.cpu.usage.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full bg-[#1a1a2e] rounded-full h-3 mb-3">
-                  <div
-                    className={`h-3 rounded-full transition-all ${getBarColor(systemInfo.cpu.usage)}`}
-                    style={{ width: `${systemInfo.cpu.usage}%` }}
-                  />
-                </div>
-                <div className="text-sm text-gray-400">
-                  <div className="truncate">{systemInfo.cpu.model}</div>
-                  <div className="mt-1">
-                    Temperature: <span className={getUsageColor(systemInfo.cpu.temperature / 100 * 100)}>
-                      {systemInfo.cpu.temperature}°C
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Memory */}
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Memory</h3>
-                  <span className={`text-2xl font-bold ${getUsageColor(systemInfo.memory.usage)}`}>
-                    {systemInfo.memory.usage.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full bg-[#1a1a2e] rounded-full h-3 mb-3">
-                  <div
-                    className={`h-3 rounded-full transition-all ${getBarColor(systemInfo.memory.usage)}`}
-                    style={{ width: `${systemInfo.memory.usage}%` }}
-                  />
-                </div>
-                <div className="text-sm text-gray-400">
-                  <div>{formatBytes(systemInfo.memory.used)} / {formatBytes(systemInfo.memory.total)}</div>
-                  <div className="mt-1">Free: {formatBytes(systemInfo.memory.free)}</div>
-                </div>
-              </div>
-
-              {/* Disk */}
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Disk</h3>
-                  <span className={`text-2xl font-bold ${getUsageColor(systemInfo.disk.usage)}`}>
-                    {systemInfo.disk.usage.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full bg-[#1a1a2e] rounded-full h-3 mb-3">
-                  <div
-                    className={`h-3 rounded-full transition-all ${getBarColor(systemInfo.disk.usage)}`}
-                    style={{ width: `${systemInfo.disk.usage}%` }}
-                  />
-                </div>
-                <div className="text-sm text-gray-400">
-                  <div>{formatBytes(systemInfo.disk.used)} / {formatBytes(systemInfo.disk.total)}</div>
-                  <div className="mt-1">Free: {formatBytes(systemInfo.disk.free)}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Network Interfaces */}
-            {systemInfo.network.interfaces.length > 0 && (
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Network</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {systemInfo.network.interfaces.map((iface) => (
-                    <div key={iface.name} className="bg-[#0a0a12] rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-white">{iface.name}</span>
-                        <span className="text-gray-400 text-sm">{iface.ip || 'No IP'}</span>
-                      </div>
-                      <div className="flex gap-4 mt-2 text-sm">
-                        <span className="text-green-400">↓ {formatBytes(iface.rx)}</span>
-                        <span className="text-blue-400">↑ {formatBytes(iface.tx)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Top Processes */}
-            {processes.length > 0 && (
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Top Processes</h3>
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-gray-400 text-sm border-b border-[#1e1e2e]">
-                      <th className="pb-2">PID</th>
-                      <th className="pb-2">Name</th>
-                      <th className="pb-2">CPU%</th>
-                      <th className="pb-2">Memory%</th>
-                      <th className="pb-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {processes.map((proc) => (
-                      <tr key={proc.pid} className="border-b border-[#1e1e2e]/50">
-                        <td className="py-2 text-gray-300">{proc.pid}</td>
-                        <td className="py-2 text-white">{proc.name}</td>
-                        <td className="py-2">
-                          <span className={getUsageColor(proc.cpu)}>{proc.cpu.toFixed(1)}%</span>
-                        </td>
-                        <td className="py-2">
-                          <span className={getUsageColor(proc.memory)}>{proc.memory.toFixed(1)}%</span>
-                        </td>
-                        <td className="py-2">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            proc.status === 'running' ? 'bg-green-500/20 text-green-400' :
-                            proc.status === 'sleeping' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-gray-500/20 text-gray-400'
-                          }`}>
-                            {proc.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
+        {/* Gauges */}
+        <div className="glass p-4">
+          <h2 className="mb-3 text-sm font-semibold text-vestara-gold">System Load</h2>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadialBarChart cx="50%" cy="50%" innerRadius="15%" outerRadius="85%" barSize={12} data={gaugeData} startAngle={180} endAngle={0}>
+                <RadialBar background dataKey="value" />
+                <Legend iconSize={8} layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: '10px', color: '#999' }} />
+                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }} />
+              </RadialBarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
+
+      {/* Second row */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Network chart */}
+        <div className="glass p-4">
+          <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Network I/O</h2>
+          <div className="h-40">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={netHistory}>
+                <defs>
+                  <linearGradient id="rxG" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#60a5fa" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="txG" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="time" tick={{ fontSize: 9, fill: '#666' }} />
+                <YAxis tick={{ fontSize: 9, fill: '#666' }} tickFormatter={(v) => formatBytes(v)} />
+                <Tooltip formatter={(v) => formatBytes(Number(v))} contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }} />
+                <Area type="monotone" dataKey="rx" stroke="#60a5fa" fill="url(#rxG)" strokeWidth={2} name="Download" />
+                <Area type="monotone" dataKey="tx" stroke="#a78bfa" fill="url(#txG)" strokeWidth={2} name="Upload" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Disk pie */}
+        <div className="glass p-4">
+          <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Disk</h2>
+          <div className="h-40 flex items-center">
+            <ResponsiveContainer width="50%" height="100%">
+              <PieChart>
+                <Pie data={diskPie} cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={3} dataKey="value">
+                  {diskPie.map((_, i) => <Cell key={i} fill={i === 0 ? '#60a5fa' : 'rgba(255,255,255,0.05)'} />)}
+                </Pie>
+                <Tooltip formatter={(v) => formatBytes(Number(v))} contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(96,165,250,0.2)', borderRadius: '8px', fontSize: '12px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex-1 space-y-2 text-xs">
+              <div className="flex justify-between"><span className="text-vestara-text-muted">Used</span><span className="text-vestara-text">{formatBytes(systemInfo?.disk.used || 0)}</span></div>
+              <div className="flex justify-between"><span className="text-vestara-text-muted">Free</span><span className="text-vestara-text">{formatBytes(systemInfo?.disk.free || 0)}</span></div>
+              <div className="flex justify-between"><span className="text-vestara-text-muted">Total</span><span className="text-vestara-text">{formatBytes(systemInfo?.disk.total || 0)}</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Top processes bar chart */}
+        <div className="glass p-4">
+          <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Top Processes</h2>
+          <div className="h-40">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={processChart} layout="vertical" margin={{ left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis type="number" tick={{ fontSize: 9, fill: '#666' }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: '#999' }} width={70} />
+                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }} />
+                <Bar dataKey="cpu" fill="#d4af37" radius={[0, 4, 4, 0]} name="CPU %" />
+                <Bar dataKey="mem" fill="#4ade80" radius={[0, 4, 4, 0]} name="RAM %" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Processes table */}
+      {processes.length > 0 && (
+        <div className="glass overflow-hidden">
+          <div className="px-4 py-3 border-b border-vestara-glass-border">
+            <h2 className="text-sm font-semibold text-vestara-gold">All Processes</h2>
+          </div>
+          <div className="overflow-auto max-h-64">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-vestara-text-muted border-b border-vestara-glass-border">
+                  <th className="px-4 py-2">PID</th>
+                  <th className="px-4 py-2">Name</th>
+                  <th className="px-4 py-2">CPU%</th>
+                  <th className="px-4 py-2">RAM%</th>
+                  <th className="px-4 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {processes.map((proc) => (
+                  <tr key={proc.pid} className="border-b border-vestara-glass-border/50 hover:bg-white/[0.02]">
+                    <td className="px-4 py-2 text-vestara-text-dim">{proc.pid}</td>
+                    <td className="px-4 py-2 text-vestara-text">{proc.name}</td>
+                    <td className="px-4 py-2"><span className={getUsageColor(proc.cpu)}>{proc.cpu.toFixed(1)}%</span></td>
+                    <td className="px-4 py-2"><span className={getUsageColor(proc.memory)}>{proc.memory.toFixed(1)}%</span></td>
+                    <td className="px-4 py-2">
+                      <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
+                        proc.status === 'running' ? 'bg-green-500/20 text-green-400' :
+                        proc.status === 'sleeping' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-white/5 text-vestara-text-dim'
+                      }`}>{proc.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Network interfaces */}
+      {systemInfo && systemInfo.network.interfaces.length > 0 && (
+        <div className="glass p-4">
+          <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Network Interfaces</h2>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {systemInfo.network.interfaces.map((iface) => (
+              <div key={iface.name} className="rounded-lg border border-vestara-glass-border p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-vestara-text">{iface.name}</span>
+                  <span className="text-xs text-vestara-text-dim">{iface.ip || 'No IP'}</span>
+                </div>
+                <div className="flex gap-4 text-xs">
+                  <span className="text-green-400">↓ {formatBytes(iface.rx)}</span>
+                  <span className="text-blue-400">↑ {formatBytes(iface.tx)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
