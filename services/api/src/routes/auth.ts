@@ -1,8 +1,11 @@
 import type { VestaraApp } from '../types.js';
 import { generateId, generateToken } from '@vestara/utils';
-import { hash, compare } from 'bcryptjs';
-import { sign, verify } from 'jsonwebtoken';
+import bcryptjs from 'bcryptjs';
+import jsonwebtoken from 'jsonwebtoken';
 import { JWT_SECRET, JWT_EXPIRES_IN } from '@vestara/constants';
+
+const { hash, compare } = bcryptjs;
+const { sign, verify } = jsonwebtoken;
 
 interface UserRow {
   id: string;
