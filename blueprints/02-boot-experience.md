@@ -11,7 +11,7 @@ Power On
     ▼
 Portable SSD
     ▼
-Tiny Linux (Debian Minimal)
+Tiny Linux (Debian 13 Minimal)
     ▼
 Auto Login (ai user)
     ▼
@@ -21,7 +21,7 @@ Vestara API starts
     ▼
 Dashboard opens in browser (kiosk mode)
     ▼
-AI Platform ready
+AI Platform ready (12 pages)
 ```
 
 ---
@@ -67,12 +67,8 @@ ExecStart=-/sbin/agetty --autologin ai --noclear %I $TERM
 systemd starts `vestara.target`:
 
 ```
-1. vestara-core.service        (Config, events, logging)
-2. vestara-api.service         (Fastify API server)
-3. vestara-memory.service      (Context management)
-4. vestara-agents.service      (Agent lifecycle)
-5. vestara-notifications.service
-6. vestara-dashboard.service   (Opens browser in kiosk mode)
+1. vestara-api.service         (Fastify API server on port 3000)
+2. vestara-dashboard.service   (Opens browser in kiosk mode)
 ```
 
 **Ollama does NOT start automatically.** It launches only when the user selects a local model.
@@ -81,37 +77,33 @@ systemd starts `vestara.target`:
 
 ## Phase 4: Dashboard Loads
 
-**What the user sees:** Vestara AI OS dashboard.
+**What the user sees:** Vestara AI OS dashboard with 12 pages.
 
 ```
-┌──────────────────────────────────────────────┐
-│                                              │
-│              VESTARA AI OS                    │
-│         Loading Workspace...                 │
-│         [━━━━━━━━━━━━━━░░░░░]                │
-│                                              │
-└──────────────────────────────────────────────┘
-```
-
-Then the full dashboard appears:
-
-```
-┌──────────────────────────────────────────────┐
-│ Vestara AI OS          🟢 All Systems Ready  │
-├─────────────┬────────────────────────────────┤
-│ Dashboard   │                                │
-│ Chat        │       Welcome Back, Eddie       │
-│ Agents      │                                │
-│ Projects    │  ┌──────┐ ┌──────┐ ┌──────┐   │
-│ Knowledge   │  │ AI   │ │ RAM  │ │ CPU  │   │
-│ Models      │  │ Ready│ │ 1.2GB│ │ 12%  │   │
-│ Files       │  └──────┘ └──────┘ └──────┘   │
-│ Docker      │                                │
-│ Git         │  Quick Actions                 │
-│ Terminal    │  ┌─────────┐ ┌─────────┐       │
-│ Marketplace │  │New Chat │ │Open Term│       │
-│ Settings    │  └─────────┘ └─────────┘       │
-└─────────────┴────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│ Vestara AI OS          🟢 All Systems Ready          │
+├─────────────┬────────────────────────────────────────┤
+│             │                                        │
+│ Dashboard   │    Welcome Back, Eddie                 │
+│             │                                        │
+│ AI Chat     │  ┌──────────┐ ┌──────────┐            │
+│ OpenCode    │  │ CPU 12%  │ │ RAM 1.2GB│            │
+│ Agents      │  └──────────┘ └──────────┘            │
+│ Models      │                                        │
+│             │  ┌──────────┐ ┌──────────┐            │
+│ Memory      │  │ Disk 45% │ │ GPU 0%   │            │
+│ Knowledge   │  └──────────┘ └──────────┘            │
+│             │                                        │
+│ Terminal    │  Quick Actions                         │
+│ Files       │  ┌─────┐ ┌─────┐ ┌─────┐              │
+│ Monitor     │  │Chat │ │Term │ │Files│              │
+│             │  └─────┘ └─────┘ └─────┘              │
+│ Scripts     │                                        │
+│ Users       │  CPU/Memory Area Charts (recharts)     │
+│ Settings    │  ┌─────────────────────────────┐       │
+│             │  │  ~~~~ CPU ~~~~  ~~~~ RAM ~~~ │       │
+│             │  └─────────────────────────────┘       │
+└─────────────┴────────────────────────────────────────┘
 ```
 
 ---
@@ -128,47 +120,28 @@ After=multi-user.target docker.service
 WantedBy=graphical.target
 
 # Services
-Wants=vestara-core.service
 Wants=vestara-api.service
-Wants=vestara-memory.service
-Wants=vestara-agents.service
-Wants=vestara-notifications.service
 Wants=vestara-dashboard.service
 ```
 
 ### Service Definitions
 
 ```ini
-# vestara-core.service
-[Unit]
-Description=Vestara Core
-After=docker.service
-
-[Service]
-Type=simple
-User=ai
-WorkingDirectory=/home/ai/vestara
-ExecStart=/usr/bin/node services/core/dist/index.js
-Restart=on-failure
-
-[Install]
-WantedBy=vestara.target
-```
-
-```ini
 # vestara-api.service
 [Unit]
-Description=Vestara API
-After=vestara-core.service
+Description=Vestara API Server
+After=network.target
 
 [Service]
 Type=simple
 User=ai
+Group=ai
 WorkingDirectory=/home/ai/vestara
 ExecStart=/usr/bin/node services/api/dist/index.js
 Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
 Environment=PORT=3000
-Environment=DATABASE=/home/ai/vestara/data/vestara.db
 
 [Install]
 WantedBy=vestara.target
@@ -220,6 +193,26 @@ systemctl stop vestara-ollama
 | Services start | < 5s |
 | Dashboard load | < 3s |
 | **Total power-on to ready** | **< 16s** |
+
+---
+
+## Authentication Flow
+
+```
+Boot → Auto Login (ai user)
+    ↓
+Dashboard loads → GET /api/auth/os-user
+    ↓
+User not authenticated → Redirect to /login
+    ↓
+Login page → POST /api/auth/os-login (username + password)
+    ↓
+Or → POST /api/auth/os-auto-login (no password)
+    ↓
+JWT token stored in localStorage
+    ↓
+All API requests include Authorization: Bearer <token>
+```
 
 ---
 

@@ -1,6 +1,6 @@
 # Vestara AI OS — Services
 
-> Lightweight services that start automatically.
+> Two core services: API server and Dashboard.
 > Ollama loads on-demand. Everything else is always ready.
 
 ---
@@ -9,136 +9,66 @@
 
 | Service | Port | Auto-start | Purpose |
 |---|---|---|---|
-| `vestara-core` | — | Yes | Config, events, logging |
-| `vestara-api` | 3000 | Yes | Fastify REST + WebSocket |
-| `vestara-memory` | 3001 | Yes | Context management |
-| `vestara-agents` | 3002 | Yes | Agent lifecycle |
-| `vestara-notifications` | 3003 | Yes | System notifications |
-| `vestara-dashboard` | — | Yes | Browser kiosk mode |
-| `ollama` | 11434 | **No** | Local model inference |
+| `vestara-api` | 3000 | Yes | Fastify REST + WebSocket + all services |
+| `vestara-dashboard` | — | Yes | Browser kiosk mode (Nginx in production) |
+| `ollama` | 11434 | **No** | Local model inference (on-demand) |
 
 ---
 
 ## Service Definitions
 
-### vestara-core
-
-The foundation. Configuration, event bus, logging.
-
-```
-Responsibilities:
-- Load system configuration
-- User session management
-- Internal event bus (Node.js EventEmitter)
-- Structured logging (Pino → file + stdout)
-- Encryption utilities
-
-Dependencies: None
-Port: None (in-process library)
-RAM: ~10MB
-```
-
 ### vestara-api
 
-Unified API for the dashboard and all services.
+The unified API server. All Vestara services run in-process.
 
 ```
 Responsibilities:
-- REST endpoints for dashboard
+- REST endpoints for dashboard (15 route modules)
 - WebSocket for real-time updates
-- AI provider routing (OpenAI, Anthropic, Gemini, Ollama)
-- Request/response logging
-- Rate limiting
-- CORS configuration
+- AI provider routing (OpenAI, Anthropic, Google, Ollama)
+- OpenCode integration (CLI + chat history)
+- Memory service with auto-consolidation
+- Knowledge service with full-text search
+- Agent runtime with tool execution
+- OS-based authentication (JWT)
+- File management (safe path resolution)
+- Script execution (with safety gates)
+- System monitoring (CPU, RAM, disk, network)
 
-Dependencies: vestara-core
+Dependencies: None (standalone)
 Port: 3000
 RAM: ~50MB
 
-Endpoints:
-GET  /api/health              → System health
-GET  /api/status              → Service status
-GET  /api/providers           → List AI providers
-POST /api/providers/:id/test  → Test provider connection
-GET  /api/models              → List available models
-POST /api/chat                → Send chat message (streaming)
-GET  /api/conversations       → List conversations
-GET  /api/conversations/:id   → Get conversation
-POST /api/agents              → Create agent
-GET  /api/agents              → List agents
-POST /api/agents/:id/run      → Run agent
-GET  /api/knowledge           → List knowledge base
-POST /api/knowledge/upload    → Upload document
-GET  /api/memory              → List memories
-GET  /api/projects            → List projects
-GET  /api/system/stats        → CPU, RAM, GPU, disk
-WebSocket /ws                 → Real-time updates
+Route Modules:
+├── auth.ts          /api/auth/*          OS-based authentication
+├── system.ts        /api/system/*        System stats, health, exec
+├── providers.ts     /api/providers/*     AI provider management
+├── opencode.ts      /api/providers/opencode/*  OpenCode CLI + chat
+├── chat.ts          /api/chat/*          AI chat (SSE streaming)
+├── conversations.ts /api/conversations/* Conversation CRUD
+├── agent-runtime.ts /api/agents/*        Agent management + runtime
+├── memory.ts        /api/memory/*        Memory CRUD + search
+├── knowledge.ts     /api/knowledge/*     Knowledge base CRUD + search
+├── projects.ts      /api/projects/*      Project management
+├── users.ts         /api/users/*         User CRUD (admin only)
+├── scripts.ts       /api/scripts/*       Script management + execution
+└── files.ts         /api/files/*         File manager operations
 ```
 
-### vestara-memory
+### vestara-dashboard
 
-Context window management.
+React dashboard served via Nginx (production) or Vite dev server.
 
 ```
 Responsibilities:
-- Working memory (current conversation)
-- Short-term memory (recent conversations)
-- Long-term memory (persistent facts, preferences)
-- Automatic memory consolidation
-- Memory retrieval for AI queries
+- Serve React SPA (12 pages)
+- Proxy API requests to localhost:3000
+- Static asset serving
+- SPA routing (try_files)
 
-Dependencies: vestara-core
-Port: 3001
-RAM: ~30MB
-
-Memory Types:
-- Working: Current conversation context
-- Short-term: Last 24 hours of conversations
-- Long-term: User preferences, key facts, project context
-```
-
-### vestara-agents
-
-Agent lifecycle management.
-
-```
-Responsibilities:
-- Register and configure agents
-- Execute agent workflows
-- Manage agent state (idle, running, paused)
-- Tool execution sandboxing
-- Agent marketplace integration
-
-Dependencies: vestara-core, vestara-api
-Port: 3002
-RAM: ~40MB (per active agent)
-
-Built-in Agents:
-- Planner (task decomposition)
-- Software Developer (code generation)
-- DevOps (infrastructure)
-- Cloud Engineer (cloud resources)
-- Research (web search, analysis)
-- Documentation (docs generation)
-- QA (testing)
-- Security (vulnerability scanning)
-```
-
-### vestara-notifications
-
-System and AI notifications.
-
-```
-Responsibilities:
-- Collect notifications from all services
-- Priority-based routing
-- Desktop notification delivery (browser Notification API)
-- Notification history
-- Do Not Disturb mode
-
-Dependencies: vestara-core
-Port: 3003
-RAM: ~10MB
+Dependencies: vestara-api
+Port: 80 (Nginx) or 5173 (dev)
+RAM: ~50MB (Nginx) or ~150MB (Chromium kiosk)
 ```
 
 ### ollama (On-Demand)
@@ -168,28 +98,127 @@ Stop condition: User switches to cloud API or after 5min idle
 
 ```
 Tiny Linux:           500 MB
-vestara-core:          10 MB
 vestara-api:           50 MB
-vestara-memory:        30 MB
-vestara-agents:        40 MB
-vestara-notifications: 10 MB
-vestara-dashboard:    150 MB (Chromium)
+vestara-dashboard:     50 MB (Nginx)
 ─────────────────────────────
-Total:                ~790 MB
-Available for work:  ~7.2 GB
+Total:                ~600 MB
+Available for work:  ~7.4 GB
 ```
 
 ### Local Model Mode
 
 ```
 Tiny Linux:           500 MB
-All Vestara services: 150 MB
-vestara-dashboard:    150 MB (Chromium)
+vestara-api:           50 MB
+vestara-dashboard:     50 MB (Nginx)
 Ollama base:        2000 MB
 Phi-4 model:        2400 MB
 ─────────────────────────────
-Total:              ~5.2 GB
-Available for work: ~2.8 GB
+Total:              ~5.0 GB
+Available for work: ~3.0 GB
+```
+
+---
+
+## API Endpoints Reference
+
+### Authentication (Public)
+
+```
+GET  /api/auth/os-user          Detect current OS user
+POST /api/auth/os-login         Login with OS credentials
+POST /api/auth/os-auto-login    Auto-login (no password)
+GET  /api/auth/me               Get current user
+```
+
+### System (Public)
+
+```
+GET  /api/system/stats          CPU, RAM, disk usage
+GET  /api/system/health         Service health check
+GET  /api/system/info           Detailed system info
+POST /api/system/exec           Execute shell command
+```
+
+### OpenCode (Public)
+
+```
+GET  /api/providers/opencode/status    OpenCode status
+POST /api/providers/opencode/chat      Send chat message
+GET  /api/providers/opencode/models    List available models
+POST /api/providers/opencode/start     Start OpenCode server
+POST /api/providers/opencode/stop      Stop OpenCode server
+GET  /api/providers/opencode/chats     List chat history
+POST /api/providers/opencode/chats     Create new chat
+GET  /api/providers/opencode/chats/:id Get chat with messages
+POST /api/providers/opencode/chats/:id/messages  Add message
+DELETE /api/providers/opencode/chats/:id  Delete chat
+```
+
+### AI Chat (Protected)
+
+```
+POST /api/chat                  Send message (SSE streaming)
+GET  /api/conversations         List conversations
+GET  /api/conversations/:id     Get conversation with messages
+DELETE /api/conversations/:id   Delete conversation
+```
+
+### Agents (Protected)
+
+```
+GET  /api/agents                List agents
+POST /api/agents                Create agent
+POST /api/agents/:id/run        Execute agent task
+```
+
+### Memory (Protected)
+
+```
+GET  /api/memory                List memories
+POST /api/memory                Create memory
+GET  /api/memory/search?q=      Search memories
+```
+
+### Knowledge (Protected)
+
+```
+GET  /api/knowledge             List knowledge entries
+POST /api/knowledge             Create knowledge entry
+GET  /api/knowledge/search?q=   Search knowledge base
+```
+
+### Users (Admin Only)
+
+```
+GET  /api/users                 List all users
+POST /api/users                 Create user
+PUT  /api/users/:id             Update user
+DELETE /api/users/:id           Delete user
+GET  /api/users/system-users    List OS users
+POST /api/users/sync-os         Sync OS users to database
+```
+
+### Scripts (Protected)
+
+```
+GET  /api/scripts               List all scripts
+GET  /api/scripts/:name         Get script details + docs + source
+POST /api/scripts/:name/run     Execute script with args
+POST /api/scripts/:name/stream  Execute with combined output
+```
+
+### Files (Protected)
+
+```
+GET  /api/files/list?path=      List directory contents
+GET  /api/files/read?path=      Read file content
+POST /api/files/write           Create or overwrite file
+POST /api/files/mkdir           Create directory
+POST /api/files/delete          Delete file or directory
+POST /api/files/rename          Rename or move
+GET  /api/files/tree?depth=     Directory tree for sidebar
+GET  /api/files/search?path=&query=  Search files by name
 ```
 
 ---
@@ -202,8 +231,6 @@ Dashboard communicates with API via HTTP.
 
 ```
 Dashboard → API (localhost:3000)
-API → Memory (localhost:3001)
-API → Agents (localhost:3002)
 ```
 
 ### WebSocket (Real-time)
@@ -240,79 +267,20 @@ memory:updated
 
 ---
 
-## systemd Configuration
-
-### Service Template
-
-```ini
-# /etc/systemd/system/vestara-api.service
-[Unit]
-Description=Vestara API Server
-After=vestara-core.service
-Requires=vestara-core.service
-
-[Service]
-Type=simple
-User=ai
-Group=ai
-WorkingDirectory=/home/ai/vestara
-ExecStart=/usr/bin/node services/api/dist/index.js
-Restart=on-failure
-RestartSec=5
-
-# Security
-NoNewPrivileges=yes
-ProtectSystem=strict
-ProtectHome=read-only
-ReadWritePaths=/home/ai/vestara/data /home/ai/vestara/logs
-PrivateTmp=yes
-
-# Environment
-Environment=NODE_ENV=production
-Environment=PORT=3000
-Environment=DATABASE=/home/ai/vestara/data/vestara.db
-
-[Install]
-WantedBy=vestara.target
-```
-
-### Target Definition
-
-```ini
-# /etc/systemd/system/vestara.target
-[Unit]
-Description=Vestara AI Platform
-After=multi-user.target docker.service
-
-[Install]
-WantedBy=graphical.target
-
-Wants=vestara-core.service
-Wants=vestara-api.service
-Wants=vestara-memory.service
-Wants=vestara-agents.service
-Wants=vestara-notifications.service
-Wants=vestara-dashboard.service
-```
-
----
-
 ## Health Checks
 
-Each service exposes a health endpoint:
+The API exposes a health endpoint:
 
 ```
 GET /api/health → {
   status: "ok",
   uptime: 12345,
-  version: "1.0.0",
-  services: {
-    "core": "ok",
-    "api": "ok",
-    "memory": "ok",
-    "agents": "ok",
-    "notifications": "ok",
-    "ollama": "stopped"
+  version: "0.1.0",
+  timestamp: "2026-07-20T00:00:00.000Z",
+  providers: {
+    openai: true,
+    anthropic: false,
+    ollama: false
   }
 }
 ```
@@ -323,9 +291,9 @@ GET /api/health → {
 
 | Aspect | Development | Production |
 |---|---|---|
-| Process Manager | tsx watch / PM2 | systemd |
+| Process Manager | tsx watch / pnpm dev | systemd |
 | Logging | pino-pretty (console) | File + journald |
 | Database | SQLite (local file) | SQLite (encrypted partition) |
-| Dashboard | Vite dev server | Chromium kiosk mode |
+| Dashboard | Vite dev server (5173) | Chromium kiosk mode |
 | TLS | None (localhost) | Self-signed or None (local) |
 | Hot Reload | Yes | No (compiled JS) |

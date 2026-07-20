@@ -27,7 +27,7 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
 - [x] Debian 13 minimal boots from external SSD
 - [x] Auto-login as `ai` user
 - [x] All Vestara services start via systemd
-- [x] Dashboard accessible at localhost:5173
+- [x] Dashboard accessible at localhost:3000
 - [x] AI Chat works with OpenAI/Anthropic/Google/Ollama
 - [x] Ollama starts on-demand
 - [x] OS build script creates bootable SSD image
@@ -36,44 +36,55 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
 
 ```
 ✅ Foundation
-  ├── Monorepo structure (pnpm + Turborepo)
+  ├── Monorepo structure (pnpm ≥10 + Turborepo)
   ├── 6 shared packages (types, validation, constants, utils, config, cli)
-  ├── @vestara/core library (SQLite, events, logging)
+  ├── @vestara/core library (SQLite, memory, knowledge, agents)
   └── SQLite schema (16 tables)
 
-✅ API Server
-  ├── Fastify 5 with 12 route modules
-  ├── Health endpoint
-  ├── Auth routes (JWT)
-  ├── Provider management
-  ├── Chat endpoints (SSE streaming)
-  ├── Conversation CRUD
-  ├── Agent management + runtime
-  ├── Memory service with consolidation
-  ├── Knowledge base with search
-  ├── System stats
-  ├── OpenCode integration
+✅ API Server (15 route modules)
+  ├── Auth routes (OS-based authentication + JWT)
+  ├── System routes (stats, health, exec)
+  ├── Provider routes (AI provider management)
+  ├── OpenCode routes (CLI integration + chat history)
+  ├── Chat routes (SSE streaming)
+  ├── Conversation routes (CRUD)
+  ├── Agent routes (management + runtime)
+  ├── Memory routes (CRUD + search + consolidation)
+  ├── Knowledge routes (CRUD + search)
+  ├── Project routes (management)
+  ├── User routes (CRUD + OS sync, admin only)
+  ├── Script routes (list, detail, run, stream)
+  ├── File routes (list, read, write, mkdir, delete, rename, tree, search)
   └── WebSocket support
 
-✅ Dashboard (10 pages)
-  ├── Dashboard — System overview
-  ├── AI Chat — Streaming chat
-  ├── OpenCode — OpenCode integration
-  ├── Agents — Agent management
-  ├── Models — Model manager
-  ├── Memory — Memory store
-  ├── Knowledge — Knowledge base
-  ├── Terminal — Built-in terminal
-  ├── System — Resource monitor
-  └── Settings — Configuration
+✅ Dashboard (13 pages)
+  ├── Dashboard — System overview (recharts: area, radial, pie)
+  ├── AI Chat — Streaming chat with multi-model
+  ├── OpenCode — CLI integration with chat history
+  ├── Agents — Agent management (8 built-in)
+  ├── Models — Provider and model selection
+  ├── Memory — Memory store with search
+  ├── Knowledge — Knowledge base with RAG
+  ├── Terminal — Full-width terminal with Vestara CLI
+  ├── Files — File manager (tree, editor, operations)
+  ├── Monitor — Real-time monitoring (recharts)
+  ├── Scripts — Script runner with documentation
+  ├── Users — User management (admin only)
+  └── Settings — System configuration
 
 ✅ AI Integration
   ├── AI provider abstraction (OpenAI, Anthropic, Google, Ollama)
   ├── AIRouter with fallback logic
-  ├── OpenCode provider (server + CLI)
+  ├── OpenCode provider (server + CLI + chat history)
   ├── Agent runtime with tool execution
-  ├── Memory service with consolidation
-  └── Knowledge service with search
+  ├── Memory service with auto-consolidation
+  └── Knowledge service with full-text search
+
+✅ Authentication
+  ├── OS-based authentication (username/password)
+  ├── Auto-login (skip password)
+  ├── JWT tokens (localStorage)
+  └── Role-based access (admin, editor, user)
 
 ✅ System Integration
   ├── systemd service files
@@ -82,14 +93,35 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
   ├── Dockerfiles (API + Dashboard)
   ├── OS build script (build-ssd.sh)
   ├── Backup script (backup.sh)
+  ├── Upgrade script (upgrade.sh)
+  ├── Deploy script (deploy.sh)
+  ├── Install script (install.sh)
   └── Vestara CLI tool
+
+✅ File Management
+  ├── File manager API (list, read, write, mkdir, delete, rename, tree, search)
+  ├── Dashboard file explorer (tree view, editor, operations)
+  ├── Path traversal protection
+  └── Context menu operations
+
+✅ Scripts Management
+  ├── Script API (list, detail, run, stream)
+  ├── Dashboard script runner
+  ├── Comprehensive documentation per script
+  └── Safety gates for dangerous scripts
+
+✅ User Management
+  ├── User CRUD API (admin only)
+  ├── OS user sync
+  ├── Dashboard user management
+  └── Role-based access control
 ```
 
 ### Stage 1 Deliverable
 
 **A Samsung T9 SSD that boots into Vestara AI OS on any x86-64 computer.**
 
-The user plugs in the SSD, powers on, selects USB boot, and enters a fully functional AI workstation. All services are running. The dashboard is ready.
+The user plugs in the SSD, powers on, selects USB boot, and enters a fully functional AI workstation with 13 dashboard pages. All services are running. The dashboard is ready.
 
 ---
 
@@ -151,13 +183,17 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 |---|---|---|
 | Monorepo setup | ✅ Complete | 1 |
 | Core library | ✅ Complete | 1 |
-| API server | ✅ Complete | 1 |
-| Dashboard (10 pages) | ✅ Complete | 1 |
+| API server (15 modules) | ✅ Complete | 1 |
+| Dashboard (13 pages) | ✅ Complete | 1 |
 | AI provider abstraction | ✅ Complete | 1 |
 | Agent runtime | ✅ Complete | 1 |
 | Memory service | ✅ Complete | 1 |
 | Knowledge service | ✅ Complete | 1 |
 | OpenCode integration | ✅ Complete | 1 |
+| OS-based authentication | ✅ Complete | 1 |
+| File manager | ✅ Complete | 1 |
+| Script runner | ✅ Complete | 1 |
+| User management | ✅ Complete | 1 |
 | Docker support | ✅ Complete | 1 |
 | OS build script | ✅ Complete | 1 |
 | CLI tool | ✅ Complete | 1 |
@@ -177,16 +213,61 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 
 ---
 
+## Dashboard Pages Summary
+
+| # | Page | Route | Key Features |
+|---|------|-------|--------------|
+| 1 | Dashboard | `/dashboard` | Recharts (area, radial, pie), quick actions |
+| 2 | AI Chat | `/chat` | SSE streaming, multi-model, code blocks |
+| 3 | OpenCode | `/opencode` | CLI integration, chat history, CWD config |
+| 4 | Agents | `/agents` | 8 built-in agents, tool execution |
+| 5 | Models | `/models` | Provider management, connection testing |
+| 6 | Memory | `/memory` | Auto-consolidation, search, importance |
+| 7 | Knowledge | `/knowledge` | RAG search, document collections |
+| 8 | Terminal | `/terminal` | Vestara CLI, ⚡ menu, cd support |
+| 9 | Files | `/files` | Tree view, editor, context menu, search |
+| 10 | Monitor | `/monitor` | Real-time recharts, process table |
+| 11 | Scripts | `/scripts` | Categorized list, docs, source viewer |
+| 12 | Users | `/users` | CRUD, OS sync, role management |
+| 13 | Settings | `/settings` | Provider config, appearance |
+
+---
+
+## API Routes Summary
+
+| Module | Endpoints | Auth |
+|--------|-----------|------|
+| auth | 4 | Public |
+| system | 4 | Public |
+| opencode | 10 | Public |
+| providers | 5 | Protected |
+| chat | 1 | Protected |
+| conversations | 4 | Protected |
+| agents | 3 | Protected |
+| memory | 3 | Protected |
+| knowledge | 3 | Protected |
+| projects | 3 | Protected |
+| users | 5 | Admin |
+| scripts | 4 | Protected |
+| files | 8 | Protected |
+| **Total** | **57** | |
+
+---
+
 ## Success Criteria
 
 ### Stage 1 — ✅ COMPLETE
 
 - [x] Build script creates bootable SSD image
 - [x] All services start and report healthy
-- [x] Dashboard loads and is usable
+- [x] Dashboard loads with 13 pages
 - [x] AI Chat works with cloud APIs and free OpenCode models
 - [x] Ollama starts on-demand
 - [x] CLI tool manages services
+- [x] File manager with tree view and editor
+- [x] Script runner with documentation
+- [x] User management with OS-based auth
+- [x] System monitor with recharts visualizations
 
 ### Stage 2 — ✅ COMPLETE
 

@@ -15,13 +15,21 @@ Portable SSD
     ▼
 Tiny Linux
     ▼
-Auto Login
+Auto Login (OS-based auth)
     ▼
 AI Platform
-    ├── OpenCode
-    ├── Dashboard
-    ├── API
-    └── Agent Runtime
+    ├── Dashboard (12 pages)
+    ├── AI Chat (streaming)
+    ├── OpenCode (CLI + chat history)
+    ├── Agents (8 built-in + custom)
+    ├── Models (multi-provider)
+    ├── Memory (auto-consolidation)
+    ├── Knowledge (RAG search)
+    ├── Terminal (Vestara CLI)
+    ├── File Manager (tree + editor)
+    ├── System Monitor (real-time)
+    ├── Scripts (build/deploy/maintain)
+    └── User Management (admin)
     ▼
 Everything is ready
 ```
@@ -73,6 +81,7 @@ The user never sees Debian. The OS is a lightweight foundation. The experience i
 | User manages everything | Automated service orchestration |
 | One-size-fits-all | Portable, private, personal |
 | Leaves traces on host | Zero footprint |
+| Password-based auth | OS-based authentication |
 
 ---
 

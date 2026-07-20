@@ -65,26 +65,38 @@
 
 ## Navigation
 
+Sidebar organized into categories:
+
 ```
 ┌───────────────────────────────────────────────────────┐
 │ Vestara AI OS                    🟢 All Systems Ready │
 ├─────────────┬─────────────────────────────────────────┤
 │             │                                         │
-│ Dashboard   │                                         │
-│ Chat        │           Workspace Area                │
-│ Agents      │                                         │
-│ Projects    │     (Content changes per screen)        │
-│ Knowledge   │                                         │
-│ Models      │                                         │
-│ Files       │                                         │
-│ Docker      │                                         │
-│ Git         │                                         │
-│ Terminal    │                                         │
-│ Marketplace │                                         │
-│ Settings    │                                         │
+│ Main        │                                         │
+│   Dashboard │           Workspace Area                │
+│             │                                         │
+│ AI          │     (Content changes per screen)        │
+│   Chat      │                                         │
+│   OpenCode  │                                         │
+│   Agents    │                                         │
+│   Models    │                                         │
+│             │                                         │
+│ Data        │                                         │
+│   Memory    │                                         │
+│   Knowledge │                                         │
+│             │                                         │
+│ System      │                                         │
+│   Terminal  │                                         │
+│   Files     │                                         │
+│   Monitor   │                                         │
+│             │                                         │
+│ Admin       │                                         │
+│   Scripts   │                                         │
+│   Users     │                                         │
+│   Settings  │                                         │
 │             │                                         │
 ├─────────────┴─────────────────────────────────────────┤
-│ CPU 12% │ RAM 1.2GB │ GPU 0% │ Disk 45% │ 🕐 10:42 │
+│ 👤 Eddie (admin)                    [Sign Out]        │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -102,27 +114,25 @@ The home screen after boot.
 │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
 │ │ AI Status│ │ Provider │ │ RAM Usage│ │ CPU      │ │
 │ │ 🟢 Ready │ │ OpenAI   │ │ 1.2 GB   │ │ 12%      │ │
-│ │ All sys. │ │ GPT-4o   │ │ of 8 GB  │ │ 4 cores  │ │
 │ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
 │                                                      │
-│ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
-│ │ GPU      │ │ SSD Space│ │ Running  │ │ Agents   │ │
-│ │ N/A      │ │ 245 GB   │ │ Agents   │ │ 3 Active │ │
-│ │ No GPU   │ │ of 500GB │ │ 0        │ │ 2 Idle   │ │
-│ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
+│ CPU Usage (area chart)  │  Memory Usage (area chart) │
+│ ┌─────────────────────┐ │ ┌─────────────────────────┐│
+│ │  ~~~~/\~~~~/\~~~~   │ │ │  ~~~~/\~~~~/\~~~~       ││
+│ │ /    \/    \/   \   │ │ │ /    \/    \/   \       ││
+│ └─────────────────────┘ │ └─────────────────────────┘│
+│                                                      │
+│ Memory Breakdown (radial) │ Disk Usage (pie chart)   │
+│ ┌─────────────────────┐ │ ┌─────────────────────────┐│
+│ │    ┌─────┐          │ │ │    ████░░░░             ││
+│ │   │ 62%  │          │ │ │    ████░░░░  45%        ││
+│ │    └─────┘          │ │ │                         ││
+│ └─────────────────────┘ │ └─────────────────────────┘│
 │                                                      │
 │ Quick Actions                                        │
 │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
-│ │ New Chat │ │ Terminal │ │ Projects │ │ Settings │ │
+│ │ New Chat │ │ Terminal │ │  Files   │ │ Monitor  │ │
 │ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
-│                                                      │
-│ Recent                                               │
-│ ┌─────────────────────────────────────────────────┐  │
-│ │ • "Refactor auth module" — 2 hours ago         │  │
-│ │ • "Research AI trends" — Yesterday             │  │
-│ │ • Vestara AI OS — Active project               │  │
-│ └─────────────────────────────────────────────────┘  │
-│                                                      │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -130,7 +140,7 @@ The home screen after boot.
 
 # Screen 2 — AI Chat
 
-Inspired by VS Code and OpenCode.
+Streaming chat with multi-model support.
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -139,61 +149,57 @@ Inspired by VS Code and OpenCode.
 │          │                                           │
 │Conversa- │  ┌─────────────────────────────────────┐  │
 │tions     │  │ 🤖 Assistant                       │  │
-│          │  │                                     │  │
-│ Today    │  │ I can help you with code, research, │  │
-│ • Auth   │  │ documentation, and more.            │  │
-│   module │  │                                     │  │
-│ • AI     │  │ What are you working on?            │  │
-│   trends │  │                                     │  │
-│          │  └─────────────────────────────────────┘  │
-│ Yesterday│                                           │
-│ • Email  │  ┌─────────────────────────────────────┐  │
-│          │  │ 👤 Eddie                            │  │
-│ Last Week│  │                                     │  │
-│ • Arch   │  │ Help me refactor the auth module    │  │
-│   review │  │ to use JWT refresh tokens.          │  │
-│          │  │                                     │  │
-│          │  └─────────────────────────────────────┘  │
+│          │  │ I can help you with code, research, │  │
+│ Today    │  │ documentation, and more.            │  │
+│ • Auth   │  │                                     │  │
+│   module │  │ What are you working on?            │  │
+│ • AI     │  │                                     │  │
+│   trends │  └─────────────────────────────────────┘  │
 │          │                                           │
-│          │  ┌─────────────────────────────────────┐  │
-│          │  │ 🤖 Assistant                       │  │
-│          │  │                                     │  │
-│          │  │ Here's the refactored auth module:  │  │
-│          │  │                                     │  │
-│          │  │ ```typescript                       │  │
-│          │  │ import jwt from 'jsonwebtoken';     │  │
-│          │  │ // ...                              │  │
-│          │  │ ```                                 │  │
-│          │  │                                     │  │
-│          │  │ [Apply to File] [Copy] [Explain]    │  │
+│ Yesterday│  ┌─────────────────────────────────────┐  │
+│ • Email  │  │ 👤 Eddie                            │  │
+│          │  │ Help me refactor the auth module    │  │
 │          │  └─────────────────────────────────────┘  │
-│          │                                           │
-│          │  ┌──────────────────────────────────┐     │
-│          │  │ Type a message...          [Send]│     │
-│          │  └──────────────────────────────────┘     │
 │          │                                           │
 │          │  Model: GPT-4o │ Tokens: 1,234 │ $0.02   │
 ├──────────┴───────────────────────────────────────────┤
-│ [Code] [Files] [Artifacts] [Reasoning] [Usage]       │
+│ [Send]                    Model: gpt-4o    [Voice]   │
 └──────────────────────────────────────────────────────┘
 ```
 
-### Features
+---
 
-- Multi-model support (switch mid-conversation)
-- Streaming responses
-- Code blocks with syntax highlighting
-- File attachments (drag & drop)
-- Image support
-- Action buttons (Apply to File, Copy, Explain)
-- Token usage and cost tracking
-- Voice input (future)
+# Screen 3 — OpenCode
+
+OpenCode CLI integration with chat history persistence.
+
+```
+┌──────────────────────────────────────────────────────┐
+│ OpenCode                            [New Chat] [cwd] │
+├──────────┬───────────────────────────────────────────┤
+│          │                                           │
+│ History  │  ┌─────────────────────────────────────┐  │
+│          │  │ 🤖 OpenCode                         │  │
+│ Today    │  │                                     │  │
+│ • hello  │  │ Hello! I can help you with coding,  │  │
+│ • debug  │  │ debugging, and development tasks.   │  │
+│          │  │                                     │  │
+│ Yesterday│  │ What would you like to work on?     │  │
+│ • test   │  │                                     │  │
+│          │  └─────────────────────────────────────┘  │
+│          │                                           │
+│          │  Model: deepseek-v4-flash-free            │
+│          │  CWD: /home/eddie/projects               │
+├──────────┴───────────────────────────────────────────┤
+│ [Send]                    Model selector      [+]    │
+└──────────────────────────────────────────────────────┘
+```
 
 ---
 
-# Screen 3 — Agent Manager
+# Screen 4 — Agents
 
-The heart of the platform.
+Agent management and execution.
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -204,134 +210,75 @@ The heart of the platform.
 │ │ 📋       │ │ 💻       │ │ 🔧       │ │ ☁️       │ │
 │ │ Planner  │ │ Developer│ │ DevOps   │ │ Cloud    │ │
 │ │ 🟢 Ready │ │ 🟢 Ready │ │ 🟡 Idle  │ │ 🟢 Ready │ │
-│ │ Claude   │ │ GPT-4o   │ │ Gemini   │ │ Claude   │ │
 │ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
 │                                                      │
 │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
 │ │ 🔍       │ │ 📝       │ │ 🛡️       │ │ 🔒       │ │
 │ │ Research │ │ Docs     │ │ QA       │ │ Security │ │
 │ │ 🟢 Ready │ │ 🟡 Idle  │ │ 🟢 Ready │ │ 🟡 Idle  │ │
-│ │ Gemini   │ │ GPT-4o   │ │ Claude   │ │ Claude   │ │
 │ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
-│                                                      │
-│ ┌──────────┐ ┌──────────┐                            │
-│ │ ⚙️       │ │ 📦       │                            │
-│ │ Custom 1 │ │ Custom 2 │                            │
-│ │ 🟢 Running│ │ 🔴 Off   │                            │
-│ │ Ollama   │ │ GPT-4o   │                            │
-│ └──────────┘ └──────────┘                            │
-│                                                      │
-│ Agent Details                                         │
-│ ┌─────────────────────────────────────────────────┐  │
-│ │ Software Developer                              │  │
-│ │                                                 │  │
-│ │ Provider: OpenAI  │  Model: GPT-4o             │  │
-│ │ Memory: 2.4 MB    │  Tools: Read, Write, Exec  │  │
-│ │ Cost today: $0.42 │  Runs today: 12            │  │
-│ │                                                 │  │
-│ │ [Configure] [Start] [View History]              │  │
-│ └─────────────────────────────────────────────────┘  │
-│                                                      │
 └──────────────────────────────────────────────────────┘
 ```
 
-### Agent Types
-
-| Agent | Purpose | Default Model |
-|---|---|---|
-| Planner | Task decomposition, roadmaps | Claude Opus |
-| Software Developer | Code generation, refactoring | GPT-4o |
-| DevOps | Infrastructure, Docker, CI/CD | Gemini 2.5 |
-| Cloud Engineer | AWS, Azure, GCP management | Claude Sonnet |
-| Research | Web search, analysis, reports | Gemini 2.5 |
-| Documentation | Docs generation, README | GPT-4o |
-| QA | Testing, bug detection | Claude Opus |
-| Security | Vulnerability scanning | Claude Opus |
-
 ---
 
-# Screen 4 — Model Manager
+# Screen 5 — Models
+
+Provider and model selection with recharts visualizations.
 
 ```
 ┌──────────────────────────────────────────────────────┐
 │ Model Manager                                        │
 ├──────────────┬───────────────────────────────────────┤
 │              │                                       │
-│ Providers    │  OpenAI Models                        │
+│ Providers    │  Available Models                     │
 │              │                                       │
 │ ● OpenAI     │  ┌─────────────────────────────────┐ │
-│ ○ Claude     │  │ GPT-4o                          │ │
-│ ○ Gemini     │  │ Context: 128K │ Speed: Fast     │ │
-│ ○ OpenRouter │  │ [Use] [Details]                 │ │
-│ ○ Ollama     │  └─────────────────────────────────┘ │
-│ ○ LM Studio  │                                       │
-│              │  ┌─────────────────────────────────┐ │
-│ Connected:   │  │ GPT-4.1                         │ │
-│ 2/6          │  │ Context: 1M   │ Speed: Medium  │ │
-│              │  │ [Use] [Details]                 │ │
+│ ○ Anthropic  │  │ GPT-4o                          │ │
+│ ○ Google     │  │ Context: 128K │ Speed: Fast     │ │
+│ ○ Ollama     │  │ [Select] [Details]              │ │
 │              │  └─────────────────────────────────┘ │
-│              │                                       │
-│              │  ┌─────────────────────────────────┐ │
-│              │  │ o3-mini                         │ │
+│ Connected:   │                                       │
+│ 2/4          │  ┌─────────────────────────────────┐ │
+│              │  │ Claude Sonnet                   │ │
 │              │  │ Context: 200K │ Speed: Fast     │ │
-│              │  │ [Use] [Details]                 │ │
+│              │  │ [Select] [Details]              │ │
 │              │  └─────────────────────────────────┘ │
-│              │                                       │
-│              │  Active Model: GPT-4o                │
-│              │  Status: Connected                   │
-│              │  Cost today: $2.40                   │
-│              │  Tokens today: 125K                  │
-│              │                                       │
 └──────────────┴───────────────────────────────────────┘
 ```
 
-### Supported Providers
-
-| Provider | Models | Auth |
-|---|---|---|
-| OpenAI | GPT-4o, GPT-4.1, o3-mini | API Key |
-| Anthropic | Claude Opus, Sonnet, Haiku | API Key |
-| Google | Gemini 2.5 Pro, Flash | API Key |
-| OpenRouter | Multiple providers | API Key |
-| Ollama | Local models | None (local) |
-| LM Studio | Local models | None (local) |
-
 ---
 
-# Screen 5 — Projects
+# Screen 6 — Memory
+
+Memory store with search and auto-consolidation.
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│ Projects                          [+ New Project]    │
+│ Memory                              [Search...]      │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
+│ Types: All │ Facts │ Preferences │ Context           │
+│                                                      │
 │ ┌─────────────────────────────────────────────────┐  │
-│ │ Vestara AI OS                                   │  │
-│ │ Status: Active │ Updated: 2 hours ago          │  │
-│ │ ████████████████████░░░░░░░░░░ 65%             │  │
-│ │ [Open] [AI Assist] [Git]                       │  │
+│ │ User prefers dark mode                          │  │
+│ │ Type: preference │ Importance: high │ Today      │  │
 │ └─────────────────────────────────────────────────┘  │
 │                                                      │
 │ ┌─────────────────────────────────────────────────┐  │
-│ │ Portfolio Site                                  │  │
-│ │ Status: Active │ Updated: Yesterday            │  │
-│ │ ████████████████████████████████ 100%           │  │
-│ │ [Open] [AI Assist] [Git]                       │  │
+│ │ Vestara uses TypeScript strict mode             │  │
+│ │ Type: fact │ Importance: medium │ Yesterday      │  │
 │ └─────────────────────────────────────────────────┘  │
 │                                                      │
-│ ┌─────────────────────────────────────────────────┐  │
-│ │ API Backend                                     │  │
-│ │ Status: Paused │ Updated: 3 days ago           │  │
-│ │ ████████████░░░░░░░░░░░░░░░░░░ 40%             │  │
-│ │ [Open] [AI Assist] [Git]                       │  │
-│ └─────────────────────────────────────────────────┘  │
-│                                                      │
+│ [+ Add Memory]                                       │
 └──────────────────────────────────────────────────────┘
 ```
 
 ---
 
-# Screen 6 — Knowledge Base
+# Screen 7 — Knowledge
+
+Knowledge base with RAG search.
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -344,177 +291,194 @@ The heart of the platform.
 │ ┌─────────────────────────────────────────────────┐  │
 │ │ Model Router Architecture (98% match)           │  │
 │ │ "The model router uses priority-based..."       │  │
-│ │ Source: blueprints/03-services.md:45            │  │
 │ └─────────────────────────────────────────────────┘  │
 │                                                      │
 │ Documents (47)     Collections (5)                   │
-│ ├── Blueprints (12) ├── Vestara Docs                │
-│ ├── Code (23)       ├── Research                    │
-│ └── Notes (12)      └── Personal                    │
 │                                                      │
 │ Upload: PDF, DOCX, Markdown, HTML, Code files       │
-│                                                      │
 └──────────────────────────────────────────────────────┘
 ```
 
 ---
 
-# Screen 7 — Files
+# Screen 8 — Terminal
+
+Full-width terminal with Vestara CLI integration.
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│ Files                                                 │
-├──────────────┬───────────────────────────────────────┤
-│              │                                       │
-│ 📁 workspace │  /home/ai/workspace/vestara-ai-os     │
-│ 📁 projects  │                                       │
-│ 📁 knowledge │  ┌─────┬──────────┬──────┬────────┐  │
-│ 📁 memory    │  │Name │ Size     │ Type │ Modified│  │
-│ 📁 models    │  ├─────┼──────────┼──────┼────────┤  │
-│ 📁 agents    │  │blue…│ 8.2 KB   │ dir  │ Today  │  │
-│ 📁 plugins   │  │pack…│ 4.1 KB   │ dir  │ Today  │  │
-│              │  │serv…│ 12 KB    │ dir  │ Today  │  │
-│              │  │README│ 2.1 KB  │ .md  │ Today  │  │
-│              │  │pack…│ 1.4 KB   │ .json│ Today  │  │
-│              │  │turbo…│ 0.5 KB  │ .json│ Today  │  │
-│              │  └─────┴──────────┴──────┴────────┘  │
-│              │                                       │
-│              │  Preview: turbo.json                  │
-│              │  ┌─────────────────────────────────┐  │
-│              │  │ {                               │  │
-│              │  │   "$schema": "...",             │  │
-│              │  │   "tasks": { ... }              │  │
-│              │  │ }                               │  │
-│              │  └─────────────────────────────────┘  │
-│              │                                       │
-└──────────────┴───────────────────────────────────────┘
-```
-
-### Preview Support
-
-- Markdown (rendered)
-- JSON (syntax highlighted)
-- YAML
-- TypeScript/JavaScript
-- Images
-- PDF
-
----
-
-# Screen 8 — Docker Manager
-
-```
-┌──────────────────────────────────────────────────────┐
-│ Docker Manager                      [+ New Container]│
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ Containers (3)    Images (5)    Networks (2)         │
-│                                                      │
-│ ┌─────────────────────────────────────────────────┐  │
-│ │ postgres:17         🟢 Running   port: 5432    │  │
-│ │ redis:8             🟢 Running   port: 6379    │  │
-│ │ ollama/ollama       🔴 Stopped                  │  │
-│ └─────────────────────────────────────────────────┘  │
-│                                                      │
-│ Actions: [Start] [Stop] [Restart] [Logs] [Shell]    │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
-
----
-
-# Screen 9 — Git Manager
-
-```
-┌──────────────────────────────────────────────────────┐
-│ Git Manager                                          │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│ Repository: vestara-ai-os                            │
-│ Branch: main │ Status: Clean │ 3 ahead              │
-│                                                      │
-│ Changes:                                             │
-│ ┌─────────────────────────────────────────────────┐  │
-│ │ M  blueprints/01-architecture.md               │  │
-│ │ M  blueprints/03-services.md                   │  │
-│ │ A  blueprints/08-desktop.md                    │  │
-│ └─────────────────────────────────────────────────┘  │
-│                                                      │
-│ Diff: blueprints/01-architecture.md                  │
-│ ┌─────────────────────────────────────────────────┐  │
-│ │ - Express 5                                     │  │
-│ │ + Fastify 5                                     │  │
-│ │                                                 │  │
-│ │ - PostgreSQL 17                                 │  │
-│ │ + SQLite                                        │  │
-│ └─────────────────────────────────────────────────┘  │
-│                                                      │
-│ Commit message: [_________________]  [Commit]        │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
-
----
-
-# Screen 10 — Terminal
-
-```
-┌──────────────────────────────────────────────────────┐
-│ Terminal                           [+] [Split] [⚙️]  │
+│ Terminal                               [⚡] [+] [⚙️] │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
 │ $ vestara status                                     │
 │                                                      │
 │ Service            Status    Uptime    Memory        │
 │ ─────────────────────────────────────────────────    │
-│ vestara-core       ● running  2d 4h    10 MB         │
 │ vestara-api        ● running  2d 4h    50 MB         │
-│ vestara-memory     ● running  2d 4h    30 MB         │
-│ vestara-agents     ● running  2d 4h    40 MB         │
 │ ollama             ○ stopped  —         —             │
 │                                                      │
-│ $ _                                                   │
+│ $ vestara models list                                │
 │                                                      │
-│ ┌────────────────────────────────────────────────┐   │
-│ │ 💡 Try `vestara models list` to see models    │   │
-│ └────────────────────────────────────────────────┘   │
+│ Available models:                                    │
+│ • opencode/deepseek-v4-flash-free                    │
+│ • opencode/mimo-v2.5-free                            │
+│ • opencode/nemotron-3-ultra-free                     │
 │                                                      │
+│ $ _                                                  │
 └──────────────────────────────────────────────────────┘
 ```
 
 ### Features
 
-- Multiple tabs
-- Split panes
-- AI command suggestions
-- Command explanations
-- Session history
+- Full HTTP-based command execution (30s timeout)
+- Vestara CLI integration with ⚡ quick menu
+- Command history (up/down arrows)
+- cd support with working directory tracking
+- Mobile responsive with hamburger menu
 
 ---
 
-# Screen 11 — Marketplace
+# Screen 9 — Files
+
+File manager with tree view, editor, and operations.
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│ Marketplace                       [Search plugins]   │
+│ Files                             [Search...]        │
+├────────────┬─────────────────────────────────────────┤
+│ Explorer   │ ~/projects/vestara-ai-os                │
+│            │                                         │
+│ [+File]    │ blueprints/  8.2 KB      dir   Today   │
+│ [+Folder]  │ packages/    4.1 KB      dir   Today   │
+│            │ services/    12 KB       dir   Today   │
+│ 🏠 ~       │ README.md    2.1 KB      .md   Today   │
+│ 📁 Desktop │ package.json 1.4 KB      .json Today   │
+│ 📁 docs    │                                         │
+│ 📁 projects│ Preview: package.json                   │
+│ 📁 scripts │ ┌─────────────────────────────────────┐ │
+│ 📁 vestara │ │ {                                   │ │
+│            │ │   "name": "vestara-ai-os",           │ │
+│            │ │   "version": "0.1.0"                 │ │
+│            │ │ }                                   │ │
+│            │ └─────────────────────────────────────┘ │
+│            │                                         │
+│            │ [Edit] [Save] [Download] [Delete]       │
+└────────────┴─────────────────────────────────────────┘
+```
+
+### Features
+
+- Collapsible directory tree
+- File list with icons, sizes, dates
+- Breadcrumb navigation
+- Inline text editor with save
+- Right-click context menu (open, rename, delete)
+- Create file/folder modals
+- Search across directories
+- Path traversal protection
+
+---
+
+# Screen 10 — Monitor
+
+Real-time system monitoring with recharts.
+
+```
+┌──────────────────────────────────────────────────────┐
+│ System Monitor                                       │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
-│ Featured                                             │
-│ ┌────────────┐ ┌────────────┐ ┌────────────┐        │
-│ │ 🤖 GitHub  │ │ 📊 Analytics│ │ 🔐 Security│        │
-│ │ Integration│ │ Dashboard  │ │ Scanner    │        │
-│ │ ★ 4.8      │ │ ★ 4.6      │ │ ★ 4.9      │        │
-│ └────────────┘ └────────────┘ └────────────┘        │
+│ CPU Usage (area chart)    │  Memory Usage (area)     │
+│ ┌───────────────────────┐ │ ┌───────────────────────┐│
+│ │   ~~~~/\~~~~/\~~~~    │ │ │   ~~~~/\~~~~/\~~~~    ││
+│ │  /    \/    \/   \    │ │ │  /    \/    \/   \    ││
+│ └───────────────────────┘ │ └───────────────────────┘│
 │                                                      │
-│ Categories: Agents │ MCP Servers │ Themes │ Plugins  │
-│             Workflows │ Templates │ Prompts          │
+│ CPU: 12% │ RAM: 1.2GB/8GB │ Cores: 4 │ Uptime: 2d   │
 │                                                      │
+│ Network I/O (area chart)   │  Disk Usage (pie)       │
+│ ┌───────────────────────┐ │ ┌───────────────────────┐│
+│ │   ~~~~/\~~~~/\~~~~    │ │ │   ██████░░░░          ││
+│ └───────────────────────┘ │ └───────────────────────┘│
+│                                                      │
+│ Top Processes                                      │
+│ ┌──────┬──────┬────────┬──────────┐                 │
+│ │ PID  │ CPU% │ MEM%   │ Command  │                 │
+│ ├──────┼──────┼────────┼──────────┤                 │
+│ │ 1234 │ 2.1  │ 1.3    │ node     │                 │
+│ │ 5678 │ 0.5  │ 0.8    │ chromium │                 │
+│ └──────┴──────┴────────┴──────────┘                 │
 └──────────────────────────────────────────────────────┘
 ```
 
 ---
 
-# Screen 12 — Settings
+# Screen 11 — Scripts
+
+Script runner with categorized list and documentation.
+
+```
+┌──────────────────────────────────────────────────────┐
+│ Scripts                                              │
+├────────────┬─────────────────────────────────────────┤
+│ Available  │ build-ssd.sh                            │
+│ Scripts    │ Build                                     │
+│            │                                         │
+│ build-ssd  │ Creates a 20GB GPT disk image with      │
+│ build-deb  │ three partitions (EFI, boot, root).     │
+│ build-repo │ Installs Debian 13 minimal via          │
+│ build-iso  │ debootstrap, then layers on Node.js     │
+│ install    │ 22, Docker, Ollama, OpenCode...         │
+│ deploy     │                                         │
+│ upgrade    │ Prerequisites:                          │
+│ backup     │ debootstrap, parted, mkfs.ext4...       │
+│            │                                         │
+│            │ Usage: ./scripts/build-ssd.sh            │
+│            │                                         │
+│            │ [Run]                                   │
+│            │                                         │
+│            │ Source Code                              │
+│            │ ┌─────────────────────────────────────┐ │
+│            │ │ #!/usr/bin/env bash                 │ │
+│            │ │ set -euo pipefail                   │ │
+│            │ │ ...                                 │ │
+│            │ └─────────────────────────────────────┘ │
+│            │                                         │
+│            │ Output                                  │
+│            │ ┌─────────────────────────────────────┐ │
+│            │ │ [VESTARA] Creating disk image...    │ │
+│            │ └─────────────────────────────────────┘ │
+└────────────┴─────────────────────────────────────────┘
+```
+
+---
+
+# Screen 12 — Users
+
+User management (admin only).
+
+```
+┌──────────────────────────────────────────────────────┐
+│ Users                              [+ Add User]      │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│ ┌──────┬────────┬──────────────────┬──────┬────────┐ │
+│ │ Name │ Email  │ Role             │ Last │ Action │ │
+│ ├──────┼────────┼──────────────────┼──────┼────────┤ │
+│ │ Eddie│ ed@..  │ admin            │ Now  │ Edit   │ │
+│ │ ai   │ —      │ user             │ 2d   │ Edit   │ │
+│ └──────┴────────┴──────────────────┴──────┴────────┘ │
+│                                                      │
+│ System Users: eddie, ai, root                        │
+│ [Sync OS Users]                                      │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+# Screen 13 — Settings
+
+System configuration.
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -523,30 +487,33 @@ The heart of the platform.
 │              │                                       │
 │ Appearance   │  AI Providers                        │
 │ AI Providers │                                       │
-│ Local Models │  Provider         Status    Action    │
-│ API Keys     │  ─────────────────────────────────── │
-│ Storage      │  OpenAI           🟢 Connected [Test]│
-│ Memory       │  Anthropic        🟢 Connected [Test]│
-│ Security     │  Google Gemini    🔴 Not set  [Set]  │
-│ Startup      │  OpenRouter       🔴 Not set  [Set]  │
-│ Updates      │  Ollama           ○ Stopped  [Start] │
-│ Backup       │  LM Studio        ○ Not found [—]    │
-│              │                                       │
-│              │  [Add Custom Provider]                │
+│ Security     │  Provider         Status    Action    │
+│ Startup      │  ─────────────────────────────────── │
+│ Updates      │  OpenCode         🟢 Active  [Test]  │
+│              │  OpenAI           🔴 Not set  [Set]  │
+│              │  Anthropic        🔴 Not set  [Set]  │
+│              │  Ollama           ○ Stopped  [Start]  │
 │              │                                       │
 └──────────────┴───────────────────────────────────────┘
 ```
 
 ---
 
-## MVP Screens (Phase 1)
+## MVP Screens (Phase 1) — ✅ COMPLETE
 
-1. **Welcome / Boot Screen** — Vestara branding during startup
-2. **Dashboard** — System overview, quick actions
-3. **AI Chat** — Primary AI interface
-4. **Agent Manager** — Configure and run agents
-5. **Model Manager** — Provider and model selection
-6. **Settings** — System configuration
+1. **Dashboard** — System overview, recharts visualizations
+2. **AI Chat** — Streaming chat with multi-model support
+3. **OpenCode** — OpenCode CLI integration with chat history
+4. **Agents** — Agent management and execution
+5. **Models** — Provider and model selection
+6. **Memory** — Memory store with search
+7. **Knowledge** — Knowledge base with RAG
+8. **Terminal** — Full-width terminal with Vestara CLI
+9. **Files** — File manager with tree, editor, operations
+10. **Monitor** — Real-time system monitoring with recharts
+11. **Scripts** — Script runner with documentation
+12. **Users** — User management (admin only)
+13. **Settings** — System configuration
 
 ---
 

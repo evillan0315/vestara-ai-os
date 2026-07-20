@@ -10,23 +10,26 @@
 ```
 ┌─────────────────────────────────────┐
 │         Vestara Dashboard           │
-│  React · Tailwind · Glassmorphism   │
+│  React 19 · Vite 6 · Tailwind 4    │
+│  12 Pages · Glassmorphism           │
 ├─────────────────────────────────────┤
 │         Vestara API                 │
-│  Fastify · WebSocket · REST         │
+│  Fastify 5 · WebSocket · REST      │
+│  15 Route Modules · JWT Auth        │
 ├─────────────────────────────────────┤
 │         AI Services                 │
 │  OpenCode · Agent Runtime ·         │
-│  Memory · Provider Manager          │
+│  Memory Service · Knowledge Base    │
 ├─────────────────────────────────────┤
 │         Data Layer                  │
-│  SQLite · JSON · File Storage       │
+│  SQLite (better-sqlite3)            │
+│  16 Tables · WAL Mode              │
 ├─────────────────────────────────────┤
 │         System Layer                │
 │  systemd · Auto-login · Branding    │
 ├─────────────────────────────────────┤
 │         Tiny Linux                  │
-│  Debian Minimal / Alpine            │
+│  Debian 13 Minimal                 │
 │  Docker · OpenCode · Ollama         │
 └─────────────────────────────────────┘
 ```
@@ -37,21 +40,22 @@
 
 | Layer | Technology | Why |
 |---|---|---|
-| Language | TypeScript (strict) | Consistent with Vestara ecosystem |
+| Language | TypeScript (strict mode) | Consistent with Vestara ecosystem |
 | Runtime | Node.js ≥22 | Same as vestara-admin, vestara-bk |
-| Package Manager | pnpm (workspace) | Fast, disk-efficient |
-| Build | Turborepo | Monorepo orchestration |
+| Package Manager | pnpm ≥10 (workspace) | Fast, disk-efficient, strict hoisting |
+| Build | Turborepo | Monorepo orchestration with caching |
 | HTTP | Fastify 5 | 2-3x faster than Express, schema validation |
-| Database | SQLite (better-sqlite3) | Zero-config, portable, single-file |
-| Realtime | WebSocket (ws) | Lightweight, no Socket.IO overhead |
+| Database | SQLite (better-sqlite3) | Zero-config, portable, single-file, WAL mode |
+| Realtime | WebSocket (@fastify/websocket) | Lightweight, native browser API |
 | Validation | Zod 3 | Same as existing Vestara projects |
 | Logging | Pino | Fast, structured, JSON output |
 | Frontend | React 19 + Vite 6 | Same as vestara-admin |
 | Styling | Tailwind CSS 4 + Glassmorphism | Dark AI command center aesthetic |
+| Charts | Recharts | Dashboard and monitor visualizations |
 | Process Manager | systemd | First-class Linux service management |
 | Containerization | Docker | Isolated services, easy deployment |
 | Local AI | Ollama | On-demand local model inference |
-| AI Gateway | OpenCode | Core AI development environment |
+| AI Gateway | OpenCode | Core AI development environment, free models |
 
 ---
 
@@ -95,41 +99,25 @@
 
 ```
 @vestara/core
-├── config/            # System and user configuration
-│   ├── system.ts
-│   ├── user.ts
-│   └── schema.ts
-├── db/                # SQLite database
-│   ├── client.ts
-│   ├── migrations/
-│   └── queries/
-├── ai/                # AI provider abstraction
-│   ├── providers/
-│   │   ├── openai.ts
-│   │   ├── anthropic.ts
-│   │   ├── google.ts
-│   │   ├── openrouter.ts
-│   │   ├── ollama.ts
-│   │   └── lmstudio.ts
-│   ├── router.ts      # Model selection/routing
-│   └── types.ts
-├── agents/            # Agent lifecycle
-│   ├── registry.ts
-│   ├── runtime.ts
-│   └── types.ts
-├── memory/            # Context management
-│   ├── working.ts
-│   ├── short-term.ts
-│   ├── long-term.ts
-│   └── types.ts
-├── events/            # Internal event bus
-│   ├── bus.ts
-│   └── types.ts
-├── logging/           # Structured logging
-│   └── logger.ts
-└── crypto/            # Encryption, hashing
-    ├── encryption.ts
-    └── keys.ts
+├── db.ts                  # Database wrapper (better-sqlite3)
+├── memory-service.ts      # Memory with auto-consolidation
+├── knowledge-service.ts   # Knowledge base with full-text search
+├── agent-runtime.ts       # Agent lifecycle and tool execution
+├── index.ts               # Exports: Database, MemoryService, KnowledgeService, AgentRuntime
+```
+
+---
+
+## Shared Packages
+
+```
+packages/
+├── types/                 # @vestara/types — Shared TypeScript types
+├── validation/            # @vestara/validation — Zod schemas
+├── constants/             # @vestara/constants — Constants and defaults
+├── utils/                 # @vestara/utils — Utility functions
+├── config/                # @vestara/config — Configuration loader
+└── cli/                   # @vestara/cli — Command-line interface
 ```
 
 ---
@@ -145,13 +133,13 @@
                           ┌──────────┼──────────┐
                           │          │          │
                    ┌──────┴──┐ ┌────┴────┐ ┌───┴──────┐
-                   │ OpenCode│ │ Memory  │ │ Provider │
-                   │         │ │ Service │ │ Manager  │
+                   │ OpenCode│ │ Memory  │ │ Knowledge│
+                   │ (chat)  │ │ Service │ │ Service  │
                    └─────────┘ └─────────┘ └──────────┘
 ```
 
 - **Dashboard ↔ API**: HTTP REST + WebSocket for real-time updates
-- **API ↔ Services**: Direct function calls (in-process) or HTTP
+- **API ↔ Services**: Direct function calls (in-process)
 - **API ↔ SQLite**: Direct queries (better-sqlite3 is synchronous, fast)
 - **Services ↔ Ollama**: HTTP (Ollama runs on localhost:11434)
 
@@ -159,34 +147,32 @@
 
 ## Security Model
 
-### Disk Encryption
-
-- LUKS2 encryption on data partition
-- Unlock at boot via passphrase
-- `/home/ai/` encrypted at rest
-
-### Service Isolation
-
-- Docker containers for AI services
-- systemd sandboxing for core services
-- Network isolation where possible
-
 ### Authentication
 
-- Local-only authentication (no remote auth needed)
-- Optional password protection
-- Future: Passkeys, biometric
+- **OS-based authentication** — Login with OS username/password
+- **Auto-login** — Skip password by detecting current OS user
+- **JWT tokens** — Sessions managed via localStorage
+- **Roles** — `admin` (full access), `editor` (limited), `user` (read-only)
+
+### Route Protection
+
+- **Public routes** — `/api/health`, `/api/system/*`, `/api/providers/opencode/*`
+- **Protected routes** — All other routes require JWT via `authMiddleware`
+- **Admin routes** — User management, dangerous operations
+
+### Path Security
+
+- **File Manager** — Path traversal protection via `safePath()` resolver
+- **Script execution** — Dangerous scripts require `--confirm` flag
+- **Command blocking** — Dangerous shell commands blocked in terminal
 
 ---
 
 ## Database Schema (SQLite)
 
 ```sql
--- Users
-users (id, name, email, password_hash, avatar, created_at)
-
--- Sessions
-sessions (id, user_id, token, expires_at, created_at)
+-- Users (OS-authenticated)
+users (id, os_username, name, email, role, last_login, created_at)
 
 -- AI Providers
 providers (id, name, type, api_key_encrypted, config, enabled, created_at)
@@ -200,26 +186,24 @@ conversations (id, user_id, title, model_id, created_at)
 -- Messages
 messages (id, conversation_id, role, content, tokens, created_at)
 
+-- OpenCode Chat History
+opencode_chats (id, user_id, title, model, created_at)
+opencode_messages (id, chat_id, role, content, created_at)
+
 -- Knowledge Base
-documents (id, user_id, title, content, embedding, metadata, created_at)
+knowledge (id, title, content, type, metadata, created_at)
 
 -- Memory
-memories (id, user_id, key, value, context, importance, created_at)
+memories (id, user_id, type, content, context, importance, consolidated, created_at)
 
 -- Projects
 projects (id, user_id, name, description, status, path, created_at)
-
--- Tasks
-tasks (id, project_id, title, description, status, assignee_id, created_at)
 
 -- Agent Configurations
 agents (id, user_id, name, type, provider_id, model_id, config, status, created_at)
 
 -- Agent Executions
 agent_executions (id, agent_id, input, output, tokens, cost, started_at, completed_at)
-
--- Plugins
-plugins (id, name, version, author, config, installed_at)
 
 -- Activity Log
 activity_log (id, user_id, action, resource, metadata, created_at)
@@ -232,28 +216,60 @@ activity_log (id, user_id, action, resource, metadata, created_at)
 ```
 vestara-ai-os/
 ├── apps/
-│   └── dashboard/              # React dashboard (Vite + Tailwind)
+│   └── dashboard/              # React dashboard (12 pages)
 ├── services/
-│   ├── core/                   # @vestara/core library
-│   ├── api/                    # Fastify API server
-│   ├── ai-gateway/             # Unified AI provider gateway
-│   ├── memory/                 # Context window management
-│   ├── knowledge/              # RAG, indexing, semantic search
-│   ├── agents/                 # Agent lifecycle management
-│   └── notifications/          # Notification service
+│   ├── core/                   # @vestara/core (DB, memory, knowledge, agents)
+│   └── api/                    # Fastify API server (15 route modules)
 ├── packages/
 │   ├── types/                  # Shared TypeScript types
 │   ├── validation/             # Zod schemas
 │   ├── constants/              # Shared constants
 │   ├── utils/                  # Shared utilities
-│   └── config/                 # Shared configuration
-├── os/
-│   ├── iso/                    # ISO build scripts
-│   ├── branding/               # Plymouth, GDM, wallpapers
-│   ├── systemd/                # Service unit files
-│   ├── filesystem/             # Filesystem layout
-│   └── installer/              # Installation scripts
-├── scripts/                    # Build and deployment
+│   ├── config/                 # Configuration loader
+│   └── cli/                    # Command-line interface
+├── scripts/                    # Build, deploy, backup, upgrade
+├── branding/                   # Logo, Plymouth theme, icons
+├── systemd/                    # Service unit files
 ├── blueprints/                 # This documentation
 └── docs/                       # Additional documentation
 ```
+
+---
+
+## API Routes (15 Modules)
+
+```
+Auth Routes        /api/auth/*          OS-based authentication
+System Routes      /api/system/*        System stats, health, exec
+Provider Routes    /api/providers/*     AI provider management
+OpenCode Routes    /api/providers/opencode/*  OpenCode CLI + chat
+Chat Routes        /api/chat/*          AI chat (SSE streaming)
+Conversation Routes /api/conversations/* Conversation CRUD
+Agent Routes       /api/agents/*        Agent management + runtime
+Memory Routes      /api/memory/*        Memory CRUD + search
+Knowledge Routes   /api/knowledge/*     Knowledge base CRUD + search
+Project Routes     /api/projects/*      Project management
+User Routes        /api/users/*         User CRUD (admin only)
+Script Routes      /api/scripts/*       Script management + execution
+File Routes        /api/files/*         File manager operations
+```
+
+---
+
+## Dashboard Pages (12)
+
+| Page | Route | Purpose |
+|------|-------|---------|
+| Dashboard | `/dashboard` | System overview, recharts visualizations |
+| AI Chat | `/chat` | Streaming chat with multi-model support |
+| OpenCode | `/opencode` | OpenCode CLI integration with chat history |
+| Agents | `/agents` | Agent management and execution |
+| Models | `/models` | Provider and model selection |
+| Memory | `/memory` | Memory store with search |
+| Knowledge | `/knowledge` | Knowledge base with RAG |
+| Terminal | `/terminal` | Full-width terminal with Vestara CLI |
+| Files | `/files` | File manager with tree, editor, operations |
+| Monitor | `/monitor` | Real-time system monitoring with recharts |
+| Users | `/users` | User management (admin only) |
+| Scripts | `/scripts` | Script runner with documentation |
+| Settings | `/settings` | System configuration |
