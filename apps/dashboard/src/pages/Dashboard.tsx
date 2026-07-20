@@ -30,6 +30,8 @@ export function Dashboard() {
       }
     };
     fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const formatBytes = (bytes: number) => {
@@ -88,6 +90,10 @@ export function Dashboard() {
             <div className="flex justify-between">
               <span className="text-vestara-text-muted">Total RAM</span>
               <span>{stats ? formatBytes(stats.memory.total) : '--'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-vestara-text-muted">Free RAM</span>
+              <span>{stats ? formatBytes(stats.memory.free) : '--'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-vestara-text-muted">Uptime</span>
