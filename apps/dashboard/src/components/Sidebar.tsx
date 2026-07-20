@@ -39,6 +39,7 @@ const navGroups: NavGroup[] = [
     label: 'System',
     items: [
       { to: '/terminal', label: 'Terminal', icon: '💻' },
+      { to: '/files', label: 'Files', icon: '📁' },
       { to: '/monitor', label: 'Monitor', icon: '📈' },
     ],
   },
