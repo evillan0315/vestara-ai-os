@@ -171,10 +171,10 @@ export function registerOpenCodeRoutes(app: VestaraApp) {
    */
   app.post<{
     Params: { chatId: string };
-    Body: { content: string; model?: string };
+    Body: { content: string; model?: string; cwd?: string };
   }>('/api/providers/opencode/chats/:chatId/messages', {}, async (request, reply) => {
     const { chatId } = request.params;
-    const { content, model } = request.body;
+    const { content, model, cwd } = request.body;
 
     if (!content) {
       return reply.status(400).send({ error: 'Content is required' });
@@ -193,7 +193,7 @@ export function registerOpenCodeRoutes(app: VestaraApp) {
     );
 
     try {
-      const response = await opencode.sendPrompt(content, { model: usedModel });
+      const response = await opencode.sendPrompt(content, { model: usedModel, cwd });
 
       // Save assistant message
       const assistantId = randomUUID();

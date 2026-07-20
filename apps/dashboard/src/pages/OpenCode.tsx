@@ -31,6 +31,7 @@ export function OpenCodePage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [model, setModel] = useState('opencode/deepseek-v4-flash-free');
+  const [cwd, setCwd] = useState('/home/eddie/workspace');
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -139,7 +140,7 @@ export function OpenCodePage() {
       const res = await fetch(`/api/providers/opencode/chats/${chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: userMsg.content, model }),
+        body: JSON.stringify({ content: userMsg.content, model, cwd }),
       });
 
       const data = await res.json();
@@ -222,10 +223,20 @@ export function OpenCodePage() {
             {showSidebar ? '<' : '>'}
           </button>
           <span className="text-sm font-semibold text-vestara-text">OpenCode</span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-vestara-text-dim">cwd:</span>
+            <input
+              type="text"
+              value={cwd}
+              onChange={(e) => setCwd(e.target.value)}
+              placeholder="/path/to/project"
+              className="w-64 rounded border border-vestara-glass-border bg-vestara-bg px-2 py-1 text-xs text-vestara-text outline-none focus:border-vestara-gold/50"
+            />
+          </div>
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="ml-auto rounded border border-vestara-glass-border bg-vestara-bg px-2 py-1 text-xs text-vestara-text outline-none"
+            className="rounded border border-vestara-glass-border bg-vestara-bg px-2 py-1 text-xs text-vestara-text outline-none"
           >
             {defaultModels.map((m) => (
               <option key={m.id} value={m.id}>{m.name}</option>
