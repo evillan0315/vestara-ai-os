@@ -1,10 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface TerminalLine {
-  type: 'input' | 'output' | 'error';
+  type: 'input' | 'output' | 'error' | 'system';
   content: string;
   timestamp: Date;
 }
+
+const VESTARA_COMMANDS = [
+  { cmd: 'vestara status', desc: 'Show service status' },
+  { cmd: 'vestara start', desc: 'Start services' },
+  { cmd: 'vestara stop', desc: 'Stop services' },
+  { cmd: 'vestara logs', desc: 'View logs' },
+  { cmd: 'vestara chat', desc: 'Start AI chat' },
+  { cmd: 'vestara models', desc: 'List AI models' },
+  { cmd: 'vestara config --list', desc: 'Show config' },
+  { cmd: 'vestara upgrade', desc: 'Upgrade Vestara' },
+];
 
 export default function Terminal() {
   const [lines, setLines] = useState<TerminalLine[]>([]);
@@ -12,22 +23,18 @@ export default function Terminal() {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isRunning, setIsRunning] = useState(false);
+  const [cwd, setCwd] = useState('~');
+  const [showVestaraMenu, setShowVestaraMenu] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const addLine = useCallback((type: TerminalLine['type'], content: string) => {
+    setLines((prev) => [...prev, { type, content, timestamp: new Date() }]);
+  }, []);
+
   useEffect(() => {
-    setLines([
-      {
-        type: 'output',
-        content: 'Vestara AI OS Terminal v0.1.0',
-        timestamp: new Date(),
-      },
-      {
-        type: 'output',
-        content: 'Type "help" for available commands.\n',
-        timestamp: new Date(),
-      },
-    ]);
+    addLine('system', 'Vestara AI OS Terminal v0.1.0');
+    addLine('system', 'Type "help" for commands, or use the ⚡ menu for Vestara CLI.\n');
   }, []);
 
   useEffect(() => {
@@ -36,21 +43,30 @@ export default function Terminal() {
     }
   }, [lines]);
 
+  const execShell = async (command: string): Promise<{ stdout: string; stderr: string; exitCode: number }> => {
+    const res = await fetch('/api/system/exec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command }),
+    });
+    if (!res.ok) return { stdout: '', stderr: 'Request failed', exitCode: 1 };
+    return res.json();
+  };
+
+  const execVestara = async (args: string): Promise<{ stdout: string; stderr: string; exitCode: number }> => {
+    return execShell(`vestara ${args}`);
+  };
+
   const executeCommand = async (command: string) => {
     if (!command.trim()) return;
 
-    setCommandHistory(prev => [...prev, command]);
+    setCommandHistory((prev) => [...prev, command]);
     setHistoryIndex(-1);
+    addLine('input', command);
 
-    const inputLine: TerminalLine = {
-      type: 'input',
-      content: command,
-      timestamp: new Date(),
-    };
-    setLines(prev => [...prev, inputLine]);
+    const cmd = command.trim();
 
-    const cmd = command.trim().toLowerCase();
-
+    // Built-in commands
     if (cmd === 'clear') {
       setLines([]);
       setInput('');
@@ -58,69 +74,115 @@ export default function Terminal() {
     }
 
     if (cmd === 'help') {
-      const helpText = `Available commands:
-  help        Show this help message
-  clear       Clear terminal
-  status      Show Vestara service status
-  models      List available AI models
-  whoami      Show current user
-  date        Show current date/time
-  echo <msg>  Print message
-  ps          Show running processes
-  df          Show disk usage
-  free        Show memory usage
-  uname       Show system information`;
-      setLines(prev => [...prev, { type: 'output', content: helpText, timestamp: new Date() }]);
+      addLine('output', `Built-in commands:
+  help              Show this help
+  clear             Clear terminal (Ctrl+L)
+  pwd               Print working directory
+  whoami            Current user
+  date              Current date/time
+  echo <msg>        Print message
+
+Vestara CLI (⚡ menu or type "vestara <cmd>"):
+  vestara status    Service status
+  vestara start     Start services
+  vestara stop      Stop services
+  vestara logs      View logs
+  vestara chat      AI chat session
+  vestara models    List AI models
+  vestara config    Show/set config
+  vestara upgrade   Upgrade Vestara
+
+System commands:
+  ps, df, free, uname, top, etc.
+  Any shell command works.`);
+      setInput('');
+      return;
+    }
+
+    if (cmd === 'pwd') {
+      addLine('output', cwd.replace('~', '/home/eddie'));
       setInput('');
       return;
     }
 
     if (cmd === 'whoami') {
-      setLines(prev => [...prev, { type: 'output', content: 'ai', timestamp: new Date() }]);
+      const { stdout } = await execShell('whoami');
+      addLine('output', stdout.trim() || 'unknown');
       setInput('');
       return;
     }
 
     if (cmd === 'date') {
-      setLines(prev => [...prev, { type: 'output', content: new Date().toString(), timestamp: new Date() }]);
+      addLine('output', new Date().toString());
       setInput('');
       return;
     }
 
     if (cmd.startsWith('echo ')) {
-      const msg = command.slice(5);
-      setLines(prev => [...prev, { type: 'output', content: msg, timestamp: new Date() }]);
+      addLine('output', command.slice(5));
+      setInput('');
+      return;
+    }
+
+    if (cmd === 'cd' || cmd === 'cd ~') {
+      setCwd('~');
+      addLine('output', '');
+      setInput('');
+      return;
+    }
+
+    if (cmd.startsWith('cd ')) {
+      const dir = command.slice(3).trim();
+      const { stdout, exitCode } = await execShell(`cd ${dir} && pwd`);
+      if (exitCode === 0) {
+        const path = stdout.trim();
+        setCwd(path.replace('/home/eddie', '~'));
+      } else {
+        addLine('error', `cd: no such file or directory: ${dir}`);
+      }
       setInput('');
       return;
     }
 
     setIsRunning(true);
-    try {
-      const response = await fetch('/api/system/exec', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command }),
-      });
 
-      if (response.ok) {
-        const data = await response.json() as { stdout: string; stderr: string; exitCode: number };
-        if (data.stdout) {
-          setLines(prev => [...prev, { type: 'output', content: data.stdout, timestamp: new Date() }]);
-        }
-        if (data.stderr) {
-          setLines(prev => [...prev, { type: 'error', content: data.stderr, timestamp: new Date() }]);
-        }
-        if (data.exitCode !== 0 && !data.stderr) {
-          setLines(prev => [...prev, { type: 'error', content: `Exit code: ${data.exitCode}`, timestamp: new Date() }]);
-        }
+    try {
+      // Vestara commands
+      if (cmd === 'vestara' || cmd.startsWith('vestara ')) {
+        const args = cmd === 'vestara' ? '' : cmd.slice(8);
+        const { stdout, stderr, exitCode } = await execVestara(args || '--help');
+        if (stdout) addLine('output', stdout);
+        if (stderr) addLine('error', stderr);
+        if (exitCode !== 0 && !stderr) addLine('error', `Exit code: ${exitCode}`);
       } else {
-        setLines(prev => [...prev, { type: 'error', content: 'Command execution failed', timestamp: new Date() }]);
+        // Shell command
+        const { stdout, stderr, exitCode } = await execShell(cmd);
+        if (stdout) addLine('output', stdout);
+        if (stderr) addLine('error', stderr);
+        if (exitCode !== 0 && !stdout && !stderr) addLine('error', `Exit code: ${exitCode}`);
       }
     } catch {
-      setLines(prev => [...prev, { type: 'error', content: 'Failed to execute command', timestamp: new Date() }]);
+      addLine('error', 'Failed to execute command');
     } finally {
       setIsRunning(false);
       setInput('');
+    }
+  };
+
+  const runVestaraQuick = async (cmd: string) => {
+    setShowVestaraMenu(false);
+    setInput('');
+    addLine('input', cmd);
+    setIsRunning(true);
+    try {
+      const { stdout, stderr, exitCode } = await execVestara(cmd.replace('vestara ', ''));
+      if (stdout) addLine('output', stdout);
+      if (stderr) addLine('error', stderr);
+      if (exitCode !== 0 && !stdout && !stderr) addLine('error', `Exit code: ${exitCode}`);
+    } catch {
+      addLine('error', 'Failed to execute vestara command');
+    } finally {
+      setIsRunning(false);
     }
   };
 
@@ -149,24 +211,58 @@ export default function Terminal() {
     } else if (e.key === 'l' && e.ctrlKey) {
       e.preventDefault();
       setLines([]);
+    } else if (e.key === 'Escape') {
+      setShowVestaraMenu(false);
+    }
+  };
+
+  const getPromptColor = (type: TerminalLine['type']) => {
+    switch (type) {
+      case 'input': return 'text-[#d4af37]';
+      case 'error': return 'text-red-400';
+      case 'system': return 'text-[#60a5fa]';
+      default: return 'text-gray-300';
     }
   };
 
   return (
     <div className="-m-6 h-[calc(100vh+3rem)] flex flex-col bg-[#0a0a12] text-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e1e2e] shrink-0">
-        <div>
-          <h1 className="text-xl font-bold text-white">Terminal</h1>
-          <p className="text-xs text-gray-400">Execute commands on the system</p>
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1e1e2e] shrink-0">
+        <div className="flex items-center gap-3">
+          <h1 className="text-sm font-bold text-white">Terminal</h1>
+          <span className="text-[10px] text-gray-500 hidden sm:inline">{cwd}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 hidden sm:inline">
-            {commandHistory.length} commands
+          {/* Vestara quick menu */}
+          <div className="relative">
+            <button
+              onClick={() => setShowVestaraMenu(!showVestaraMenu)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-lg text-[#d4af37] hover:bg-[#d4af37]/20 transition-colors"
+            >
+              ⚡ Vestara
+            </button>
+            {showVestaraMenu && (
+              <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-[#12121e] border border-[#2a2a3e] rounded-lg shadow-xl py-1">
+                {VESTARA_COMMANDS.map((vc) => (
+                  <button
+                    key={vc.cmd}
+                    onClick={() => runVestaraQuick(vc.cmd)}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-[#1a1a2e] transition-colors"
+                  >
+                    <span className="text-[#d4af37] font-mono">{vc.cmd}</span>
+                    <span className="text-gray-500 ml-2">{vc.desc}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <span className="text-[10px] text-gray-500 hidden sm:inline">
+            {commandHistory.length} cmds
           </span>
           <button
             onClick={() => setLines([])}
-            className="px-3 py-1.5 text-sm bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] transition-colors"
+            className="px-2.5 py-1.5 text-xs bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] transition-colors text-gray-400"
           >
             Clear
           </button>
@@ -180,13 +276,9 @@ export default function Terminal() {
         onClick={() => inputRef.current?.focus()}
       >
         {lines.map((line, i) => (
-          <div key={i} className={`whitespace-pre-wrap break-all ${
-            line.type === 'input' ? 'text-[#4a9eff]' :
-            line.type === 'error' ? 'text-red-400' :
-            'text-gray-300'
-          }`}>
+          <div key={i} className={`whitespace-pre-wrap break-all ${getPromptColor(line.type)}`}>
             {line.type === 'input' && (
-              <span className="text-[#4a9eff]">ai@vestara:~$ </span>
+              <span className="text-[#d4af37]">vestara@ai:{cwd}$ </span>
             )}
             {line.content}
           </div>
@@ -194,7 +286,7 @@ export default function Terminal() {
 
         {/* Input line */}
         <div className="flex items-center mt-1">
-          <span className="text-[#4a9eff] shrink-0">ai@vestara:~$ </span>
+          <span className="text-[#d4af37] shrink-0">vestara@ai:{cwd}$ </span>
           <input
             ref={inputRef}
             type="text"
@@ -206,14 +298,14 @@ export default function Terminal() {
             autoFocus
           />
           {isRunning && (
-            <span className="text-yellow-400 animate-pulse shrink-0">Running...</span>
+            <span className="text-[#d4af37] animate-pulse shrink-0 text-xs">running...</span>
           )}
         </div>
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-4 py-1.5 border-t border-[#1e1e2e] text-xs text-gray-500 shrink-0">
-        <span>Ctrl+L clear | ↑/↓ history</span>
+      <div className="flex items-center justify-between px-4 py-1 border-t border-[#1e1e2e] text-[10px] text-gray-500 shrink-0">
+        <span>Ctrl+L clear | ↑↓ history | ⚡ Vestara CLI</span>
         <span className="hidden sm:inline">Vestara Terminal v0.1.0</span>
       </div>
     </div>
