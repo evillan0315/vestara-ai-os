@@ -74,7 +74,7 @@ export function getConfig(): OpenCodeConfig {
  */
 export function isInstalled(): boolean {
   try {
-    execSync('which opencode', { stdio: 'pipe' });
+    execSync('which opencode', { stdio: 'pipe', shell: '/usr/bin/sh' });
     return true;
   } catch {
     return false;
@@ -86,7 +86,7 @@ export function isInstalled(): boolean {
  */
 export function getVersion(): string | null {
   try {
-    const output = execSync('opencode --version', { stdio: 'pipe' }).toString().trim();
+    const output = execSync('opencode --version', { stdio: 'pipe', shell: '/usr/bin/sh' }).toString().trim();
     return output;
   } catch {
     return null;
@@ -170,6 +170,7 @@ export async function startServer(): Promise<void> {
 
   serverProcess = spawn(config.binaryPath, ['serve', '--port', String(config.port)], {
     stdio: ['ignore', 'pipe', 'pipe'],
+    shell: '/usr/bin/sh',
     env: {
       ...process.env,
       ...getApiKeyEnv(),
@@ -294,6 +295,7 @@ function sendPromptViaCLI(
         cwd: opts.cwd || config.workDir,
         stdio: 'pipe',
         timeout: 120000,
+        shell: '/usr/bin/sh',
         env: {
           ...process.env,
           ...getApiKeyEnv(),
