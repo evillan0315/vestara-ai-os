@@ -1,5 +1,5 @@
-import { execSync, spawn } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { VestaraApp } from '../types.js';
 import { authMiddleware } from './auth.js';
@@ -12,7 +12,7 @@ interface ScriptInfo {
   size: number;
 }
 
-const SCRIPTS_DIR = join(process.cwd(), 'scripts');
+const SCRIPTS_DIR = join(import.meta.dirname, '..', '..', '..', '..', 'scripts');
 
 const SCRIPT_DOCS: Record<string, { description: string; usage: string }> = {
   'build-ssd.sh': {
@@ -51,11 +51,10 @@ const SCRIPT_DOCS: Record<string, { description: string; usage: string }> = {
 
 function getScriptInfo(filename: string): ScriptInfo {
   const filePath = join(SCRIPTS_DIR, filename);
-  const stat = { size: 0 };
+  let size = 0;
   try {
-    const { statSync } = require('node:fs');
-    const s = statSync(filePath);
-    stat.size = s.size;
+    const stat = statSync(filePath);
+    size = stat.size;
   } catch {}
 
   const doc = SCRIPT_DOCS[filename] || {
@@ -68,7 +67,7 @@ function getScriptInfo(filename: string): ScriptInfo {
     filename,
     description: doc.description,
     usage: doc.usage,
-    size: stat.size,
+    size,
   };
 }
 
