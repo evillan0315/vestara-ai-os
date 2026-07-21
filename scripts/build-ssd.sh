@@ -546,7 +546,7 @@ install_ollama() {
 install_opencode() {
     log "Installing OpenCode..."
 
-    safe_chroot "$MOUNT_POINT" bash -c '
+    retry safe_chroot "$MOUNT_POINT" bash -c '
         npm install -g opencode-ai
     '
 
@@ -558,8 +558,9 @@ install_opencode() {
 install_chromium() {
     log "Installing Chromium and Nginx..."
 
-    safe_chroot "$MOUNT_POINT" bash -c '
-        apt-get install -y chromium nginx
+    retry safe_chroot "$MOUNT_POINT" bash -c '
+        apt-get update -qq
+        apt-get install -y -qq chromium nginx
     '
 
     log "Chromium and Nginx installed"
@@ -776,6 +777,7 @@ main() {
         create_user
 
         # Parallel package installs (independent of each other)
+        check_network
         local pids=()
         install_nodejs   & pids+=($!)
         install_docker   & pids+=($!)

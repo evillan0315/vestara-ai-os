@@ -23,36 +23,59 @@ Management and automation scripts for building, deploying, and maintaining Vesta
 
 ### build-ssd.sh
 
-Creates a 20GB bootable disk image for the Vestara AI OS portable SSD.
+Creates a 20GB bootable disk image or installs directly to a portable hard drive for Vestara AI OS.
 
 ```bash
+# Create a disk image (default)
 ./scripts/build-ssd.sh
+
+# Install directly to a portable SSD
+sudo ./scripts/build-ssd.sh --device /dev/sdX
+
+# Quick update — only redeploys Vestara code, skips OS reinstall
+sudo ./scripts/build-ssd.sh --device /dev/sdX --update
+
+# Custom image size and mirror
+./scripts/build-ssd.sh --size 40G --mirror http://ftp.debian.org/debian
+
+# Preview plan without making changes
+sudo ./scripts/build-ssd.sh --device /dev/sdX --dry-run
 ```
 
-**What it does:**
+**Flags:**
 
-1. Creates a 20GB GPT disk image (`dist/vestara-ai-os.img`)
+| Flag | Description |
+|------|-------------|
+| `--device /dev/sdX` | Install directly to a portable hard drive (default: create `dist/vestara-ai-os.img`) |
+| `--update` | Update Vestara code only — skips debootstrap, system config, and packages. Requires `--device` with a prior Vestara install. |
+| `--size N` | Image size (default: 20G, e.g. `--size 40G`). Only applies in image mode. |
+| `--mirror URL` | Debian mirror for debootstrap (default: `http://deb.debian.org/debian`) |
+| `--dry-run` | Print the plan and exit without making any changes |
+
+**What it does (full build mode):**
+
+1. Creates a GPT disk image (or wipes target device)
 2. Partitions into EFI (512MB), boot (2GB), and root (remaining)
 3. Installs Debian 13 (Trixie) minimal via debootstrap
-4. Installs Node.js 22, Docker, Ollama, OpenCode, Chromium
+4. Installs Node.js 22, Docker, Ollama, OpenCode, Chromium + Nginx
 5. Copies and builds the Vestara monorepo
 6. Creates `ai` user with auto-login and passwordless sudo
 7. Installs systemd services and Plymouth boot theme
+8. Verifies filesystems after build
 
-**Prerequisites:**
-- `debootstrap`, `parted`, `mkfs.ext4`, `mkfs.vfat`, `rsync`, `fakeroot`
-- ~20GB free disk space
-- Root/loop device access
+**Safety features:**
+- Boot-disk guard: refuses to operate on the system disk
+- Device size check: requires at least 3.5 GiB
+- Existing-install check: verifies `package.json` before update mode
+- Network check: pings Debian mirror before debootstrap
+- Disk space check: confirms free space before image creation and debootstrap
+- Chroot guard: refuses to chroot into `/` (host system)
+- Retry wrapper: 3-attempt exponential backoff for network operations
+- Post-build fsck: read-only filesystem verification on all partitions
+- Parallel package installs: background independent installs for speed
 
 **Output:**
-- `dist/vestara-ai-os.img` — Raw disk image
-
-**Flash to SSD:**
-```bash
-sudo dd if=dist/vestara-ai-os.img of=/dev/sdX bs=4M status=progress
-```
-
-> **Safety:** This script requires `--confirm` flag when run from the dashboard.
+- `dist/vestara-ai-os.img` — Raw disk image (when no `--device` given)
 
 ---
 
@@ -333,6 +356,9 @@ All scripts are accessible through the Vestara dashboard at `/scripts`:
 | `DEPLOY_PATH` | deploy | Installation path |
 | `VERSION` | build-deb, build-iso | Package/ISO version |
 | `GPG_KEY` | build-repo | GPG key identity |
+| `BUILD_LOG` | build-ssd | File path to tee all build output (e.g. `/tmp/vestara-build.log`) |
+
+**Config file:** `vestara-build.conf` in `scripts/` or project root is auto-sourced by `build-ssd.sh`. Override any global variable (e.g. `IMAGE_SIZE`, `PART_EFI_SIZE`, `DEBIAN_MIRROR`).
 
 ---
 
@@ -340,7 +366,7 @@ All scripts are accessible through the Vestara dashboard at `/scripts`:
 
 | Script | System Packages |
 |--------|----------------|
-| build-ssd | debootstrap, parted, mkfs.ext4, mkfs.vfat, rsync, fakeroot |
+| build-ssd | debootstrap, parted, mkfs.ext4, mkfs.vfat, rsync, sgdisk (optional), partprobe |
 | build-deb | dpkg-deb, fakeroot |
 | build-repo | dpkg-scanpackages, gpg |
 | build-iso | debootstrap, xorriso, mksquashfs, grub-mkrescue |
