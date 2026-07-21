@@ -31,7 +31,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function AppRoutes() {
+export function AppRoutes() {
   const { user, loading } = useAuth();
 
   if (loading) {
