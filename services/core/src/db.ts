@@ -297,4 +297,34 @@ db.run(`
   if (!taskColumns.some(c => c.name === 'sort_order')) {
     db.run("ALTER TABLE tasks ADD COLUMN sort_order INTEGER DEFAULT 0");
   }
+
+  // Migration: Add memory columns for MemoryService
+  const memColumns = db.all<{ name: string }>("PRAGMA table_info(memories)");
+  if (!memColumns.some(c => c.name === 'consolidation_id')) {
+    db.run("ALTER TABLE memories ADD COLUMN consolidation_id INTEGER REFERENCES consolidations(id) ON DELETE SET NULL");
+  }
+  if (!memColumns.some(c => c.name === 'content')) {
+    db.run("ALTER TABLE memories ADD COLUMN content TEXT");
+  }
+  if (!memColumns.some(c => c.name === 'access_count')) {
+    db.run("ALTER TABLE memories ADD COLUMN access_count INTEGER DEFAULT 0");
+  }
+  if (!memColumns.some(c => c.name === 'last_accessed_at')) {
+    db.run("ALTER TABLE memories ADD COLUMN last_accessed_at TEXT");
+  }
+  if (!memColumns.some(c => c.name === 'metadata')) {
+    db.run("ALTER TABLE memories ADD COLUMN metadata TEXT DEFAULT '{}'");
+  }
+
+  // Migration: Create memory_consolidations table if missing
+  db.run(`
+    CREATE TABLE IF NOT EXISTS consolidations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      summary TEXT NOT NULL,
+      memory_count INTEGER NOT NULL DEFAULT 0,
+      importance REAL NOT NULL DEFAULT 0.5,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
 }
