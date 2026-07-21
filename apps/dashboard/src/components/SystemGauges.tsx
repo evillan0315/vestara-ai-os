@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { RadialBarChart, RadialBar, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface SystemGaugesProps {
@@ -6,7 +7,7 @@ interface SystemGaugesProps {
   diskPercent: number;
 }
 
-export function SystemGauges({ cpu, memPercent, diskPercent }: SystemGaugesProps) {
+export const SystemGauges = memo(function SystemGauges({ cpu, memPercent, diskPercent }: SystemGaugesProps) {
   const gaugeData = [
     { name: 'CPU', value: cpu, fill: '#d4af37' },
     { name: 'RAM', value: memPercent, fill: '#4ade80' },
@@ -27,4 +28,4 @@ export function SystemGauges({ cpu, memPercent, diskPercent }: SystemGaugesProps
       </div>
     </div>
   );
-}
+});

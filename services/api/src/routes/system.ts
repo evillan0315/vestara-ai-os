@@ -1,9 +1,32 @@
 import type { VestaraApp } from '../types.js';
 import { cpus, totalmem, freemem, loadavg, hostname, networkInterfaces } from 'node:os';
-import { exec, execSync } from 'node:child_process';
+import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const execAsync = promisify(exec);
+
+async function getDiskInfo() {
+  try {
+    const { stdout } = await execAsync("df -B1 / | tail -1", { shell: '/usr/bin/sh', maxBuffer: 4096 });
+    const parts = stdout.trim().split(/\s+/);
+    return {
+      total: parseInt(parts[1]) || 0,
+      used: parseInt(parts[2]) || 0,
+      free: parseInt(parts[3]) || 0,
+    };
+  } catch {
+    return { total: 0, used: 0, free: 0 };
+  }
+}
+
+async function getProcessCount() {
+  try {
+    const { stdout } = await execAsync('ps -e --no-headers | wc -l', { shell: '/usr/bin/sh', maxBuffer: 4096 });
+    return parseInt(stdout.trim()) || 0;
+  } catch {
+    return 0;
+  }
+}
 
 export function registerSystemRoutes(app: VestaraApp) {
   app.get('/api/system/stats', async () => {
@@ -18,17 +41,7 @@ export function registerSystemRoutes(app: VestaraApp) {
     const freeMem = freemem();
     const usedMem = totalMem - freeMem;
 
-    let diskInfo = { total: 0, used: 0, free: 0 };
-    try {
-      const df = execSync('df -B1 / | tail -1').toString().trim().split(/\s+/);
-      diskInfo = {
-        total: parseInt(df[1]) || 0,
-        used: parseInt(df[2]) || 0,
-        free: parseInt(df[3]) || 0,
-      };
-    } catch {
-      // Ignore
-    }
+    const [diskInfo] = await Promise.all([getDiskInfo()]);
 
     return {
       cpu: {
@@ -80,27 +93,12 @@ export function registerSystemRoutes(app: VestaraApp) {
       return acc + ((total - idle) / total);
     }, 0) / cpuInfo.length;
 
-    let diskInfo = { total: 0, used: 0, free: 0 };
-    try {
-      const df = execSync('df -B1 / | tail -1').toString().trim().split(/\s+/);
-      diskInfo = {
-        total: parseInt(df[1]) || 0,
-        used: parseInt(df[2]) || 0,
-        free: parseInt(df[3]) || 0,
-      };
-    } catch {
-      // Ignore
-    }
+    const [diskInfo, processes, ifaces] = await Promise.all([
+      getDiskInfo(),
+      getProcessCount(),
+      Promise.resolve(networkInterfaces()),
+    ]);
 
-    let processes = 0;
-    try {
-      const ps = execSync('ps -e --no-headers | wc -l').toString().trim();
-      processes = parseInt(ps) || 0;
-    } catch {
-      // Ignore
-    }
-
-    const ifaces = networkInterfaces();
     const networkInterfacesList = Object.entries(ifaces).flatMap(([name, addrs]) =>
       (addrs || [])
         .filter((addr) => !addr.internal)
@@ -146,13 +144,12 @@ export function registerSystemRoutes(app: VestaraApp) {
   app.get('/api/system/processes', async (request) => {
     let processes: Array<{ pid: number; name: string; cpu: number; memory: number; status: string }> = [];
     try {
-      const { execSync } = await import('node:child_process');
       const limit = Math.min(Math.max(Number((request.query as any)?.limit) || 20, 1), 100);
-      const out = execSync(
+      const { stdout } = await execAsync(
         `ps -eo pid,%cpu,%mem,stat,comm --sort=-%cpu --no-headers | head -${limit}`,
         { shell: '/usr/bin/sh', maxBuffer: 1024 * 64 },
-      ).toString().trim();
-      processes = out.split('\n').filter(Boolean).map((line) => {
+      );
+      processes = stdout.trim().split('\n').filter(Boolean).map((line) => {
         const parts = line.trim().split(/\s+/);
         return {
           pid: parseInt(parts[0]) || 0,

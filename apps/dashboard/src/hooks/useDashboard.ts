@@ -37,6 +37,7 @@ export function useDashboard() {
   const [cpuHistory, setCpuHistory] = useState<ChartPoint[]>([]);
   const [memHistory, setMemHistory] = useState<ChartPoint[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
+  const wsConnectedRef = useRef(false);
 
   const appendStats = useCallback((data: SystemStats) => {
     setSystemStats(data);
@@ -70,6 +71,10 @@ export function useDashboard() {
         ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
+        ws.onopen = () => {
+          wsConnectedRef.current = true;
+        };
+
         ws.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data);
@@ -80,6 +85,7 @@ export function useDashboard() {
         };
 
         ws.onclose = () => {
+          wsConnectedRef.current = false;
           reconnectTimer = setTimeout(connect, 5000);
         };
 
@@ -93,6 +99,7 @@ export function useDashboard() {
 
     return () => {
       clearTimeout(reconnectTimer);
+      wsConnectedRef.current = false;
       if (ws) {
         ws.onclose = null;
         ws.onerror = null;
@@ -105,10 +112,15 @@ export function useDashboard() {
     };
   }, [appendStats]);
 
-  // Polling fallback (3s)
+  // Polling fallback — only fires when WebSocket is disconnected
   useEffect(() => {
+    // Fetch immediately on mount regardless
     fetchLiveData();
-    const interval = setInterval(fetchLiveData, 3000);
+    const interval = setInterval(() => {
+      if (!wsConnectedRef.current) {
+        fetchLiveData();
+      }
+    }, 3000);
     return () => clearInterval(interval);
   }, [fetchLiveData]);
 

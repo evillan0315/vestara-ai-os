@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { ChartPoint } from '../hooks/useDashboard';
 
@@ -7,7 +7,7 @@ interface CpuChartProps {
   expanded?: boolean;
 }
 
-export function CpuChart({ data, expanded }: CpuChartProps) {
+export const CpuChart = memo(function CpuChart({ data, expanded }: CpuChartProps) {
   const [timeRange, setTimeRange] = useState<'30' | '60' | '120'>('60');
 
   const sliced = timeRange === '30' ? data.slice(-30) : timeRange === '60' ? data.slice(-60) : data;
@@ -52,4 +52,13 @@ export function CpuChart({ data, expanded }: CpuChartProps) {
       </div>
     </div>
   );
-}
+}, (prev, next) => {
+  if (prev.expanded !== next.expanded) return false;
+  const a = prev.data;
+  const b = next.data;
+  if (a.length !== b.length) return false;
+  if (a.length === 0) return true;
+  const lastA = a[a.length - 1];
+  const lastB = b[b.length - 1];
+  return lastA.value === lastB.value && lastA.time === lastB.time;
+});

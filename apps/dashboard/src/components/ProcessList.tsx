@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 interface Process {
   pid: number;
   name: string;
@@ -9,7 +11,7 @@ interface ProcessListProps {
   processes: Process[];
 }
 
-export function ProcessList({ processes }: ProcessListProps) {
+export const ProcessList = memo(function ProcessList({ processes }: ProcessListProps) {
   if (!processes?.length) return null;
 
   return (
@@ -27,4 +29,4 @@ export function ProcessList({ processes }: ProcessListProps) {
       </div>
     </div>
   );
-}
+});

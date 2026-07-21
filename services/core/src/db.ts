@@ -343,4 +343,23 @@ db.run(`
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+
+  // Indexes for query performance
+  const existingIndexes = db.all<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL");
+  const hasIndex = (name: string) => existingIndexes.some(i => i.name === name);
+
+  if (!hasIndex('idx_memories_user_id'))        db.run('CREATE INDEX idx_memories_user_id ON memories(user_id)');
+  if (!hasIndex('idx_memories_user_type'))       db.run('CREATE INDEX idx_memories_user_type ON memories(user_id, type)');
+  if (!hasIndex('idx_memories_consolidation'))   db.run('CREATE INDEX idx_memories_consolidation ON memories(consolidation_id)');
+  if (!hasIndex('idx_memories_created_at'))      db.run('CREATE INDEX idx_memories_created_at ON memories(created_at)');
+  if (!hasIndex('idx_tasks_project_id'))         db.run('CREATE INDEX idx_tasks_project_id ON tasks(project_id)');
+  if (!hasIndex('idx_tasks_status'))             db.run('CREATE INDEX idx_tasks_status ON tasks(status)');
+  if (!hasIndex('idx_tasks_parent'))             db.run('CREATE INDEX idx_tasks_parent ON tasks(parent_id)');
+  if (!hasIndex('idx_projects_user'))            db.run('CREATE INDEX idx_projects_user ON projects(user_id)');
+  if (!hasIndex('idx_conversations_user'))       db.run('CREATE INDEX idx_conversations_user ON conversations(user_id)');
+  if (!hasIndex('idx_activity_user'))            db.run('CREATE INDEX idx_activity_user ON activity_log(user_id)');
+  if (!hasIndex('idx_activity_created'))         db.run('CREATE INDEX idx_activity_created ON activity_log(created_at)');
+  if (!hasIndex('idx_notifications_user'))       db.run('CREATE INDEX idx_notifications_user ON notifications(user_id)');
+  if (!hasIndex('idx_knowledge_project'))        db.run('CREATE INDEX idx_knowledge_project ON knowledge_entries(project_id)');
+  if (!hasIndex('idx_agents_user'))              db.run('CREATE INDEX idx_agents_user ON agents(user_id)');
 }

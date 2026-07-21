@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 interface MetricCardProps {
   label: string;
   value: string;
@@ -7,7 +9,7 @@ interface MetricCardProps {
   alert?: boolean;
 }
 
-export function MetricCard({ label, value, sub, color, sparkline, alert }: MetricCardProps) {
+export const MetricCard = memo(function MetricCard({ label, value, sub, color, sparkline, alert }: MetricCardProps) {
   return (
     <div className={`glass bg-gradient-to-br ${color} p-4 relative overflow-hidden ${alert ? 'ring-1 ring-vestara-error/50' : ''}`}>
       <p className="text-xs text-vestara-text-muted">{label}</p>
@@ -29,4 +31,10 @@ export function MetricCard({ label, value, sub, color, sparkline, alert }: Metri
       )}
     </div>
   );
-}
+}, (prev, next) =>
+  prev.value === next.value &&
+  prev.sub === next.sub &&
+  prev.alert === next.alert &&
+  prev.label === next.label &&
+  prev.color === next.color
+);
