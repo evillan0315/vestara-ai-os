@@ -315,7 +315,7 @@ export default function SystemMonitor() {
           <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Network Interfaces</h2>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {systemInfo.network.interfaces.map((iface) => (
-              <div key={iface.name} className="rounded-lg border border-vestara-glass-border p-3">
+              <div key={`${iface.name}-${iface.ip}`} className="rounded-lg border border-vestara-glass-border p-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-vestara-text">{iface.name}</span>
                   <span className="text-xs text-vestara-text-dim">{iface.ip || 'No IP'}</span>
