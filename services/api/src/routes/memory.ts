@@ -7,7 +7,7 @@ export function registerMemoryRoutes(app: VestaraApp) {
     preHandler: [authMiddleware],
   }, async (request, reply) => {
     const userId = (request as any).userId;
-    const stats = (app as any).memoryService.getMemoryStats(userId);
+    const stats = await (app as any).memoryService.getMemoryStats(userId);
     return reply.send(stats);
   });
 
@@ -81,7 +81,7 @@ export function registerMemoryRoutes(app: VestaraApp) {
     preHandler: [authMiddleware],
   }, async (request, reply) => {
     const { id } = request.params;
-    const memory = (app as any).memoryService.getMemory(Number(id));
+    const memory = await (app as any).memoryService.getMemory(Number(id));
     return reply.send(memory);
   });
 
