@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { Database, MemoryService, KnowledgeService, AgentRuntime, EventBus, ProjectService } from '@vestara/core';
+import type { Database, MemoryService, KnowledgeService, AgentRuntime, EventBus, ProjectService, SettingsService } from '@vestara/core';
 import type { AIRouter } from './providers/router.js';
 
 export interface VestaraApp extends FastifyInstance {
@@ -9,6 +9,7 @@ export interface VestaraApp extends FastifyInstance {
   knowledgeService: KnowledgeService;
   agentRuntime: AgentRuntime;
   projectService: ProjectService;
+  settingsService: SettingsService;
   events: EventBus;
   broadcast: (event: string, data: unknown) => void;
 }

@@ -8,6 +8,7 @@ import { MemoryService } from '@vestara/core';
 import { KnowledgeService } from '@vestara/core';
 import { AgentRuntime } from '@vestara/core';
 import { ProjectService } from '@vestara/core';
+import { SettingsService } from '@vestara/core';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerConversationRoutes } from './routes/conversations.js';
@@ -25,6 +26,7 @@ import { registerFileRoutes } from './routes/files.js';
 import { registerActivityRoutes } from './routes/activity.js';
 import { registerNotificationRoutes } from './routes/notifications.js';
 import { registerLogRoutes } from './routes/logs.js';
+import { registerSettingsRoutes } from './routes/settings.js';
 import { AIRouter, type ProviderConfig } from './providers/router.js';
 import type { VestaraApp } from './types.js';
 
@@ -71,6 +73,7 @@ async function main() {
   app.decorate('knowledgeService', new KnowledgeService(db, events));
   app.decorate('agentRuntime', new AgentRuntime(db, events));
   app.decorate('projectService', new ProjectService(db, events));
+  app.decorate('settingsService', new SettingsService(db));
 
   // CORS
   await app.register(cors, {
@@ -117,6 +120,7 @@ async function main() {
   registerActivityRoutes(vestaraApp);
   registerNotificationRoutes(vestaraApp);
   registerLogRoutes(vestaraApp);
+  registerSettingsRoutes(vestaraApp);
   registerWebSocketHandler(vestaraApp);
 
   // Start
