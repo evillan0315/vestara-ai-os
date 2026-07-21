@@ -61,7 +61,7 @@ const ALL_SIDEBAR_LINKS = [
 
 describe('Navigation — authenticated user', () => {
   beforeEach(() => {
-    mockAuthValue.logout.mockClear();
+    vi.mocked(mockAuthValue.logout).mockClear();
   });
 
   it('renders the sidebar', () => {

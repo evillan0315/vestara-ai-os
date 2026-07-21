@@ -21,6 +21,17 @@ interface Process {
 
 const COLORS = ['#d4af37', '#4ade80', '#60a5fa', '#f87171', '#a78bfa', '#facc15'];
 
+const STATUS_MAP: Record<string, { label: string; class: string }> = {
+  R: { label: 'running', class: 'bg-green-500/20 text-green-400' },
+  S: { label: 'sleeping', class: 'bg-yellow-500/20 text-yellow-400' },
+  D: { label: 'disk sleep', class: 'bg-orange-500/20 text-orange-400' },
+  Z: { label: 'zombie', class: 'bg-red-500/20 text-red-400' },
+  T: { label: 'stopped', class: 'bg-white/10 text-vestara-text-dim' },
+  I: { label: 'idle', class: 'bg-blue-500/20 text-blue-400' },
+};
+
+const statusDisplay = (code: string) => STATUS_MAP[code] || { label: code, class: 'bg-white/5 text-vestara-text-dim' };
+
 const formatBytes = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -286,11 +297,9 @@ export default function SystemMonitor() {
                     <td className="px-4 py-2"><span className={getUsageColor(proc.cpu)}>{proc.cpu.toFixed(1)}%</span></td>
                     <td className="px-4 py-2"><span className={getUsageColor(proc.memory)}>{proc.memory.toFixed(1)}%</span></td>
                     <td className="px-4 py-2">
-                      <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
-                        proc.status === 'running' ? 'bg-green-500/20 text-green-400' :
-                        proc.status === 'sleeping' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-white/5 text-vestara-text-dim'
-                      }`}>{proc.status}</span>
+                      <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${statusDisplay(proc.status).class}`}>
+                        {statusDisplay(proc.status).label}
+                      </span>
                     </td>
                   </tr>
                 ))}

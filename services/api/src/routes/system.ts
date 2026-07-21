@@ -143,21 +143,23 @@ export function registerSystemRoutes(app: VestaraApp) {
     };
   });
 
-  app.get('/api/system/processes', async () => {
-    let processes: Array<{ pid: number; name: string; cpu: number; mem: number }> = [];
+  app.get('/api/system/processes', async (request) => {
+    let processes: Array<{ pid: number; name: string; cpu: number; memory: number; status: string }> = [];
     try {
       const { execSync } = await import('node:child_process');
-      const out = execSync('ps -eo pid,%cpu,%mem,comm --sort=-%cpu --no-headers | head -20', {
-        shell: '/usr/bin/sh',
-        maxBuffer: 1024 * 64,
-      }).toString().trim();
+      const limit = Math.min(Math.max(Number((request.query as any)?.limit) || 20, 1), 100);
+      const out = execSync(
+        `ps -eo pid,%cpu,%mem,stat,comm --sort=-%cpu --no-headers | head -${limit}`,
+        { shell: '/usr/bin/sh', maxBuffer: 1024 * 64 },
+      ).toString().trim();
       processes = out.split('\n').filter(Boolean).map((line) => {
         const parts = line.trim().split(/\s+/);
         return {
           pid: parseInt(parts[0]) || 0,
           cpu: parseFloat(parts[1]) || 0,
-          mem: parseFloat(parts[2]) || 0,
-          name: parts.slice(3).join(' ') || 'unknown',
+          memory: parseFloat(parts[2]) || 0,
+          status: parts[3] || 'unknown',
+          name: parts.slice(4).join(' ') || 'unknown',
         };
       });
     } catch {}

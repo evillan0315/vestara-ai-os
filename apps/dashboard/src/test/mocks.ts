@@ -1,13 +1,14 @@
 import { vi } from 'vitest';
+import type { AuthContextType } from '../contexts/AuthContext.js';
 
 const mockUser = {
   id: 'test-user-1',
   name: 'Test User',
   email: 'test@vestara.ai',
-  role: 'admin',
+  role: 'admin' as const,
 };
 
-const mockAuthValue = {
+const mockAuthValue: AuthContextType = {
   user: mockUser,
   token: 'mock-token',
   loading: false,
