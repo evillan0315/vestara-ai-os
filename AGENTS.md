@@ -80,7 +80,7 @@ pnpm test
 ### API Routes
 
 - All route functions accept `VestaraApp` (from `../types.ts`), not `FastifyInstance`
-- `VestaraApp` extends `FastifyInstance` with typed `db`, `aiRouter`, `memoryService`, `knowledgeService`, `agentRuntime`, and `broadcast`
+- `VestaraApp` extends `FastifyInstance` with typed `db`, `aiRouter`, `memoryService`, `knowledgeService`, `agentRuntime`, `projectService`, and `broadcast`
 - Use `authMiddleware` for protected routes
 - Validate input with Zod schemas
 - Return appropriate HTTP status codes
@@ -91,6 +91,35 @@ pnpm test
 - The `Database` class wraps `better-sqlite3.Database` and exposes `run()`, `get()`, `all()`, `prepare()`, `transaction()`, `close()`, `pragma()`
 - Tables use `snake_case` columns
 - Always include `created_at` and `updated_at` timestamps
+
+### Tasks Table Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT PK | UUID |
+| `project_id` | TEXT FK | References projects |
+| `title` | TEXT | Task title |
+| `description` | TEXT | Optional description |
+| `status` | TEXT | `todo` / `in_progress` / `review` / `done` |
+| `assignee_id` | TEXT | User reference |
+| `parent_id` | TEXT FK | Self-referencing for sub-tasks |
+| `tags` | TEXT | JSON array of strings |
+| `estimated_hours` | REAL | Estimated effort |
+| `logged_hours` | REAL | Actual hours logged, default 0 |
+| `sort_order` | INTEGER | Kanban drag position, default 0 |
+| `created_at` | TEXT | ISO timestamp |
+| `updated_at` | TEXT | ISO timestamp |
+
+### Activity Log Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT PK | UUID |
+| `user_id` | TEXT FK | References users |
+| `action` | TEXT | Event name (e.g. `task:created`, `project:synced`) |
+| `resource` | TEXT | Resource identifier (e.g. `task:<id>`) |
+| `metadata` | TEXT | JSON blob with extra context |
+| `created_at` | TEXT | ISO timestamp |
 
 ## Core Services
 
@@ -135,6 +164,28 @@ Creates and executes AI agents with tools:
 const agentRuntime = new AgentRuntime(db, events);
 const agent = await agentRuntime.createAgent({ name: 'assistant', ... });
 const result = await agentRuntime.executeAgent(agent.id, task);
+```
+
+### Project Service (`services/core/src/project-service.ts`)
+
+Full CRUD for projects and tasks with .vestara sync, activity logging, and notifications:
+
+```typescript
+const projectService = new ProjectService(db, events);
+
+// Projects
+await projectService.createProject(userId, { name, description, path });
+await projectService.cloneProject(id, userId, { name, includeTasks: true });
+await projectService.archiveToVestara(id, userId);
+
+// Tasks with new features
+await projectService.createTask(projectId, userId, { title, parentId, tags: ['bug'], estimatedHours: 4 });
+await projectService.bulkUpdateTasks(projectId, ids, { status: 'done' });
+await projectService.getSubTasks(projectId, parentTaskId);
+
+// Activity
+await projectService.logActivity(userId, 'task:created', `task:${id}`, { projectId });
+const activity = await projectService.getProjectActivity(projectId);
 ```
 
 ## Default Models
@@ -226,6 +277,24 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm test
 | `scripts/deploy.sh` | Deployment script |
 | `scripts/backup.sh` | Backup/restore |
 
+## Project Page Components
+
+The Projects page (`apps/dashboard/src/pages/Projects.tsx`) uses extracted components in `apps/dashboard/src/components/`:
+
+| Component | Purpose |
+|-----------|---------|
+| `StatsBar` | 4-card stats grid |
+| `ProjectCard` | Project list item with progress bar, quick-actions menu |
+| `TaskItem` | Task row with inline editing, sub-tasks, tags, time tracking |
+| `KanbanBoard` | Drag-and-drop 4-column board (Todo → In Progress → Review → Done) |
+| `ProjectForm` | Modal form for create/edit project |
+| `TaskForm` | Modal form for create/edit task |
+| `ActivityTimeline` | Vertical timeline with colored dots |
+| `BulkActions` | Bulk operation bar (status change, select all/clear) |
+| `ConfirmDialog` | Styled confirmation dialog replacing `confirm()` |
+
+Data fetching lives in `apps/dashboard/src/hooks/useProjects.ts` using the SWR caching pattern from `useSWR.ts`.
+
 ## Important Notes
 
 1. **OpenCode is the default provider** — All chat features work without API keys
@@ -237,3 +306,5 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm test
 7. **System routes are public** — `/api/system/*` endpoints don't require auth
 8. **OpenCode routes are public** — `/api/providers/opencode/*` endpoints don't require auth
 9. **Shell is `/usr/bin/sh`** — Use `shell: '/usr/bin/sh'` for `execSync` and `spawn`
+10. **Project service is decorated** — `app.projectService` is available on `VestaraApp` (decorated in `api/src/index.ts`)
+11. **DB migrations are additive** — New columns use `ALTER TABLE ... ADD COLUMN` with `PRAGMA table_info` checks

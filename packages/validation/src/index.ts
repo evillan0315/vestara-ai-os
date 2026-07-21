@@ -94,6 +94,9 @@ export const createTaskSchema = z.object({
   description: z.string().max(1000).optional(),
   status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
   assigneeId: z.string().optional(),
+  parentId: z.string().optional(),
+  tags: z.array(z.string().max(50)).max(10).optional(),
+  estimatedHours: z.number().min(0).max(10000).optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -101,6 +104,25 @@ export const updateTaskSchema = z.object({
   description: z.string().max(1000).optional(),
   status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
   assigneeId: z.string().optional(),
+  parentId: z.string().optional(),
+  tags: z.array(z.string().max(50)).max(10).optional(),
+  estimatedHours: z.number().min(0).max(10000).optional(),
+  loggedHours: z.number().min(0).max(100000).optional(),
+  sortOrder: z.number().int().min(0).optional(),
+});
+
+export const bulkUpdateTasksSchema = z.object({
+  ids: z.array(z.string()).min(1).max(100),
+  status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
+  assigneeId: z.string().nullable().optional(),
+  tags: z.array(z.string().max(50)).max(10).optional(),
+});
+
+export const cloneProjectSchema = z.object({
+  name: z.string().min(1).max(200),
+  includeTasks: z.boolean().default(true),
+  includeConversations: z.boolean().default(false),
+  includeOpenCodeChats: z.boolean().default(false),
 });
 
 // ── Knowledge ─────────────────────────────────
@@ -147,6 +169,8 @@ export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
+export type BulkUpdateTasksInput = z.infer<typeof bulkUpdateTasksSchema>;
+export type CloneProjectInput = z.infer<typeof cloneProjectSchema>;
 export type UploadDocumentInput = z.infer<typeof uploadDocumentSchema>;
 export type SearchKnowledgeInput = z.infer<typeof searchKnowledgeSchema>;
 export type CreateMemoryInput = z.infer<typeof createMemorySchema>;

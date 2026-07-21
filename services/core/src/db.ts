@@ -242,12 +242,13 @@ export function migrate(db: Database): void {
     )
   `);
 
-  db.run(`
+db.run(`
     CREATE TABLE IF NOT EXISTS opencode_chats (
       id TEXT PRIMARY KEY,
       project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
       title TEXT NOT NULL DEFAULT 'New Chat',
       model TEXT NOT NULL DEFAULT 'opencode/deepseek-v4-flash-free',
+      cwd TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
@@ -274,5 +275,26 @@ export function migrate(db: Database): void {
   const ocColumns = db.all<{ name: string }>("PRAGMA table_info(opencode_chats)");
   if (!ocColumns.some(c => c.name === 'project_id')) {
     db.run("ALTER TABLE opencode_chats ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL");
+  }
+  if (!ocColumns.some(c => c.name === 'cwd')) {
+    db.run("ALTER TABLE opencode_chats ADD COLUMN cwd TEXT");
+  }
+
+  // Migration: Add task columns for new features
+  const taskColumns = db.all<{ name: string }>("PRAGMA table_info(tasks)");
+  if (!taskColumns.some(c => c.name === 'parent_id')) {
+    db.run("ALTER TABLE tasks ADD COLUMN parent_id TEXT REFERENCES tasks(id) ON DELETE SET NULL");
+  }
+  if (!taskColumns.some(c => c.name === 'tags')) {
+    db.run("ALTER TABLE tasks ADD COLUMN tags TEXT DEFAULT '[]'");
+  }
+  if (!taskColumns.some(c => c.name === 'estimated_hours')) {
+    db.run("ALTER TABLE tasks ADD COLUMN estimated_hours REAL");
+  }
+  if (!taskColumns.some(c => c.name === 'logged_hours')) {
+    db.run("ALTER TABLE tasks ADD COLUMN logged_hours REAL DEFAULT 0");
+  }
+  if (!taskColumns.some(c => c.name === 'sort_order')) {
+    db.run("ALTER TABLE tasks ADD COLUMN sort_order INTEGER DEFAULT 0");
   }
 }

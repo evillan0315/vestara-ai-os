@@ -189,6 +189,11 @@ export interface Task {
   description?: string;
   status: TaskStatus;
   assigneeId?: string;
+  parentId?: string;
+  tags?: string[];
+  estimatedHours?: number;
+  loggedHours?: number;
+  sortOrder?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -272,6 +277,51 @@ export interface UpdateProjectDTO {
   name?: string;
   description?: string;
   status?: ProjectStatus;
+}
+
+export interface CloneProjectDTO {
+  name: string;
+  includeTasks?: boolean;
+  includeConversations?: boolean;
+  includeOpenCodeChats?: boolean;
+}
+
+export interface BulkUpdateTasksDTO {
+  ids: string[];
+  status?: TaskStatus;
+  assigneeId?: string;
+  tags?: string[];
+}
+
+export interface ActivityLogEntry {
+  id: string;
+  userId: string;
+  action: string;
+  resource: string;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+}
+
+export interface CreateTaskDTO {
+  title: string;
+  description?: string;
+  status?: TaskStatus;
+  assigneeId?: string;
+  parentId?: string;
+  tags?: string[];
+  estimatedHours?: number;
+}
+
+export interface UpdateTaskDTO {
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  assigneeId?: string;
+  parentId?: string;
+  tags?: string[];
+  estimatedHours?: number;
+  loggedHours?: number;
+  sortOrder?: number;
 }
 
 export interface UploadDocumentDTO {

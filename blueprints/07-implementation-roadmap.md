@@ -224,7 +224,7 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 | 4 | Agents | `/agents` | 8 built-in agents, tool execution |
 | 5 | Models | `/models` | Provider management, connection testing |
 | 6 | Memory | `/memory` | Auto-consolidation, search, importance |
-| 7 | Projects | `/projects` | Project CRUD, task board, status tracking |
+| 7 | Projects | `/projects` | Project CRUD, Kanban board, sub-tasks, activity timeline, bulk ops, tags, time tracking, .vestara sync |
 | 8 | Knowledge | `/knowledge` | RAG search, document collections |
 | 9 | Terminal | `/terminal` | Vestara CLI, ⚡ menu, cd support |
 | 10 | Files | `/files` | Tree view, editor, context menu, search |
@@ -248,11 +248,11 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 | agents | 3 | Protected |
 | memory | 3 | Protected |
 | knowledge | 3 | Protected |
-| projects | 9 | Protected |
+| projects | 18 | Protected |
 | users | 5 | Admin |
 | scripts | 4 | Protected |
 | files | 8 | Protected |
-| **Total** | **63** | |
+| **Total** | **72** | |
 
 ---
 

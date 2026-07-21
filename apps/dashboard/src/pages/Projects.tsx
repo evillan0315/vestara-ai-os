@@ -1,68 +1,98 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useProjects, type ProjectData, type TaskData } from '../hooks/useProjects';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { DirectoryBrowser } from '../components/DirectoryBrowser';
+import { StatsBar } from '../components/StatsBar';
+import { ProjectCard } from '../components/ProjectCard';
+import { TaskItem } from '../components/TaskItem';
+import { BulkActions } from '../components/BulkActions';
+import { ActivityTimeline } from '../components/ActivityTimeline';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ProjectListSkeleton, StatsBarSkeleton, TaskListSkeleton } from '../components/LoadingSkeleton';
 
-interface Project {
-  id: string;
-  user_id: string;
-  name: string;
-  description: string | null;
-  status: string;
-  path: string | null;
-  created_at: string;
-  updated_at: string;
+const KanbanBoard = lazy(() => import('../components/KanbanBoard').then(m => ({ default: m.KanbanBoard })));
+const ProjectForm = lazy(() => import('../components/ProjectForm').then(m => ({ default: m.ProjectForm })));
+const TaskForm = lazy(() => import('../components/TaskForm').then(m => ({ default: m.TaskForm })));
+
+interface Toast {
+  id: number;
+  message: string;
+  type: 'success' | 'error';
 }
 
-interface Task {
-  id: string;
-  project_id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  assignee_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
+type SortKey = 'name' | 'updated' | 'status';
 
-interface ProjectStats {
-  total: number;
-  byStatus: Record<string, number>;
-  totalTasks: number;
-  tasksByStatus: Record<string, number>;
-}
+let toastId = 0;
 
 export default function Projects() {
   const { token } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [stats, setStats] = useState<ProjectStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const {
+    projects, stats, selectedProject, tasks, activity, vestaraData,
+    loading, tasksLoading,
+    viewMode, setViewMode, searchQuery, setSearchQuery, statusFilter, setStatusFilter,
+    selectedProjectId, selectProject,
+    selectedTaskIds, toggleTaskSelection, clearSelection,
+    createProject, updateProject, deleteProject, cloneProject, archiveProject,
+    createTask, updateTask, deleteTask, bulkUpdateTasks,
+    syncToVestara, importFromVestara, revalidateAll, revalidateVestara,
+  } = useProjects(token);
+
+  const [syncing, setSyncing] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
   const [showAddTask, setShowAddTask] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [newProject, setNewProject] = useState({ name: '', description: '', path: '' });
-  const [newTask, setNewTask] = useState({ title: '', description: '', status: 'todo' });
-  const [taskFilter, setTaskFilter] = useState<string>('');
+  const [addTaskStatus, setAddTaskStatus] = useState('todo');
+  const [addTaskParentId, setAddTaskParentId] = useState<string | undefined>();
+  const [editingTask, setEditingTask] = useState<TaskData | null>(null);
+  const [showClone, setShowClone] = useState<ProjectData | null>(null);
+  const [cloneName, setCloneName] = useState('');
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [showBrowser, setShowBrowser] = useState(false);
   const [browserPath, setBrowserPath] = useState('');
-  const [browserEntries, setBrowserEntries] = useState<{ name: string; path: string; type: string; icon: string }[]>([]);
-  const [vestaraData, setVestaraData] = useState<{ exists: boolean; config?: any; stats?: { tasks: number; conversations: number; opencodeChats: number } } | null>(null);
-  const [syncing, setSyncing] = useState(false);
+  const [browserEntries, setBrowserEntries] = useState<{ name: string; path: string; type: 'file' | 'directory' | 'symlink'; icon: string }[]>([]);
+  const [narrowMode, setNarrowMode] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('updated');
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'project' | 'task'; id: string } | null>(null);
+  const [confirmArchive, setConfirmArchive] = useState<string | null>(null);
+
+  const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchProjects();
-    fetchStats();
+    const ro = new ResizeObserver(([entry]) => {
+      setNarrowMode(entry.contentRect.width < 700);
+    });
+    if (headerRef.current) ro.observe(headerRef.current);
+    return () => ro.disconnect();
   }, []);
 
   useEffect(() => {
-    if (selectedProject) {
-      fetchTasks(selectedProject.id);
-      fetchVestaraData(selectedProject.id);
-    }
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'n' && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+        e.preventDefault();
+        setShowAddProject(true);
+      }
+      if (e.key === 'n' && (e.metaKey || e.ctrlKey) && e.shiftKey && selectedProject) {
+        e.preventDefault();
+        setAddTaskStatus('todo'); setShowAddTask(true);
+      }
+      if (e.key === 'Escape') {
+        setConfirmDelete(null);
+        setConfirmArchive(null);
+        setShowClone(null);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, [selectedProject]);
+
+  const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    const id = ++toastId;
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+  }, []);
 
   const loadBrowserDir = useCallback(async (path: string) => {
     try {
@@ -72,860 +102,487 @@ export default function Projects() {
       if (res.ok) {
         const data = await res.json();
         setBrowserPath(data.path || '');
-        setBrowserEntries((data.entries || []).filter((e: any) => e.type === 'directory'));
+        setBrowserEntries((data.entries || []).filter((e: any) => e.type === 'directory').map((e: any) => ({ ...e, type: e.type as 'file' | 'directory' | 'symlink' })));
       }
     } catch {}
   }, [token]);
 
-  const openBrowser = (currentPath?: string) => {
+  const openBrowser = useCallback((currentPath?: string) => {
     loadBrowserDir(currentPath || '');
     setShowBrowser(true);
-  };
+  }, [loadBrowserDir]);
 
-  const selectBrowserDir = (path: string) => {
-    setNewProject(prev => ({ ...prev, path }));
-    setShowBrowser(false);
-  };
+  const handleCreateProject = useCallback(async (data: { name: string; description: string; path: string }) => {
+    try { await createProject(data); setShowAddProject(false); addToast('Project created'); }
+    catch { addToast('Failed to create project', 'error'); }
+  }, [createProject, addToast]);
 
-  const openProjectFiles = (project: Project) => {
-    if (project.path) {
-      navigate(`/files?path=${encodeURIComponent(project.path)}`);
-    } else {
-      navigate('/files');
-    }
-  };
-
-  const fetchProjects = async () => {
-    try {
-      const response = await fetch('/api/projects', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setProjects(data.projects);
-      }
-    } catch (error) {
-      console.error('Failed to fetch projects:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('/api/projects/stats', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-    }
-  };
-
-  const fetchTasks = async (projectId: string) => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}/tasks`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setTasks(data.tasks);
-      }
-    } catch (error) {
-      console.error('Failed to fetch tasks:', error);
-    }
-  };
-
-  const fetchVestaraData = async (projectId: string) => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}/vestara`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setVestaraData(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch .vestara data:', error);
-    }
-  };
-
-  const syncToVestara = async () => {
-    if (!selectedProject) return;
-    setSyncing(true);
-    try {
-      const response = await fetch(`/api/projects/${selectedProject.id}/sync`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          fetchVestaraData(selectedProject.id);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to sync to .vestara:', error);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const importFromVestara = async () => {
-    if (!selectedProject) return;
-    setSyncing(true);
-    try {
-      const response = await fetch(`/api/projects/${selectedProject.id}/import`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          fetchTasks(selectedProject.id);
-          fetchVestaraData(selectedProject.id);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to import from .vestara:', error);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const createProject = async () => {
-    if (!newProject.name.trim()) return;
-    try {
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(newProject),
-      });
-      if (response.ok) {
-        setShowAddProject(false);
-        setNewProject({ name: '', description: '', path: '' });
-        fetchProjects();
-        fetchStats();
-      }
-    } catch (error) {
-      console.error('Failed to create project:', error);
-    }
-  };
-
-  const updateProject = async () => {
+  const handleUpdateProject = useCallback(async (data: { name: string; description: string; path: string }) => {
     if (!editingProject) return;
-    try {
-      const response = await fetch(`/api/projects/${editingProject.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          name: newProject.name || editingProject.name,
-          description: newProject.description,
-        }),
-      });
-      if (response.ok) {
-        setEditingProject(null);
-        setNewProject({ name: '', description: '', path: '' });
-        fetchProjects();
-        if (selectedProject?.id === editingProject.id) {
-          setSelectedProject({ ...editingProject, name: newProject.name || editingProject.name, description: newProject.description });
-        }
-      }
-    } catch (error) {
-      console.error('Failed to update project:', error);
-    }
-  };
+    try { await updateProject(editingProject.id, data); setEditingProject(null); addToast('Project updated'); }
+    catch { addToast('Failed to update project', 'error'); }
+  }, [editingProject, updateProject, addToast]);
 
-  const deleteProject = async (id: string) => {
-    if (!confirm('Delete this project and all its tasks?')) return;
-    try {
-      const response = await fetch(`/api/projects/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        if (selectedProject?.id === id) {
-          setSelectedProject(null);
-          setTasks([]);
-        }
-        fetchProjects();
-        fetchStats();
-      }
-    } catch (error) {
-      console.error('Failed to delete project:', error);
-    }
-  };
+  const handleDeleteProject = useCallback(async (id: string) => {
+    try { await deleteProject(id); setConfirmDelete(null); addToast('Project deleted'); }
+    catch { addToast('Failed to delete project', 'error'); }
+  }, [deleteProject, addToast]);
 
-  const updateProjectStatus = async (id: string, status: string) => {
-    try {
-      const response = await fetch(`/api/projects/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status }),
-      });
-      if (response.ok) {
-        fetchProjects();
-        fetchStats();
-        if (selectedProject?.id === id) {
-          setSelectedProject(prev => prev ? { ...prev, status } : null);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to update project status:', error);
-    }
-  };
+  const handleDeleteTask = useCallback(async (taskId: string) => {
+    try { await deleteTask(taskId); setConfirmDelete(null); addToast('Task deleted'); }
+    catch { addToast('Failed to delete task', 'error'); }
+  }, [deleteTask, addToast]);
 
-  const createTask = async () => {
-    if (!selectedProject || !newTask.title.trim()) return;
-    try {
-      const response = await fetch(`/api/projects/${selectedProject.id}/tasks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(newTask),
-      });
-      if (response.ok) {
-        setShowAddTask(false);
-        setNewTask({ title: '', description: '', status: 'todo' });
-        fetchTasks(selectedProject.id);
-        fetchStats();
-      }
-    } catch (error) {
-      console.error('Failed to create task:', error);
-    }
-  };
+  const handleCloneProject = useCallback(async () => {
+    if (!showClone || !cloneName.trim()) return;
+    try { await cloneProject(showClone.id, { name: cloneName }); setShowClone(null); setCloneName(''); addToast('Project cloned'); }
+    catch { addToast('Failed to clone project', 'error'); }
+  }, [showClone, cloneName, cloneProject, addToast]);
 
-  const updateTask = async () => {
-    if (!selectedProject || !editingTask) return;
-    try {
-      const response = await fetch(`/api/projects/${selectedProject.id}/tasks/${editingTask.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          title: newTask.title || editingTask.title,
-          description: newTask.description,
-          status: newTask.status,
-        }),
-      });
-      if (response.ok) {
-        setEditingTask(null);
-        setNewTask({ title: '', description: '', status: 'todo' });
-        fetchTasks(selectedProject.id);
-        fetchStats();
-      }
-    } catch (error) {
-      console.error('Failed to update task:', error);
-    }
-  };
+  const handleArchiveProject = useCallback(async (id: string) => {
+    try { await archiveProject(id); setConfirmArchive(null); addToast('Project archived'); }
+    catch { addToast('Failed to archive project', 'error'); }
+  }, [archiveProject, addToast]);
 
-  const updateTaskStatus = async (taskId: string, status: string) => {
+  const handleUpdateStatus = useCallback(async (id: string, status: string) => {
+    try { await updateProject(id, { status }); addToast('Status updated'); }
+    catch { addToast('Failed to update status', 'error'); }
+  }, [updateProject, addToast]);
+
+  const handleCreateTask = useCallback(async (data: any) => {
+    try { await createTask(data); setShowAddTask(false); setAddTaskParentId(undefined); addToast('Task created'); }
+    catch { addToast('Failed to create task', 'error'); }
+  }, [createTask, addToast]);
+
+  const handleUpdateTask = useCallback(async (taskId: string, data: any) => {
+    try { await updateTask(taskId, data); }
+    catch { addToast('Failed to update task', 'error'); }
+  }, [updateTask, addToast]);
+
+  const handleBulkStatus = useCallback(async (status: string) => {
+    try { await bulkUpdateTasks(Array.from(selectedTaskIds), { status }); clearSelection(); addToast(`Updated ${selectedTaskIds.size} tasks`); }
+    catch { addToast('Failed to update tasks', 'error'); }
+  }, [selectedTaskIds, bulkUpdateTasks, clearSelection, addToast]);
+
+  const handleSync = useCallback(async () => {
     if (!selectedProject) return;
-    try {
-      const response = await fetch(`/api/projects/${selectedProject.id}/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status }),
-      });
-      if (response.ok) {
-        fetchTasks(selectedProject.id);
-        fetchStats();
-      }
-    } catch (error) {
-      console.error('Failed to update task status:', error);
-    }
+    setSyncing(true);
+    try { await syncToVestara(); addToast('Synced to .vestara'); }
+    catch { addToast('Sync failed', 'error'); }
+    finally { setSyncing(false); }
+  }, [selectedProject, syncToVestara, addToast]);
+
+  const handleImport = useCallback(async () => {
+    if (!selectedProject) return;
+    setSyncing(true);
+    try { await importFromVestara(); addToast('Imported from .vestara'); }
+    catch { addToast('Import failed', 'error'); }
+    finally { setSyncing(false); }
+  }, [selectedProject, importFromVestara, addToast]);
+
+  const openProjectFiles = useCallback((project: ProjectData) => {
+    navigate(project.path ? `/files?path=${encodeURIComponent(project.path)}` : '/files');
+  }, [navigate]);
+
+  const taskStatusCounts = {
+    todo: tasks.filter(t => t.status === 'todo').length,
+    in_progress: tasks.filter(t => t.status === 'in_progress').length,
+    review: tasks.filter(t => t.status === 'review').length,
+    done: tasks.filter(t => t.status === 'done').length,
   };
+  const totalTasksCount = tasks.length;
 
-  const deleteTask = async (taskId: string) => {
-    if (!selectedProject || !confirm('Delete this task?')) return;
-    try {
-      const response = await fetch(`/api/projects/${selectedProject.id}/tasks/${taskId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        fetchTasks(selectedProject.id);
-        fetchStats();
-      }
-    } catch (error) {
-      console.error('Failed to delete task:', error);
-    }
-  };
+  const rootTasks = tasks.filter(t => !t.parent_id);
+  const getSubTasks = (parentId: string) => tasks.filter(t => t.parent_id === parentId);
+  const selectAll = useCallback(() => {
+    if (selectedTaskIds.size === rootTasks.length) clearSelection();
+    else rootTasks.forEach(t => toggleTaskSelection(t.id));
+  }, [selectedTaskIds.size, rootTasks, clearSelection, toggleTaskSelection]);
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      active: 'bg-green-500/20 text-green-400',
-      paused: 'bg-yellow-500/20 text-yellow-400',
-      archived: 'bg-gray-500/20 text-gray-400',
-      todo: 'bg-blue-500/20 text-blue-400',
-      in_progress: 'bg-purple-500/20 text-purple-400',
-      review: 'bg-orange-500/20 text-orange-400',
-      done: 'bg-green-500/20 text-green-400',
-    };
-    return colors[status] || 'bg-gray-500/20 text-gray-400';
-  };
+  const sortedProjects = [...projects].sort((a, b) => {
+    if (sortKey === 'name') return a.name.localeCompare(b.name);
+    if (sortKey === 'status') return a.status.localeCompare(b.status);
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      active: 'Active',
-      paused: 'Paused',
-      archived: 'Archived',
-      todo: 'To Do',
-      in_progress: 'In Progress',
-      review: 'Review',
-      done: 'Done',
-    };
-    return labels[status] || status;
-  };
-
-  const filteredTasks = taskFilter
-    ? tasks.filter(t => t.status === taskFilter)
-    : tasks;
-
-  const startEditProject = (project: Project) => {
-    setEditingProject(project);
-    setNewProject({ name: project.name, description: project.description || '', path: project.path || '' });
-  };
-
-  const startEditTask = (task: Task) => {
-    setEditingTask(task);
-    setNewTask({ title: task.title, description: task.description || '', status: task.status });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a12] flex items-center justify-center">
-        <div className="text-[#4a9eff] text-lg">Loading projects...</div>
-      </div>
-    );
-  }
+  const taskProgress = selectedProject ? {
+    done: taskStatusCounts.done,
+    total: totalTasksCount,
+  } : undefined;
 
   return (
-    <div className="min-h-screen bg-[#0a0a12] text-white p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Projects</h1>
-            <p className="text-gray-400 mt-1">Manage projects and track tasks</p>
-          </div>
-          <button
-            onClick={() => setShowAddProject(true)}
-            className="px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef] transition-colors"
-          >
-            New Project
-          </button>
-        </div>
-
-        {stats && (
-          <div className="grid grid-cols-4 gap-4 mb-8">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Projects</div>
-              <div className="text-2xl font-bold text-white mt-1">{stats.total}</div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-vestara-bg text-vestara-text p-3 md:p-6">
+        <div className="max-w-6xl mx-auto">
+          <div ref={headerRef} className="flex flex-wrap items-center justify-between gap-3 mb-4 md:mb-6">
+            <div>
+              <h1 className="text-xl md:text-3xl font-bold text-vestara-text">Projects</h1>
+              <p className="text-xs md:text-sm text-vestara-text-muted mt-0.5 md:mt-1">
+                {selectedProject ? selectedProject.name : 'Manage projects and track tasks'}
+              </p>
             </div>
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Active</div>
-              <div className="text-2xl font-bold text-green-400 mt-1">{stats.byStatus.active || 0}</div>
-            </div>
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Total Tasks</div>
-              <div className="text-2xl font-bold text-white mt-1">{stats.totalTasks}</div>
-            </div>
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Done</div>
-              <div className="text-2xl font-bold text-green-400 mt-1">{stats.tasksByStatus.done || 0}</div>
+            <div className="flex items-center gap-2">
+              {selectedProject && selectedProject.path && (
+                <button onClick={() => openProjectFiles(selectedProject)}
+                  className="px-2 md:px-3 py-1 md:py-1.5 bg-vestara-blue/20 text-vestara-blue border border-vestara-blue/30 rounded text-xs md:text-sm hover:bg-vestara-blue/30 transition-colors">
+                  Open Files
+                </button>
+              )}
+              <button onClick={() => setShowAddProject(true)}
+                className="btn-gold text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">
+                + New Project
+              </button>
             </div>
           </div>
-        )}
 
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-1 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Projects</h2>
-            {projects.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                No projects yet. Create one to get started.
-              </div>
-            ) : (
-              projects.map((project) => (
-                <div
-                  key={project.id}
-                  onClick={() => setSelectedProject(project)}
-                  className={`bg-[#12121e] border rounded-lg p-4 cursor-pointer transition-colors ${
-                    selectedProject?.id === project.id
-                      ? 'border-[#4a9eff]'
-                      : 'border-[#1e1e2e] hover:border-[#2a2a3e]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-white truncate">{project.name}</h3>
-                    <span className={`px-2 py-1 rounded text-xs ${getStatusColor(project.status)}`}>
-                      {getStatusLabel(project.status)}
-                    </span>
-                  </div>
-                  {project.description && (
-                    <p className="text-gray-400 text-sm line-clamp-2">{project.description}</p>
-                  )}
-                  {project.path && (
-                    <p className="text-gray-500 text-xs mt-2 truncate">{project.path}</p>
-                  )}
-                  <div className="text-gray-500 text-xs mt-2">
-                    {new Date(project.updated_at).toLocaleDateString()}
+          {loading ? <StatsBarSkeleton /> : <StatsBar stats={stats || null} />}
+
+          {narrowMode && selectedProject && (
+            <div className="glass rounded-lg p-3 mb-3 modal-content">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-bold text-sm text-vestara-text truncate">{selectedProject.name}</h2>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${selectedProject.status === 'active' ? 'bg-vestara-success' : selectedProject.status === 'paused' ? 'bg-vestara-warning' : 'bg-vestara-text-dim'}`} />
+                    <p className="text-xs text-vestara-text-dim truncate">{selectedProject.description || 'No description'}</p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+                <button onClick={() => selectProject(null)}
+                  className="ml-2 text-xs text-vestara-text-dim hover:text-vestara-text shrink-0 p-1 hover:bg-vestara-glass rounded transition-colors">
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
 
-          <div className="col-span-2">
-            {selectedProject ? (
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">{selectedProject.name}</h2>
-                    {selectedProject.description && (
-                      <p className="text-gray-400 text-sm mt-1">{selectedProject.description}</p>
-                    )}
-                    {vestaraData?.exists && (
-                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded">
-                          .vestara
-                        </span>
-                        {vestaraData.stats && (
-                          <span>
-                            {vestaraData.stats.tasks} tasks · {vestaraData.stats.conversations} chats · {vestaraData.stats.opencodeChats} sessions
-                          </span>
+          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 md:gap-6">
+            <div className={`${narrowMode && selectedProject ? 'hidden' : 'block'} lg:block`}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="relative flex-1">
+                  <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-vestara-text-dim" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="7" cy="7" r="5" /><path d="M11 11l3 3" />
+                  </svg>
+                  <input
+                    type="text" value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search..." autoComplete="off"
+                    className="w-full pl-7 pr-2 py-1.5 bg-vestara-bg border border-vestara-glass-border rounded text-xs md:text-sm text-vestara-text placeholder-vestara-text-dim/50"
+                  />
+                </div>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-2 py-1.5 bg-vestara-bg border border-vestara-glass-border rounded text-xs text-vestara-text-muted">
+                  <option value="">All</option>
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between mb-2 px-1">
+                <h2 className="text-[10px] md:text-xs font-semibold text-vestara-text-muted uppercase tracking-wider">
+                  Projects ({projects.length})
+                </h2>
+                <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}
+                  className="text-[10px] bg-transparent text-vestara-text-dim border-none cursor-pointer outline-none hover:text-vestara-text-muted">
+                  <option value="updated">Recent</option>
+                  <option value="name">A-Z</option>
+                  <option value="status">Status</option>
+                </select>
+              </div>
+              {loading ? <ProjectListSkeleton /> : projects.length === 0 ? (
+                <div className="text-center py-12 text-vestara-text-dim text-xs md:text-sm">
+                  <div className="text-3xl mb-3 opacity-30">📋</div>
+                  {searchQuery || statusFilter ? (
+                    <p>No projects match your search</p>
+                  ) : (
+                    <>
+                      <p className="mb-3">No projects yet</p>
+                      <button onClick={() => setShowAddProject(true)} className="btn-gold text-xs px-3 py-1.5">
+                        Create your first project
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1.5 md:space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto pr-1 scroll-smooth">
+                  {sortedProjects.map((project) => (
+                    <ProjectCard
+                      key={project.id} project={project}
+                      selected={selectedProject?.id === project.id}
+                      onSelect={selectProject}
+                      onDelete={(id) => setConfirmDelete({ type: 'project', id })}
+                      onClone={setShowClone}
+                      onArchive={setConfirmArchive}
+                      onUpdateStatus={handleUpdateStatus}
+                      searchQuery={searchQuery}
+                      taskProgress={taskProgress}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-2">
+              {selectedProject ? (
+                <div className="glass rounded-lg p-3 md:p-5 border border-vestara-glass-border view-fade-enter">
+                  {!narrowMode && (
+                    <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${selectedProject.status === 'active' ? 'bg-vestara-success' : selectedProject.status === 'paused' ? 'bg-vestara-warning' : 'bg-vestara-text-dim'}`} />
+                          <h2 className="text-lg md:text-xl font-bold text-vestara-text truncate">{selectedProject.name}</h2>
+                        </div>
+                        {selectedProject.description && (
+                          <p className="text-xs md:text-sm text-vestara-text-muted mt-0.5 ml-4">{selectedProject.description}</p>
+                        )}
+                        {vestaraData?.exists && (
+                          <div className="flex items-center gap-2 mt-1.5 ml-4 text-[10px] md:text-xs text-vestara-text-dim">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-vestara-purple/10 text-vestara-purple rounded">
+                              .vestara
+                            </span>
+                            {vestaraData.stats && (
+                              <span>{vestaraData.stats.tasks} tasks · {vestaraData.stats.conversations} convs</span>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    {selectedProject.path && (
-                      <button
-                        onClick={() => openProjectFiles(selectedProject)}
-                        className="px-3 py-1 bg-[#4a9eff]/20 text-[#4a9eff] border border-[#4a9eff]/30 rounded text-sm hover:bg-[#4a9eff]/30"
-                      >
-                        Open
-                      </button>
-                    )}
-                    {selectedProject.path && (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={syncToVestara}
-                          disabled={syncing}
-                          className="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded text-sm hover:bg-purple-500/30 disabled:opacity-50"
-                          title="Sync to .vestara"
-                        >
-                          {syncing ? '...' : '↓ Sync'}
-                        </button>
-                        {vestaraData?.exists && (
-                          <button
-                            onClick={importFromVestara}
-                            disabled={syncing}
-                            className="px-3 py-1 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded text-sm hover:bg-orange-500/30 disabled:opacity-50"
-                            title="Import from .vestara"
-                          >
-                            {syncing ? '...' : '↑ Import'}
+                      <div className="flex gap-1 md:gap-2 flex-wrap">
+                        {selectedProject.path && (
+                          <button onClick={handleSync} disabled={syncing}
+                            className={`px-2 md:px-3 py-1 rounded text-xs border transition-colors ${
+                              syncing ? 'bg-vestara-purple/10 text-vestara-purple/50 border-vestara-purple/10 syncing' : 'bg-vestara-purple/20 text-vestara-purple border-vestara-purple/30 hover:bg-vestara-purple/30'
+                            }`}>
+                            {syncing ? '⟳' : '↓ Sync'}
                           </button>
                         )}
+                        {vestaraData?.exists && (
+                          <button onClick={handleImport} disabled={syncing}
+                            className="px-2 md:px-3 py-1 bg-vestara-warning/20 text-vestara-warning border border-vestara-warning/30 rounded text-xs hover:bg-vestara-warning/30 transition-colors disabled:opacity-50">
+                            ↑ Import
+                          </button>
+                        )}
+                        <select value={selectedProject.status}
+                          onChange={(e) => handleUpdateStatus(selectedProject.id, e.target.value)}
+                          className="px-2 py-1 bg-vestara-bg border border-vestara-glass-border rounded text-xs text-vestara-text cursor-pointer">
+                          <option value="active">Active</option>
+                          <option value="paused">Paused</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                        <button onClick={() => { setEditingProject(selectedProject); }}
+                          className="px-2 md:px-3 py-1 bg-vestara-bg border border-vestara-glass-border rounded text-xs text-vestara-text-muted hover:bg-vestara-glass transition-colors">
+                          Edit
+                        </button>
                       </div>
-                    )}
-                    <select
-                      value={selectedProject.status}
-                      onChange={(e) => updateProjectStatus(selectedProject.id, e.target.value)}
-                      className="px-3 py-1 bg-[#0a0a12] border border-[#1e1e2e] rounded text-sm"
-                    >
-                      <option value="active">Active</option>
-                      <option value="paused">Paused</option>
-                      <option value="archived">Archived</option>
-                    </select>
-                    <button
-                      onClick={() => startEditProject(selectedProject)}
-                      className="px-3 py-1 bg-[#1a1a2e] border border-[#2a2a3e] rounded text-sm hover:bg-[#2a2a3e]"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteProject(selectedProject.id)}
-                      className="px-3 py-1 text-red-400 hover:text-red-300 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex gap-2">
-                    {['', 'todo', 'in_progress', 'review', 'done'].map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => setTaskFilter(status)}
-                        className={`px-3 py-1 rounded text-xs ${
-                          taskFilter === status
-                            ? 'bg-[#4a9eff] text-white'
-                            : 'bg-[#1a1a2e] text-gray-400 hover:bg-[#2a2a3e]'
-                        }`}
-                      >
-                        {status ? getStatusLabel(status) : 'All'}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setShowAddTask(true)}
-                    className="px-4 py-1 bg-[#4a9eff] rounded text-sm hover:bg-[#3a8eef]"
-                  >
-                    Add Task
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {filteredTasks.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      {tasks.length === 0 ? 'No tasks yet. Add one to get started.' : 'No tasks match this filter.'}
                     </div>
-                  ) : (
-                    filteredTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="bg-[#0a0a12] border border-[#1e1e2e] rounded-lg p-4"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-white truncate">{task.title}</h4>
-                              <span className={`px-2 py-0.5 rounded text-xs ${getStatusColor(task.status)}`}>
-                                {getStatusLabel(task.status)}
-                              </span>
-                            </div>
-                            {task.description && (
-                              <p className="text-gray-400 text-sm line-clamp-1">{task.description}</p>
-                            )}
-                          </div>
-                          <div className="flex gap-1 ml-4">
-                            {task.status !== 'done' && (
-                              <select
-                                value={task.status}
-                                onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                                className="px-2 py-1 bg-[#12121e] border border-[#1e1e2e] rounded text-xs"
-                              >
-                                <option value="todo">To Do</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="review">Review</option>
-                                <option value="done">Done</option>
-                              </select>
-                            )}
-                            <button
-                              onClick={() => startEditTask(task)}
-                              className="px-2 py-1 text-gray-400 hover:text-white text-xs"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => deleteTask(task.id)}
-                              className="px-2 py-1 text-red-400 hover:text-red-300 text-xs"
-                            >
-                              Del
-                            </button>
-                          </div>
+                  )}
+
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <div className="flex items-center gap-1 md:gap-2">
+                      {(['list', 'kanban', 'activity'] as const).map((mode) => (
+                        <button key={mode}
+                          onClick={() => setViewMode(mode)}
+                          className={`px-2 md:px-3 py-1 rounded text-[10px] md:text-xs capitalize transition-all ${
+                            viewMode === mode ? 'bg-vestara-blue text-white shadow-sm shadow-vestara-blue/30' : 'bg-vestara-bg text-vestara-text-muted hover:bg-vestara-glass'
+                          }`}>
+                          {mode === 'list' ? '☰' : mode === 'kanban' ? '☷' : '◷'} {mode === 'list' ? 'List' : mode === 'kanban' ? 'Board' : 'Activity'}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1 md:gap-2">
+                      {viewMode === 'list' && totalTasksCount > 0 && (
+                        <span className="text-[10px] md:text-xs text-vestara-text-dim font-mono">
+                          {taskStatusCounts.done}/{totalTasksCount}
+                        </span>
+                      )}
+                      <button onClick={() => { setAddTaskStatus('todo'); setAddTaskParentId(undefined); setShowAddTask(true); }}
+                        className="px-2 md:px-3 py-1 bg-vestara-blue rounded text-[10px] md:text-xs text-white hover:bg-vestara-blue/80 transition-colors">
+                        + Task
+                      </button>
+                    </div>
+                  </div>
+
+                  <BulkActions
+                    selectedCount={selectedTaskIds.size}
+                    totalCount={rootTasks.length}
+                    onStatusChange={handleBulkStatus}
+                    onClear={clearSelection}
+                    onSelectAll={selectAll}
+                  />
+
+                  {viewMode === 'list' && (
+                    <>
+                      {tasksLoading ? <TaskListSkeleton /> : rootTasks.length === 0 ? (
+                        <div className="text-center py-10 text-vestara-text-dim text-xs md:text-sm view-fade-enter">
+                          <span className="text-2xl block mb-2 opacity-30">
+                            {tasks.length === 0 ? '📝' : '🔍'}
+                          </span>
+                          {tasks.length === 0 ? 'No tasks yet. Add one to get started.' : 'No tasks match the filter.'}
                         </div>
-                      </div>
-                    ))
+                      ) : (
+                        <div className="space-y-1.5 md:space-y-2 mt-2">
+                          {rootTasks.map((task) => (
+                            <TaskItem
+                              key={task.id} task={task}
+                              selected={selectedTaskIds.has(task.id)}
+                              onToggleSelect={toggleTaskSelection}
+                              onUpdate={handleUpdateTask}
+                              onDelete={(id) => setConfirmDelete({ type: 'task', id })}
+                              onStartEdit={setEditingTask}
+                              onAddSubTask={(parentId) => { setAddTaskParentId(parentId); setAddTaskStatus('todo'); setShowAddTask(true); }}
+                              subTasks={getSubTasks(task.id)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {!tasksLoading && totalTasksCount > 0 && (
+                        <div className="flex items-center gap-1 md:gap-2 mt-3 flex-wrap">
+                          {['', 'todo', 'in_progress', 'review', 'done'].map((status) => (
+                            <button key={status}
+                              onClick={() => setStatusFilter(status === statusFilter ? '' : status)}
+                              className={`px-1.5 md:px-2 py-0.5 rounded text-[10px] md:text-xs transition-all ${
+                                statusFilter === status ? 'bg-vestara-blue text-white' : 'bg-vestara-bg text-vestara-text-muted hover:bg-vestara-glass'
+                              }`}>
+                              {status ? status.replace('_', ' ') : 'All'}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {viewMode === 'kanban' && (
+                    <Suspense fallback={<TaskListSkeleton />}>
+                      <KanbanBoard
+                        tasks={tasks}
+                        onUpdateTask={handleUpdateTask}
+                        onStartEdit={setEditingTask}
+                        onDelete={(id) => setConfirmDelete({ type: 'task', id })}
+                        onAddTask={(status) => { setAddTaskStatus(status); setAddTaskParentId(undefined); setShowAddTask(true); }}
+                      />
+                    </Suspense>
+                  )}
+
+                  {viewMode === 'activity' && (
+                    <ActivityTimeline activity={activity} loading={tasksLoading} />
                   )}
                 </div>
-              </div>
-            ) : (
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 flex items-center justify-center h-64">
-                <div className="text-gray-500">Select a project to view tasks</div>
-              </div>
-            )}
+              ) : (
+                <div className="glass rounded-lg p-6 md:p-8 flex items-center justify-center min-h-[200px] md:min-h-[300px] border border-vestara-glass-border">
+                  <div className="text-center">
+                    <div className="text-4xl md:text-5xl mb-4 opacity-20">📋</div>
+                    <p className="text-vestara-text-dim text-sm md:text-base">Select a project to view its tasks</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {showAddProject && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 w-full max-w-lg">
-              <h2 className="text-xl font-bold mb-4">New Project</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={newProject.name}
-                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
-                    placeholder="Project name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Description</label>
-                  <textarea
-                    value={newProject.description}
-                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg h-24"
-                    placeholder="Optional description"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Path (optional)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newProject.path}
-                      onChange={(e) => setNewProject({ ...newProject, path: e.target.value })}
-                      className="flex-1 px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg font-mono text-sm"
-                      placeholder="/path/to/project"
-                    />
-                    <button
-                      onClick={() => openBrowser(newProject.path || '')}
-                      className="px-3 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] text-sm"
-                    >
-                      Browse
-                    </button>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowAddProject(false)}
-                    className="flex-1 px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e]"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={createProject}
-                    className="flex-1 px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef]"
-                  >
-                    Create
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Suspense fallback={null}>
+            <ProjectForm title="New Project" initial={{ name: '', description: '', path: '' }}
+              onSave={handleCreateProject} onClose={() => setShowAddProject(false)} onBrowse={openBrowser} />
+          </Suspense>
         )}
 
         {editingProject && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 w-full max-w-lg">
-              <h2 className="text-xl font-bold mb-4">Edit Project</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={newProject.name}
-                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Description</label>
-                  <textarea
-                    value={newProject.description}
-                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg h-24"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Path</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newProject.path}
-                      onChange={(e) => setNewProject({ ...newProject, path: e.target.value })}
-                      className="flex-1 px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg font-mono text-sm"
-                      placeholder="/path/to/project"
-                    />
-                    <button
-                      onClick={() => openBrowser(newProject.path || '')}
-                      className="px-3 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] text-sm"
-                    >
-                      Browse
-                    </button>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setEditingProject(null)}
-                    className="flex-1 px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e]"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={updateProject}
-                    className="flex-1 px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef]"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Suspense fallback={null}>
+            <ProjectForm title="Edit Project"
+              initial={{ name: editingProject.name, description: editingProject.description || '', path: editingProject.path || '' }}
+              onSave={handleUpdateProject} onClose={() => setEditingProject(null)}
+              onBrowse={(path) => { setEditingProject({ ...editingProject, path }); openBrowser(path); }} />
+          </Suspense>
         )}
 
         {showAddTask && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 w-full max-w-lg">
-              <h2 className="text-xl font-bold mb-4">New Task</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={newTask.title}
-                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
-                    placeholder="Task title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Description</label>
-                  <textarea
-                    value={newTask.description}
-                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg h-24"
-                    placeholder="Optional description"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Status</label>
-                  <select
-                    value={newTask.status}
-                    onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="review">Review</option>
-                    <option value="done">Done</option>
-                  </select>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowAddTask(false)}
-                    className="flex-1 px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e]"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={createTask}
-                    className="flex-1 px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef]"
-                  >
-                    Create
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Suspense fallback={null}>
+            <TaskForm title={addTaskParentId ? 'Add Sub-task' : 'New Task'}
+              initial={{ title: '', description: '', status: addTaskStatus, tags: '', estimatedHours: '', parentId: addTaskParentId }}
+              onSave={handleCreateTask} onClose={() => { setShowAddTask(false); setAddTaskParentId(undefined); }} />
+          </Suspense>
         )}
 
         {editingTask && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 w-full max-w-lg">
-              <h2 className="text-xl font-bold mb-4">Edit Task</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={newTask.title}
-                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Description</label>
-                  <textarea
-                    value={newTask.description}
-                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg h-24"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Status</label>
-                  <select
-                    value={newTask.status}
-                    onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="review">Review</option>
-                    <option value="done">Done</option>
-                  </select>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setEditingTask(null)}
-                    className="flex-1 px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e]"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={updateTask}
-                    className="flex-1 px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef]"
-                  >
-                    Save
-                  </button>
-                </div>
+          <Suspense fallback={null}>
+            <TaskForm title="Edit Task"
+              initial={{ title: editingTask.title, description: editingTask.description || '', status: editingTask.status, tags: (editingTask.tags || []).join(', '), estimatedHours: editingTask.estimated_hours?.toString() || '', parentId: editingTask.parent_id || '' }}
+              onSave={(data) => { handleUpdateTask(editingTask.id, data); setEditingTask(null); }}
+              onClose={() => setEditingTask(null)} />
+          </Suspense>
+        )}
+
+        {showClone && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 modal-overlay">
+            <div className="modal-content glass rounded-lg p-5 md:p-6 w-full max-w-md mx-3 border border-vestara-glass-border">
+              <h2 className="text-lg md:text-xl font-bold text-vestara-text mb-1">Clone Project</h2>
+              <p className="text-xs md:text-sm text-vestara-text-muted mb-4">Clone "{showClone.name}"</p>
+              <input type="text" value={cloneName} autoFocus
+                onChange={(e) => setCloneName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCloneProject(); if (e.key === 'Escape') { setShowClone(null); setCloneName(''); } }}
+                className="w-full px-3 py-2 bg-vestara-bg border border-vestara-glass-border rounded-lg text-sm text-vestara-text mb-4"
+                placeholder="New project name" />
+              <div className="flex gap-3">
+                <button onClick={() => { setShowClone(null); setCloneName(''); }}
+                  className="flex-1 px-4 py-2 bg-vestara-bg border border-vestara-glass-border rounded-lg text-sm text-vestara-text hover:bg-vestara-glass transition-colors">
+                  Cancel
+                </button>
+                <button onClick={handleCloneProject} disabled={!cloneName.trim()}
+                  className="flex-1 px-4 py-2 btn-gold text-sm disabled:opacity-50">
+                  Clone
+                </button>
               </div>
             </div>
           </div>
         )}
 
+        <ConfirmDialog
+          open={confirmDelete !== null}
+          title={confirmDelete?.type === 'project' ? 'Delete Project' : 'Delete Task'}
+          message={confirmDelete?.type === 'project' ? 'Delete this project and all its tasks? This cannot be undone.' : 'Delete this task? This cannot be undone.'}
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={() => {
+            if (confirmDelete?.type === 'project') handleDeleteProject(confirmDelete.id);
+            else if (confirmDelete?.type === 'task') handleDeleteTask(confirmDelete.id);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+
+        <ConfirmDialog
+          open={confirmArchive !== null}
+          title="Archive Project"
+          message="Archive this project to .vestara and mark it as archived?"
+          confirmLabel="Archive"
+          onConfirm={() => confirmArchive && handleArchiveProject(confirmArchive)}
+          onCancel={() => setConfirmArchive(null)}
+        />
+
         {showBrowser && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
-              <h2 className="text-xl font-bold mb-4">Select Directory</h2>
-              <div className="flex items-center gap-2 mb-4 text-sm">
-                <span className="text-gray-400">Current:</span>
-                <span className="text-white font-mono">{browserPath || '~'}</span>
+          <DirectoryBrowser
+            show={showBrowser} path={browserPath} entries={browserEntries}
+            onLoadDir={loadBrowserDir}
+            onSelect={(path) => {
+              if (editingProject) setEditingProject({ ...editingProject, path });
+              setShowBrowser(false);
+            }}
+            onClose={() => setShowBrowser(false)}
+          />
+        )}
+
+        {toasts.length > 0 && (
+          <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-[300px]">
+            {toasts.map(t => (
+              <div key={t.id} className={`toast-enter glass border rounded-lg px-3 md:px-4 py-2 text-xs md:text-sm shadow-xl ${
+                t.type === 'success' ? 'border-vestara-success/30 text-vestara-success' : 'border-vestara-error/30 text-vestara-error'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <span>{t.type === 'success' ? '✓' : '✕'}</span>
+                  <span>{t.message}</span>
+                </div>
               </div>
-              <div className="flex-1 overflow-y-auto border border-[#1e1e2e] rounded-lg bg-[#0a0a12] min-h-[300px]">
-                {browserPath && (
-                  <button
-                    onClick={() => {
-                      const parent = browserPath.substring(0, browserPath.lastIndexOf('/')) || '';
-                      loadBrowserDir(parent);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-400 hover:bg-white/5 border-b border-[#1e1e2e] flex items-center gap-2"
-                  >
-                    <span>..</span>
-                    <span className="text-gray-500">Parent directory</span>
-                  </button>
-                )}
-                {browserEntries.length === 0 ? (
-                  <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
-                    No subdirectories
-                  </div>
-                ) : (
-                  browserEntries.map((entry) => (
-                    <button
-                      key={entry.path}
-                      onClick={() => loadBrowserDir(entry.path)}
-                      className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 border-b border-[#1e1e2e] flex items-center gap-2"
-                    >
-                      <span>{entry.icon || '📁'}</span>
-                      <span className="font-mono">{entry.name}</span>
-                    </button>
-                  ))
-                )}
-              </div>
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={() => setShowBrowser(false)}
-                  className="flex-1 px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e]"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => selectBrowserDir(browserPath)}
-                  className="flex-1 px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef]"
-                >
-                  Select This Directory
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
         )}
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }

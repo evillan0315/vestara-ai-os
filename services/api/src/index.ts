@@ -7,6 +7,7 @@ import { createDatabase, migrate } from '@vestara/core';
 import { MemoryService } from '@vestara/core';
 import { KnowledgeService } from '@vestara/core';
 import { AgentRuntime } from '@vestara/core';
+import { ProjectService } from '@vestara/core';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerConversationRoutes } from './routes/conversations.js';
@@ -66,6 +67,7 @@ async function main() {
   app.decorate('memoryService', new MemoryService(db, events));
   app.decorate('knowledgeService', new KnowledgeService(db, events));
   app.decorate('agentRuntime', new AgentRuntime(db, events));
+  app.decorate('projectService', new ProjectService(db, events));
 
   // CORS
   await app.register(cors, {

@@ -253,6 +253,99 @@ export async function sendPrompt(
 }
 
 /**
+ * Send a prompt and stream the response back via a callback with fallback support
+ */
+export async function sendPromptStream(
+  prompt: string,
+  onToken: (token: string) => void,
+  opts: {
+    model?: string;
+    cwd?: string;
+    agent?: 'build' | 'plan' | 'general' | 'explore';
+    customInstructions?: string;
+    webSearch?: boolean;
+    fallbackModels?: string[];
+  } = {},
+): Promise<string> {
+  const { cwd = config.workDir, agent = 'build', customInstructions, webSearch, fallbackModels } = opts;
+
+  const fullPrompt = customInstructions
+    ? `[Custom Instructions: ${customInstructions}]\n\n${prompt}`
+    : prompt;
+
+  const models = [opts.model || 'opencode/deepseek-v4-flash-free', ...(fallbackModels || [])];
+  let lastError: Error | null = null;
+
+  for (const model of models) {
+    try {
+      if (isServerRunning()) {
+        return await sendPromptViaServerStream(fullPrompt, onToken, { model, cwd, agent, webSearch });
+      }
+      const full = await sendPromptViaCLI(fullPrompt, { model, cwd, agent });
+      onToken(full);
+      return full;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (models.length > 1) {
+        onToken(`\n\n[Model ${model} failed, trying fallback...]\n\n`);
+      }
+    }
+  }
+
+  throw lastError || new Error('All models failed');
+}
+
+/**
+ * Send prompt via OpenCode server with streaming
+ */
+async function sendPromptViaServerStream(
+  prompt: string,
+  onToken: (token: string) => void,
+  opts: { model?: string; cwd?: string; agent?: string; webSearch?: boolean },
+): Promise<string> {
+  const body: Record<string, unknown> = {
+    message: prompt,
+    model: opts.model,
+    cwd: opts.cwd,
+    agent: opts.agent,
+  };
+  if (opts.webSearch) {
+    body.tools = [{ name: 'web_search' }];
+  }
+
+  const res = await fetch(`http://localhost:${config.port}/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error(`OpenCode server error: ${res.status} ${res.statusText}`);
+  }
+
+  if (!res.body) {
+    const data = await res.json() as { response?: string };
+    const full = data.response || '';
+    onToken(full);
+    return full;
+  }
+
+  const decoder = new TextDecoder();
+  const reader = res.body.getReader();
+  let full = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    full += chunk;
+    onToken(chunk);
+  }
+
+  return full;
+}
+
+/**
  * Send prompt via OpenCode server HTTP API
  */
 async function sendPromptViaServer(

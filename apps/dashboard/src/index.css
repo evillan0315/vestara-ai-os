@@ -89,3 +89,287 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* NVIDIA opencode/north-mini-code-free special indicator */
+.nvidia-feature {
+  position: relative;
+}
+
+.nvidia-feature::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 10px;
+  height: 10px;
+  background: #ff9500;
+  border-radius: 50%;
+  border: 1.5px solid #1a1a2e;
+  animation: nvidia-pulse 2s infinite;
+}
+
+@keyframes nvidia-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 149, 0, 0.6); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 149, 0, 0); }
+}
+
+/* NVIDIA-specific message styling */
+.message-nvidia {
+  border-left: 3px solid #ff9500;
+  background: linear-gradient(90deg, rgba(255, 149, 0, 0.08), transparent);
+  padding-left: 12px;
+}
+
+/* NVIDIA model badge */
+.nvidia-badge {
+  background: linear-gradient(135deg, #ff9500, #ff6b00);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+  vertical-align: middle;
+  box-shadow: 0 0 8px rgba(255, 149, 0, 0.4);
+}
+
+/* NVIDIA info indicator */
+.nvidia-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 105, 0, 0.1));
+  border-radius: 12px;
+  border: 1px solid rgba(255, 149, 0, 0.2);
+  font-size: 9px;
+  color: #ff9500;
+}
+
+/* Status bar nvidia indicator */
+.status-bar-nvidia {
+  color: #ff9500;
+  font-weight: 600;
+}
+
+.status-bar-nvidia::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #ff9500;
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: nvidia-pulse 2s infinite;
+}
+
+/* Code block styling */
+pre code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Prose-like markdown */
+.prose {
+  word-break: break-word;
+}
+
+.prose p {
+  margin: 0.5em 0;
+}
+
+.prose p:first-child {
+  margin-top: 0;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+.prose ul, .prose ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.prose li {
+  margin: 0.25em 0;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  margin: 0.75em 0 0.5em;
+  font-weight: 600;
+  color: var(--color-vestara-text);
+}
+
+.prose h1 { font-size: 1.25rem; }
+.prose h2 { font-size: 1.1rem; }
+.prose h3 { font-size: 1rem; }
+
+/* Smooth scroll */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Cursor blink for streaming text */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Line clamp utility */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Responsive: narrow header */
+@media (max-width: 1024px) {
+  .responsive-header {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .responsive-sidebar {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    width: 100% !important;
+  }
+}
+
+/* Floating action bar animation */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.floating-actions {
+  animation: slide-up 0.15s ease-out;
+}
+
+/* Voice input pulse */
+@keyframes voice-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+.voice-active {
+  animation: voice-pulse 1.5s infinite;
+}
+
+/* Scroll margin for pinned message anchor */
+.pinned-anchor {
+  scroll-margin-top: 60px;
+}
+
+/* ── Projects Page Animations ───────────────── */
+
+/* Confirmation dialog overlay */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-overlay {
+  animation: fade-in 0.15s ease-out;
+}
+
+.modal-content {
+  animation: scale-in 0.15s ease-out;
+}
+
+/* Toast slide-in */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.toast-enter {
+  animation: slide-in-right 0.2s ease-out;
+}
+
+/* Checkmark animation for done tasks */
+@keyframes checkmark {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.task-checkmark {
+  animation: checkmark 0.3s ease-out;
+}
+
+/* Column drop highlight */
+@keyframes drop-glow {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(201, 168, 76, 0); }
+  50% { box-shadow: inset 0 0 20px rgba(201, 168, 76, 0.15); }
+}
+
+.column-drag-over {
+  animation: drop-glow 0.6s ease-in-out;
+  background: rgba(201, 168, 76, 0.03);
+}
+
+/* Progress bar fill */
+@keyframes fill-bar {
+  from { width: 0%; }
+}
+
+.progress-fill {
+  animation: fill-bar 0.5s ease-out;
+}
+
+/* Card hover lift */
+.project-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.project-card:hover {
+  transform: translateY(-1px);
+}
+
+/* Kanban card transition */
+.kanban-card {
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kanban-card:active {
+  transform: scale(0.97);
+}
+
+/* View switch fade */
+.view-fade-enter {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Search highlight */
+.search-highlight {
+  background: rgba(201, 168, 76, 0.25);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* Pulse for syncing state */
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.syncing {
+  animation: sync-pulse 0.8s ease-in-out infinite;
+}

@@ -49,7 +49,7 @@ Route Modules:
 ├── agent-runtime.ts /api/agents/*        Agent management + runtime
 ├── memory.ts        /api/memory/*        Memory CRUD + search
 ├── knowledge.ts     /api/knowledge/*     Knowledge base CRUD + search
-├── projects.ts      /api/projects/*      Project management
+├── projects.ts      /api/projects/*      Project CRUD, Kanban, sub-tasks, activity, .vestara sync, clone, archive, bulk ops
 ├── users.ts         /api/users/*         User CRUD (admin only)
 ├── scripts.ts       /api/scripts/*       Script management + execution
 └── files.ts         /api/files/*         File manager operations
