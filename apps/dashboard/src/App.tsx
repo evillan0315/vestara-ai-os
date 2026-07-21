@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -18,15 +20,20 @@ import FileManager from './pages/FileManager';
 import Projects from './pages/Projects';
 import Logs from './pages/Logs';
 
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-vestara-bg">
+      <div className="text-center space-y-3">
+        <div className="animate-pulse text-3xl">⏳</div>
+        <div className="text-sm text-vestara-text-muted">Loading Vestara AI OS...</div>
+      </div>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-vestara-bg">
-        <div className="text-sm text-vestara-text-muted">Loading...</div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
@@ -34,13 +41,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export function AppRoutes() {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-vestara-bg">
-        <div className="text-sm text-vestara-text-muted">Loading...</div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   return (
     <Routes>
@@ -76,7 +77,11 @@ export function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ThemeProvider>
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

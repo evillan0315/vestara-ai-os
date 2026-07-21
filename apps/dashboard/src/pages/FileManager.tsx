@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 interface FileEntry {
   name: string;
@@ -46,15 +47,10 @@ export default function FileManager() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: FileEntry } | null>(null);
   const [modal, setModal] = useState<{ type: string; path?: string; entry?: FileEntry } | null>(null);
   const [modalInput, setModalInput] = useState('');
-  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const { addToast } = useToast();
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  const notify = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 3000);
-  };
 
   const loadDir = useCallback(async (path: string) => {
     try {
@@ -122,16 +118,16 @@ export default function FileManager() {
         body: JSON.stringify({ path: selectedFile.path, content: editContent }),
       });
       if (res.ok) {
-        notify('success', 'File saved');
+        addToast('File saved');
         setEditing(false);
         loadDir(currentPath);
         openFile(selectedFile);
       } else {
         const data = await res.json();
-        notify('error', data.error || 'Save failed');
+        addToast(data.error || 'Save failed', 'error');
       }
     } catch {
-      notify('error', 'Network error');
+      addToast('Network error', 'error');
     } finally {
       setSaving(false);
     }
@@ -145,7 +141,7 @@ export default function FileManager() {
         body: JSON.stringify({ path: entry.path }),
       });
       if (res.ok) {
-        notify('success', `Deleted ${entry.name}`);
+        addToast(`Deleted ${entry.name}`);
         if (selectedFile?.path === entry.path) {
           setSelectedFile(null);
           setFileContent(null);
@@ -170,7 +166,7 @@ export default function FileManager() {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        notify('success', `Created ${modalInput}`);
+        addToast(`Created ${modalInput}`);
         loadDir(currentPath);
         loadTree();
       }
@@ -190,7 +186,7 @@ export default function FileManager() {
         body: JSON.stringify({ from: modal.entry.path, to: newPath }),
       });
       if (res.ok) {
-        notify('success', `Renamed to ${modalInput}`);
+        addToast(`Renamed to ${modalInput}`);
         loadDir(currentPath);
         loadTree();
       }
@@ -231,15 +227,6 @@ export default function FileManager() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-0 overflow-hidden">
-      {/* Notification */}
-      {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-sm font-medium ${
-          notification.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
-        }`}>
-          {notification.message}
-        </div>
-      )}
-
       {/* Tree sidebar */}
       <div className="w-56 flex-shrink-0 border-r border-vestara-glass-border bg-vestara-surface/30 overflow-y-auto hidden md:block">
         <div className="p-3 border-b border-vestara-glass-border">

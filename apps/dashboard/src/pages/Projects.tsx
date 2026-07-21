@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { useProjects, type ProjectData, type TaskData } from '../hooks/useProjects';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { DirectoryBrowser } from '../components/DirectoryBrowser';
@@ -16,18 +17,11 @@ const KanbanBoard = lazy(() => import('../components/KanbanBoard').then(m => ({ 
 const ProjectForm = lazy(() => import('../components/ProjectForm').then(m => ({ default: m.ProjectForm })));
 const TaskForm = lazy(() => import('../components/TaskForm').then(m => ({ default: m.TaskForm })));
 
-interface Toast {
-  id: number;
-  message: string;
-  type: 'success' | 'error';
-}
-
 type SortKey = 'name' | 'updated' | 'status';
-
-let toastId = 0;
 
 export default function Projects() {
   const { token } = useAuth();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const {
     projects, stats, selectedProject, tasks, activity, vestaraData,
@@ -49,7 +43,6 @@ export default function Projects() {
   const [editingTask, setEditingTask] = useState<TaskData | null>(null);
   const [showClone, setShowClone] = useState<ProjectData | null>(null);
   const [cloneName, setCloneName] = useState('');
-  const [toasts, setToasts] = useState<Toast[]>([]);
   const [showBrowser, setShowBrowser] = useState(false);
   const [browserPath, setBrowserPath] = useState('');
   const [browserEntries, setBrowserEntries] = useState<{ name: string; path: string; type: 'file' | 'directory' | 'symlink'; icon: string }[]>([]);
@@ -87,12 +80,6 @@ export default function Projects() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [selectedProject]);
-
-  const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    const id = ++toastId;
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
-  }, []);
 
   const loadBrowserDir = useCallback(async (path: string) => {
     try {
@@ -568,20 +555,6 @@ export default function Projects() {
           />
         )}
 
-        {toasts.length > 0 && (
-          <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-[300px]">
-            {toasts.map(t => (
-              <div key={t.id} className={`toast-enter glass border rounded-lg px-3 md:px-4 py-2 text-xs md:text-sm shadow-xl ${
-                t.type === 'success' ? 'border-vestara-success/30 text-vestara-success' : 'border-vestara-error/30 text-vestara-error'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <span>{t.type === 'success' ? '✓' : '✕'}</span>
-                  <span>{t.message}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </ErrorBoundary>
   );

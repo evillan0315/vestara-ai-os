@@ -1,17 +1,12 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useToast } from '../contexts/ToastContext';
 import { SettingsCard } from '../components/settings/SettingsCard';
 import { SettingRow } from '../components/settings/SettingRow';
 import { ProviderCard } from '../components/settings/ProviderCard';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-
-interface Toast {
-  id: number;
-  message: string;
-  type: 'success' | 'error';
-}
-let toastId = 0;
 
 type SettingsTab = 'general' | 'providers' | 'appearance' | 'advanced';
 
@@ -50,7 +45,7 @@ const LOG_RETENTION_OPTIONS = [
   { value: '5000', label: '5,000 entries' },
 ];
 
-// Row descriptor for search filtering
+// Row descriptor for search indexing
 interface SettingRowDef {
   label: string;
   section: string;
@@ -78,19 +73,14 @@ const ALL_SETTINGS_ROWS: SettingRowDef[] = [
 export function Settings() {
   const { settings, loading, dirty, error, clearError, updateSetting, bulkUpdate, resetSettings, backupSettings } = useSettings();
   const { user } = useAuth();
+  const { theme, setTheme, font, setFont } = useTheme();
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [searchQuery, setSearchQuery] = useState('');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [backupDone, setBackupDone] = useState<string | null>(null);
   const [backupError, setBackupError] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
   const errorShownRef = useRef<string | null>(null);
-
-  const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    const id = ++toastId;
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
-  }, []);
 
   // Show error toasts when useSettings reports an error
   useEffect(() => {
@@ -124,16 +114,12 @@ export function Settings() {
   }, [tabMatchCounts, activeTab, searchQuery]);
 
   const handleThemeChange = useCallback((value: string) => {
-    updateSetting('theme', value);
-    if (value === 'light') document.documentElement.classList.remove('dark');
-    else document.documentElement.classList.add('dark');
-    localStorage.setItem('vestara_theme', value);
-  }, [updateSetting]);
+    setTheme(value as 'dark' | 'light' | 'system');
+  }, [setTheme]);
 
   const handleFontChange = useCallback((value: string) => {
-    updateSetting('font', value);
-    document.documentElement.style.setProperty('--font-family', value);
-  }, [updateSetting]);
+    setFont(value);
+  }, [setFont]);
 
   const handleBackup = useCallback(async () => {
     const path = await backupSettings();
@@ -155,8 +141,6 @@ export function Settings() {
   }, [resetSettings, addToast]);
 
   // Derive values with defaults
-  const theme = settings.theme || 'dark';
-  const font = settings.font || 'Plus Jakarta Sans';
   const refreshInterval = settings.refreshInterval || '3000';
   const logRetention = settings.logRetention || '2000';
 
@@ -170,10 +154,16 @@ export function Settings() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div><h1 className="text-2xl font-bold text-vestara-text">Settings</h1><p className="text-sm text-vestara-text-muted">Loading...</p></div>
+        <div className="widget-enter">
+          <h1 className="text-2xl font-bold text-vestara-text">Settings</h1>
+          <p className="text-sm text-vestara-text-muted">Loading...</p>
+        </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="glass p-5 animate-pulse"><div className="h-4 w-24 bg-white/10 rounded mb-3" /><div className="h-3 w-full bg-white/5 rounded" /></div>
+            <div key={i} className="glass p-5 animate-pulse">
+              <div className="h-4 w-24 bg-white/10 rounded mb-3" />
+              <div className="h-3 w-full bg-white/5 rounded" />
+            </div>
           ))}
         </div>
       </div>
@@ -418,24 +408,6 @@ export function Settings() {
               </div>
             )}
           </SettingsCard>
-        </div>
-      )}
-
-      {/* Toast notifications */}
-      {toasts.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-          {toasts.map(t => (
-            <div
-              key={t.id}
-              className={`toast-enter glass border rounded-lg px-3 md:px-4 py-2 text-xs md:text-sm shadow-xl ${
-                t.type === 'success'
-                  ? 'border-green-500/30 text-green-400'
-                  : 'border-red-500/30 text-red-400'
-              }`}
-            >
-              {t.message}
-            </div>
-          ))}
         </div>
       )}
 
