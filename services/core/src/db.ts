@@ -265,6 +265,22 @@ db.run(`
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS knowledge_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER,
+      type TEXT NOT NULL CHECK(type IN ('document', 'code', 'url', 'note', 'conversation')),
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      embedding TEXT,
+      tags TEXT NOT NULL DEFAULT '[]',
+      source TEXT,
+      metadata TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
   // Migration: Add project_id to conversations if missing
   const convColumns = db.all<{ name: string }>("PRAGMA table_info(conversations)");
   if (!convColumns.some(c => c.name === 'project_id')) {
