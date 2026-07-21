@@ -42,6 +42,7 @@ const navGroups: NavGroup[] = [
       { to: '/terminal', label: 'Terminal', icon: '💻' },
       { to: '/files', label: 'Files', icon: '📁' },
       { to: '/monitor', label: 'Monitor', icon: '📈' },
+      { to: '/logs', label: 'Logs', icon: '📋' },
     ],
   },
   {

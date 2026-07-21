@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+import os from 'node:os';
 import type { VestaraApp } from '../types.js';
 import { generateId, generateToken } from '@vestara/utils';
 import bcryptjs from 'bcryptjs';
@@ -19,25 +20,39 @@ interface UserRow {
 
 function getOsUser(): { username: string; homeDir: string; shell: string } | null {
   try {
-    const username = execSync('whoami', { stdio: 'pipe', shell: '/usr/bin/sh' }).toString().trim();
-    const homeDir = execSync('echo $HOME', { stdio: 'pipe', shell: '/usr/bin/sh' }).toString().trim();
-    const shell = execSync('echo $SHELL', { stdio: 'pipe', shell: '/usr/bin/sh' }).toString().trim();
-    return { username, homeDir, shell };
+    const info = os.userInfo();
+    return {
+      username: info.username,
+      homeDir: info.homedir,
+      shell: info.shell || process.env.SHELL || '/bin/bash',
+    };
   } catch {
     return null;
   }
 }
 
 function verifyOsPassword(username: string, password: string): boolean {
+  const escaped = password.replace(/'/g, "'\\''");
+  // Try sudo -S first (reads password from stdin, works in most environments)
   try {
-    execSync(`echo '${password.replace(/'/g, "'\\''")}' | su -c 'echo ok' ${username}`, {
+    execSync(`echo '${escaped}' | sudo -S -k echo ok 2>/dev/null`, {
       stdio: 'pipe',
       shell: '/usr/bin/sh',
       timeout: 5000,
     });
     return true;
   } catch {
-    return false;
+    // Fallback: try su with piped password
+    try {
+      execSync(`echo '${escaped}' | su -c 'echo ok' ${username} 2>/dev/null`, {
+        stdio: 'pipe',
+        shell: '/usr/bin/sh',
+        timeout: 5000,
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

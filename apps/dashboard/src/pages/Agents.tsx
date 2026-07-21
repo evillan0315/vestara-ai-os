@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Agent {
   id: string;
@@ -19,12 +20,13 @@ const builtInAgents = [
 ];
 
 export function Agents() {
+  const { token } = useAuth();
   const [agents, setAgents] = useState<Agent[]>([]);
 
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const res = await fetch('/api/agents');
+        const res = await fetch('/api/agents', { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
           setAgents(data.agents);
@@ -34,7 +36,7 @@ export function Agents() {
       }
     };
     fetchAgents();
-  }, []);
+  }, [token]);
 
   return (
     <div className="space-y-6">

@@ -16,6 +16,7 @@ import Users from './pages/Users';
 import Scripts from './pages/Scripts';
 import FileManager from './pages/FileManager';
 import Projects from './pages/Projects';
+import Logs from './pages/Logs';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -65,6 +66,7 @@ function AppRoutes() {
         <Route path="/users" element={<Users />} />
         <Route path="/scripts" element={<Scripts />} />
         <Route path="/files" element={<FileManager />} />
+        <Route path="/logs" element={<Logs />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>

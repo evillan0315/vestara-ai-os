@@ -22,6 +22,9 @@ import { registerChatRoutes } from './routes/chat.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerScriptRoutes } from './routes/scripts.js';
 import { registerFileRoutes } from './routes/files.js';
+import { registerActivityRoutes } from './routes/activity.js';
+import { registerNotificationRoutes } from './routes/notifications.js';
+import { registerLogRoutes } from './routes/logs.js';
 import { AIRouter, type ProviderConfig } from './providers/router.js';
 import type { VestaraApp } from './types.js';
 
@@ -78,6 +81,12 @@ async function main() {
   // WebSocket
   await app.register(websocket);
 
+  // Global error handler
+  app.setErrorHandler((error: any, request, reply) => {
+    logger.error({ err: error, url: request.url, method: request.method }, 'Request error');
+    reply.status(error.statusCode || 500).send({ error: error.message });
+  });
+
   // Health check
   app.get('/api/health', async () => {
     const availability = await aiRouter.checkAvailability();
@@ -105,6 +114,9 @@ async function main() {
   registerUserRoutes(vestaraApp);
   registerScriptRoutes(vestaraApp);
   registerFileRoutes(vestaraApp);
+  registerActivityRoutes(vestaraApp);
+  registerNotificationRoutes(vestaraApp);
+  registerLogRoutes(vestaraApp);
   registerWebSocketHandler(vestaraApp);
 
   // Start

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Memory {
   id: number;
@@ -20,6 +21,8 @@ interface MemoryStats {
 }
 
 export default function Memory() {
+  const { token } = useAuth();
+  const authHeaders = { Authorization: `Bearer ${token}` };
   const [memories, setMemories] = useState<Memory[]>([]);
   const [stats, setStats] = useState<MemoryStats | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,7 +42,7 @@ export default function Memory() {
 
   const fetchMemories = async () => {
     try {
-      const response = await fetch('/api/memory?limit=50');
+      const response = await fetch('/api/memory?limit=50', { headers: authHeaders });
       if (response.ok) {
         const data = await response.json();
         setMemories(data);
@@ -53,7 +56,7 @@ export default function Memory() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/memory/stats');
+      const response = await fetch('/api/memory/stats', { headers: authHeaders });
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -69,7 +72,7 @@ export default function Memory() {
       return;
     }
     try {
-      const response = await fetch(`/api/memory/search?query=${encodeURIComponent(searchQuery)}&type=${filterType}`);
+      const response = await fetch(`/api/memory/search?query=${encodeURIComponent(searchQuery)}&type=${filterType}`, { headers: authHeaders });
       if (response.ok) {
         const data = await response.json();
         setMemories(data);
@@ -83,7 +86,7 @@ export default function Memory() {
     try {
       const response = await fetch('/api/memory', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(newMemory),
       });
       if (response.ok) {
@@ -100,7 +103,7 @@ export default function Memory() {
   const deleteMemory = async (id: number) => {
     if (!confirm('Delete this memory?')) return;
     try {
-      const response = await fetch(`/api/memory/${id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/memory/${id}`, { method: 'DELETE', headers: authHeaders });
       if (response.ok) {
         fetchMemories();
         fetchStats();
@@ -112,7 +115,7 @@ export default function Memory() {
 
   const consolidateMemories = async () => {
     try {
-      const response = await fetch('/api/memory/consolidate', { method: 'POST' });
+      const response = await fetch('/api/memory/consolidate', { method: 'POST', headers: authHeaders });
       if (response.ok) {
         const data = await response.json();
         alert(`Consolidated ${data.consolidated} memory groups`);

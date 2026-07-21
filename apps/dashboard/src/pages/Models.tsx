@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Provider {
   id: string;
@@ -35,13 +36,14 @@ const providerInfo: Record<string, { name: string; icon: string; models: string[
 };
 
 export function Models() {
+  const { token } = useAuth();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [opencodeStatus, setOpencodeStatus] = useState<OpenCodeStatus | null>(null);
 
   useEffect(() => {
     const fetchProviders = async () => {
       try {
-        const res = await fetch('/api/providers');
+        const res = await fetch('/api/providers', { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
           setProviders(data.providers);
@@ -65,7 +67,7 @@ export function Models() {
 
     fetchProviders();
     fetchOpenCodeStatus();
-  }, []);
+  }, [token]);
 
   return (
     <div className="space-y-6">

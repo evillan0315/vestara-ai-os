@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface KnowledgeEntry {
   id: number;
@@ -19,6 +20,8 @@ interface KnowledgeStats {
 }
 
 export default function Knowledge() {
+  const { token } = useAuth();
+  const authHeaders = { Authorization: `Bearer ${token}` };
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [stats, setStats] = useState<KnowledgeStats | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,7 +44,7 @@ export default function Knowledge() {
 
   const fetchEntries = async () => {
     try {
-      const response = await fetch('/api/knowledge?limit=50');
+      const response = await fetch('/api/knowledge?limit=50', { headers: authHeaders });
       if (response.ok) {
         const data = await response.json();
         setEntries(data);
@@ -55,7 +58,7 @@ export default function Knowledge() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/knowledge/stats');
+      const response = await fetch('/api/knowledge/stats', { headers: authHeaders });
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -71,7 +74,7 @@ export default function Knowledge() {
       return;
     }
     try {
-      const response = await fetch(`/api/knowledge/search?query=${encodeURIComponent(searchQuery)}&type=${filterType}`);
+      const response = await fetch(`/api/knowledge/search?query=${encodeURIComponent(searchQuery)}&type=${filterType}`, { headers: authHeaders });
       if (response.ok) {
         const data = await response.json();
         setEntries(data.map((r: any) => r.entry));
@@ -85,7 +88,7 @@ export default function Knowledge() {
     try {
       const response = await fetch('/api/knowledge', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newEntry,
           tags: newEntry.tags.split(',').map(t => t.trim()).filter(Boolean),
@@ -105,7 +108,7 @@ export default function Knowledge() {
   const deleteEntry = async (id: number) => {
     if (!confirm('Delete this entry?')) return;
     try {
-      const response = await fetch(`/api/knowledge/${id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/knowledge/${id}`, { method: 'DELETE', headers: authHeaders });
       if (response.ok) {
         fetchEntries();
         fetchStats();

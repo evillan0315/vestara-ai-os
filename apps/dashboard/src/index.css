@@ -373,3 +373,70 @@ pre code {
 .syncing {
   animation: sync-pulse 0.8s ease-in-out infinite;
 }
+
+/* ── Dashboard Page Animations ──────────────── */
+
+/* Metric card value transition */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.metric-value {
+  animation: count-up 0.4s ease-out;
+}
+
+/* Status badge per service */
+.service-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.service-dot.ok {
+  background: var(--color-vestara-success);
+}
+
+.service-dot.error {
+  background: var(--color-vestara-error);
+  animation: pulse 1.5s infinite;
+}
+
+.service-dot.stopped {
+  background: var(--color-vestara-text-dim);
+}
+
+/* Widget fade-in on load */
+@keyframes widget-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.widget-enter {
+  animation: widget-enter 0.3s ease-out both;
+}
+
+.widget-enter:nth-child(1) { animation-delay: 0ms; }
+.widget-enter:nth-child(2) { animation-delay: 50ms; }
+.widget-enter:nth-child(3) { animation-delay: 100ms; }
+.widget-enter:nth-child(4) { animation-delay: 150ms; }
+.widget-enter:nth-child(5) { animation-delay: 200ms; }
+.widget-enter:nth-child(6) { animation-delay: 250ms; }
+
+/* Notification bell bounce */
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(6deg); }
+  75% { transform: rotate(-6deg); }
+}
+
+.bell-ring {
+  animation: bell-ring 0.3s ease-in-out;
+}
+
+/* Chart expand transition */
+.chart-expand-enter {
+  animation: fade-in 0.2s ease-out;
+}

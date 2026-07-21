@@ -143,6 +143,27 @@ export function registerSystemRoutes(app: VestaraApp) {
     };
   });
 
+  app.get('/api/system/processes', async () => {
+    let processes: Array<{ pid: number; name: string; cpu: number; mem: number }> = [];
+    try {
+      const { execSync } = await import('node:child_process');
+      const out = execSync('ps -eo pid,%cpu,%mem,comm --sort=-%cpu --no-headers | head -20', {
+        shell: '/usr/bin/sh',
+        maxBuffer: 1024 * 64,
+      }).toString().trim();
+      processes = out.split('\n').filter(Boolean).map((line) => {
+        const parts = line.trim().split(/\s+/);
+        return {
+          pid: parseInt(parts[0]) || 0,
+          cpu: parseFloat(parts[1]) || 0,
+          mem: parseFloat(parts[2]) || 0,
+          name: parts.slice(3).join(' ') || 'unknown',
+        };
+      });
+    } catch {}
+    return { processes };
+  });
+
   app.post<{
     Body: { command: string };
   }>('/api/system/exec', async (request, reply) => {
