@@ -54,7 +54,6 @@ export function useSWR<T>(key: string | null, fetcher: () => Promise<T>, options
       pending.delete(key);
       setError(err);
       setLoading(false);
-      throw err;
     });
 
     pending.set(key, promise);

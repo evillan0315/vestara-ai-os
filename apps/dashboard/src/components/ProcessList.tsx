@@ -2,7 +2,7 @@ interface Process {
   pid: number;
   name: string;
   cpu: number;
-  mem: number;
+  memory: number;
 }
 
 interface ProcessListProps {
@@ -21,7 +21,7 @@ export function ProcessList({ processes }: ProcessListProps) {
             <span className="w-16 text-[10px] text-vestara-text-dim font-mono">{p.pid}</span>
             <span className="flex-1 truncate text-vestara-text">{p.name}</span>
             <span className="w-12 text-right text-vestara-text-dim font-mono">{p.cpu.toFixed(1)}%</span>
-            <span className="w-12 text-right text-vestara-text-dim font-mono">{p.mem.toFixed(1)}%</span>
+            <span className="w-12 text-right text-vestara-text-dim font-mono">{p.memory.toFixed(1)}%</span>
           </div>
         ))}
       </div>
