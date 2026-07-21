@@ -136,7 +136,7 @@ export function useDashboard() {
     importantMemories: memories || [],
     memoryStats: memStats,
     knowledgeStats: kwStats,
-    agents: agentData?.agents || [],
+    agents: Array.isArray(agentData) ? agentData : agentData?.agents || [],
     activity: activityData?.activity || [],
     notifications: notifData?.notifications || [],
     unreadNotifications: notifData?.unreadCount || 0,

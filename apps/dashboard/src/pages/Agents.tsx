@@ -29,7 +29,7 @@ export function Agents() {
         const res = await fetch('/api/agents', { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
-          setAgents(data.agents);
+          setAgents(Array.isArray(data) ? data : data.agents || []);
         }
       } catch {
         // API not available yet
