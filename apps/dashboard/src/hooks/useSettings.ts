@@ -5,11 +5,18 @@ export function useSettings() {
   const { token } = useAuth();
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Track which keys have unsaved local changes
+  const dirtyKeys = useRef<Set<string>>(new Set());
+  const [dirty, setDirty] = useState(false);
 
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  // Recalculate global dirty from the set
+  const recalcDirty = useCallback(() => {
+    setDirty(dirtyKeys.current.size > 0);
+  }, []);
+
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -28,7 +35,8 @@ export function useSettings() {
   const updateSetting = useCallback((key: string, value: string) => {
     // Optimistic local update
     setSettings(prev => ({ ...prev, [key]: value }));
-    setDirty(true);
+    dirtyKeys.current.add(key);
+    recalcDirty();
 
     // Debounce save (500ms)
     const existing = debounceTimers.current.get(key);
@@ -41,19 +49,25 @@ export function useSettings() {
           body: JSON.stringify({ value }),
         });
         if (res.ok) {
-          setDirty(false);
-          debounceTimers.current.delete(key);
+          dirtyKeys.current.delete(key);
+          recalcDirty();
+        } else {
+          const errBody = await res.json().catch(() => ({}));
+          setError(errBody.error || `Failed to save ${key}`);
         }
       } catch {
-        setError(`Failed to save ${key}`);
+        setError(`Failed to save ${key}: Network error`);
+      } finally {
+        debounceTimers.current.delete(key);
       }
     }, 500);
     debounceTimers.current.set(key, timer);
-  }, [headers]);
+  }, [headers, recalcDirty]);
 
   const bulkUpdate = useCallback(async (entries: Record<string, string>) => {
     setSettings(prev => ({ ...prev, ...entries }));
-    setDirty(true);
+    Object.keys(entries).forEach(k => dirtyKeys.current.add(k));
+    recalcDirty();
     try {
       const res = await fetch('/api/settings', {
         method: 'PUT',
@@ -63,20 +77,22 @@ export function useSettings() {
       if (res.ok) {
         const data = await res.json();
         setSettings(data.settings || {});
-        setDirty(false);
+        Object.keys(entries).forEach(k => dirtyKeys.current.delete(k));
+        recalcDirty();
       }
     } catch {
       setError('Failed to save settings');
     }
-  }, [headers]);
+  }, [headers, recalcDirty]);
 
   const resetSettings = useCallback(async () => {
     try {
       await fetch('/api/settings/reset', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
       setSettings({});
-      setDirty(false);
+      dirtyKeys.current.clear();
+      recalcDirty();
     } catch {}
-  }, [token]);
+  }, [token, recalcDirty]);
 
   const backupSettings = useCallback(async (): Promise<string | null> => {
     try {
@@ -88,6 +104,8 @@ export function useSettings() {
     } catch {}
     return null;
   }, [token]);
+
+  const clearError = useCallback(() => setError(null), []);
 
   // Cleanup debounce timers
   useEffect(() => {
@@ -103,6 +121,7 @@ export function useSettings() {
     loading,
     dirty,
     error,
+    clearError,
     updateSetting,
     bulkUpdate,
     resetSettings,
