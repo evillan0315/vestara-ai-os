@@ -227,7 +227,11 @@ export function useOpenCodeChat(token: string | null) {
         body: JSON.stringify({ content: fullContent, model, cwd, agent, customInstructions: customInstructions || undefined, webSearch, fallbackModels: fallbackModels.length > 0 ? fallbackModels : undefined }),
         signal: abort.signal,
       });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+      if (!res.ok) {
+        let errMsg = 'Request failed';
+        try { const body = await res.json(); errMsg = body.error || errMsg; } catch { /* non-JSON */ }
+        throw new Error(errMsg);
+      }
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No body');
       const decoder = new TextDecoder();
@@ -241,7 +245,11 @@ export function useOpenCodeChat(token: string | null) {
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const s = line.slice(6);
-          try { const d = JSON.parse(s); if (d.done) { assistantId = d.assistantMessageId; } else if (d.error) throw new Error(d.error); else if (typeof d === 'string') { acc += d; setStreamingContent(acc); } } catch { acc += s; setStreamingContent(acc); }
+          let parsed: any;
+          try { parsed = JSON.parse(s); } catch { acc += s; setStreamingContent(acc); continue; }
+          if (parsed.done) { assistantId = parsed.assistantMessageId; }
+          else if (parsed.error) { throw new Error(parsed.error); }
+          else if (typeof parsed === 'string') { acc += parsed; setStreamingContent(acc); }
         }
       }
 

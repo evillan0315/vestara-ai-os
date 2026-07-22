@@ -13,7 +13,7 @@
  * OpenCode auth: ~/.local/share/opencode/auth.json
  */
 
-import { execSync, exec, spawn, ChildProcess } from 'node:child_process';
+import { execSync, spawn, ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createLogger } from '@vestara/core';
@@ -249,7 +249,7 @@ export async function sendPrompt(
   }
 
   // Fallback to CLI mode
-  return sendPromptViaCLI(prompt, { model, cwd, agent });
+  return sendPromptViaCLI(prompt, () => {}, { model, cwd, agent });
 }
 
 /**
@@ -281,9 +281,7 @@ export async function sendPromptStream(
       if (isServerRunning()) {
         return await sendPromptViaServerStream(fullPrompt, onToken, { model, cwd, agent, webSearch });
       }
-      const full = await sendPromptViaCLI(fullPrompt, { model, cwd, agent });
-      onToken(full);
-      return full;
+      return await sendPromptViaCLI(fullPrompt, onToken, { model, cwd, agent });
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (models.length > 1) {
@@ -372,37 +370,73 @@ async function sendPromptViaServer(
 }
 
 /**
- * Send prompt via OpenCode CLI
+ * Send prompt via OpenCode CLI with streaming JSON output
  */
 function sendPromptViaCLI(
   prompt: string,
+  onToken: (token: string) => void,
   opts: { model?: string; cwd?: string; agent?: string },
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const cmd = `opencode run "${prompt.replace(/"/g, '\\"')}"${opts.model ? ` --model ${opts.model}` : ''}`;
-    exec(
-      cmd,
-      {
-        cwd: opts.cwd || config.workDir,
-        timeout: 120000,
-        shell: '/usr/bin/sh',
-        env: {
-          ...process.env,
-          ...getApiKeyEnv(),
-          OPENCODE_MODEL: opts.model || '',
-        },
+    const args = ['run', prompt, '--format', 'json'];
+    if (opts.model) args.push('--model', opts.model);
+
+    const proc = spawn('opencode', args, {
+      cwd: opts.cwd || config.workDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        ...getApiKeyEnv(),
+        OPENCODE_MODEL: opts.model || '',
       },
-      (error, stdout, stderr) => {
-        if (error) {
-          reject(new Error(error.message));
-          return;
+    });
+
+    let fullResponse = '';
+    let buffer = '';
+
+    proc.stdout?.on('data', (chunk: Buffer) => {
+      buffer += chunk.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const event = JSON.parse(line);
+          if (event.type === 'text' && event.part?.text) {
+            fullResponse += event.part.text;
+            onToken(event.part.text);
+          }
+        } catch {
+          fullResponse += line;
+          onToken(line);
         }
-        if (stderr) {
-          logger.warn(`OpenCode CLI stderr: ${stderr}`);
+      }
+    });
+
+    proc.on('close', (code) => {
+      if (buffer.trim()) {
+        try {
+          const event = JSON.parse(buffer);
+          if (event.type === 'text' && event.part?.text) {
+            fullResponse += event.part.text;
+            onToken(event.part.text);
+          }
+        } catch {
+          fullResponse += buffer;
+          onToken(buffer);
         }
-        resolve(stdout);
-      },
-    );
+      }
+
+      if (code !== 0 && !fullResponse) {
+        reject(new Error(`OpenCode CLI exited with code ${code}`));
+        return;
+      }
+      resolve(fullResponse);
+    });
+
+    proc.on('error', (err) => {
+      reject(new Error(`Failed to start OpenCode CLI: ${err.message}`));
+    });
   });
 }
 
