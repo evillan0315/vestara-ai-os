@@ -92,7 +92,9 @@ export const PROVIDERS: Record<string, ProviderInfo> = {
     color: 'cyan',
     description: 'Local model inference — no API key required',
     baseUrl: `http://localhost:${OLLAMA_PORT}`,
-    models: [],
+    models: [
+      { id: 'deepseek-coder', name: 'DeepSeek Coder', description: 'Code-focused LLM for programming tasks' },
+    ],
     features: ['local', 'no-api-key', 'gpu'],
   },
   openai: {
