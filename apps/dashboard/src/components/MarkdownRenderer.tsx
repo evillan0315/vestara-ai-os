@@ -13,7 +13,9 @@ function CodeBlock({ language, code }: CodeBlockProps) {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to copy code:', err);
+    }
   }, [code]);
 
   const handleApplyDiff = useCallback(() => {

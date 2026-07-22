@@ -124,7 +124,7 @@ export function registerOpenCodeRoutes(app: VestaraApp) {
    */
   app.post<{
     Body: { title?: string; model?: string; projectId?: string; cwd?: string; agent?: string; customInstructions?: string; fallbackModels?: string[] };
-  }>('/api/providers/opencode/chats', {}, async (request) => {
+  }>('/api/providers/opencode/chats', {}, async (request, reply) => {
     const id = randomUUID();
     const title = request.body?.title || 'New Chat';
     const model = request.body?.model || 'opencode/deepseek-v4-flash-free';
@@ -133,12 +133,19 @@ export function registerOpenCodeRoutes(app: VestaraApp) {
     const agent = request.body?.agent || 'build';
     const customInstructions = request.body?.customInstructions || null;
     const fallbackModels = request.body?.fallbackModels || null;
-    app.db.run(
-      'INSERT INTO opencode_chats (id, project_id, title, model, cwd, agent, custom_instructions, fallback_models) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      id, projectId, title, model, cwd, agent, customInstructions, fallbackModels ? JSON.stringify(fallbackModels) : null,
-    );
-    const chat = app.db.get('SELECT * FROM opencode_chats WHERE id = ?', id);
-    return { chat };
+
+    try {
+      app.db.run(
+        'INSERT INTO opencode_chats (id, project_id, title, model, cwd, agent, custom_instructions, fallback_models) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        id, projectId, title, model, cwd, agent, customInstructions, fallbackModels ? JSON.stringify(fallbackModels) : null,
+      );
+      const chat = app.db.get('SELECT * FROM opencode_chats WHERE id = ?', id);
+      return { chat };
+    } catch (err) {
+      return reply.status(500).send({
+        error: err instanceof Error ? err.message : 'Failed to create chat',
+      });
+    }
   });
 
   /**
@@ -175,6 +182,27 @@ export function registerOpenCodeRoutes(app: VestaraApp) {
 
     app.db.run('DELETE FROM opencode_messages WHERE chat_id = ?', chatId);
     app.db.run('DELETE FROM opencode_chats WHERE id = ?', chatId);
+    return { success: true };
+  });
+
+  /**
+   * Rename an OpenCode chat
+   */
+  app.patch<{
+    Params: { chatId: string };
+    Body: { title: string };
+  }>('/api/providers/opencode/chats/:chatId', {}, async (request, reply) => {
+    const { chatId } = request.params;
+    const { title } = request.body;
+
+    if (!title || !title.trim()) {
+      return reply.status(400).send({ error: 'Title is required' });
+    }
+
+    const chat = app.db.get('SELECT * FROM opencode_chats WHERE id = ?', chatId);
+    if (!chat) return reply.status(404).send({ error: 'Chat not found' });
+
+    app.db.run('UPDATE opencode_chats SET title = ?, updated_at = datetime(\'now\') WHERE id = ?', title.trim(), chatId);
     return { success: true };
   });
 

@@ -12,6 +12,8 @@ import { SuggestionsPanel } from '../components/SuggestionsPanel';
 import { MessageSkeleton } from '../components/LoadingSkeleton';
 import { TokenUsageBar } from '../components/TokenUsageBar';
 import { PinnedMessages } from '../components/PinnedMessages';
+import { MessageSearch } from '../components/MessageSearch';
+import { OPENCODE_MODELS, AGENT_MODE_LABELS } from '@vestara/constants';
 
 const CustomInstructionsDialog = lazy(() => import('../components/CustomInstructionsDialog').then(m => ({ default: m.CustomInstructionsDialog })));
 const FallbackModelsEditor = lazy(() => import('../components/FallbackModelsEditor').then(m => ({ default: m.FallbackModelsEditor })));
@@ -21,18 +23,7 @@ const MultiChatCompare = lazy(() => import('../components/MultiChatCompare').the
 interface BrowserEntry { name: string; path: string; type: 'file' | 'directory' | 'symlink'; icon: string; }
 interface Project { id: string; name: string; path: string | null; status: string; created_at: string; updated_at: string; }
 
-const defaultModels = [
-  { id: 'opencode/deepseek-v4-flash-free', name: 'DeepSeek V4 Flash (Free)' },
-  { id: 'opencode/mimo-v2.5-free', name: 'Mimo V2.5 (Free)' },
-  { id: 'opencode/nemotron-3-ultra-free', name: 'Nemotron 3 Ultra (Free)' },
-  { id: 'opencode/north-mini-code-free', name: 'North Mini Code (Free)' },
-  { id: 'opencode/big-pickle', name: 'Big Pickle' },
-];
-
-const agentOptions: { value: AgentMode; label: string }[] = [
-  { value: 'build', label: 'Build' }, { value: 'plan', label: 'Plan' },
-  { value: 'explore', label: 'Explore' }, { value: 'general', label: 'General' },
-];
+const agentOptions = Object.entries(AGENT_MODE_LABELS).map(([value, label]) => ({ value: value as AgentMode, label }));
 
 export function OpenCodePage() {
   const navigate = useNavigate();
@@ -41,12 +32,12 @@ export function OpenCodePage() {
     chats, activeChatId, setActiveChatId, messages, loading, streamingContent,
     editingMessageId, setEditingMessageId, agent, setAgent, customInstructions, setCustomInstructions,
     webSearch, setWebSearch, fallbackModels, setFallbackModels, totalTokens, tokenPercentage, estimatedCost,
-    pinnedIds, togglePin, handleReact, saveDraft,
-    loadChats, loadMessages, createChat, deleteChat, sendMessage, cancelStream,
+    pinnedIds, togglePin, handleReact, saveDraft, draft,
+    loadChats, loadMessages, createChat, deleteChat, renameChat, sendMessage, cancelStream, regenerateLastMessage,
     exportChatAsMarkdown, exportChatAsJSON, importChatFromJSON, importChatFromMarkdown, startEdit,
   } = useOpenCodeChat(token);
 
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(draft);
   const [model, setModel] = useState('opencode/deepseek-v4-flash-free');
   const [cwd, setCwd] = useState('/home/eddie/workspace');
   const [showSidebar, setShowSidebar] = useState(true);
@@ -62,7 +53,9 @@ export function OpenCodePage() {
   const [showFallbackEditor, setShowFallbackEditor] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [narrowMode, setNarrowMode] = useState(false);
+  const [branchIndicator, setBranchIndicator] = useState<{ show: boolean; fromMessage: string } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -98,11 +91,43 @@ export function OpenCodePage() {
     return () => resizeObserverRef.current?.disconnect();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+
+      if (isMod && e.key === 'f' && activeChat && messages.length > 0) {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+
+      if (isMod && e.key === 'k') {
+        e.preventDefault();
+        setShowTemplates(true);
+      }
+
+      if (e.key === 'Escape') {
+        if (showSearch) setShowSearch(false);
+        else if (showInstructionsDialog) setShowInstructionsDialog(false);
+        else if (showFallbackEditor) setShowFallbackEditor(false);
+        else if (showTemplates) setShowTemplates(false);
+        else if (showCompare) setShowCompare(false);
+        else if (showBrowser) setShowBrowser(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeChat, messages.length, showSearch, showInstructionsDialog, showFallbackEditor, showTemplates, showCompare, showBrowser]);
+
   const loadProjects = async () => {
     try { const res = await fetch('/api/projects', { headers: { Authorization: `Bearer ${token}` } }); if (res.ok) setProjects((await res.json()).projects || []); } catch {}
   };
 
   const handleCreateChat = useCallback(async () => { await createChat(model, cwd, selectedProjectId); }, [model, cwd, selectedProjectId, createChat]);
+
+  const handleRenameChat = useCallback(async (chatId: string, title: string) => {
+    await renameChat(chatId, title);
+  }, [renameChat]);
 
   const handleSend = useCallback(() => {
     sendMessage(input, model, cwd, selectedProjectId, attachedFiles, editingMessageId);
@@ -110,10 +135,16 @@ export function OpenCodePage() {
     saveDraft('');
   }, [input, model, cwd, selectedProjectId, attachedFiles, editingMessageId, sendMessage, saveDraft]);
 
+  const handleRegenerate = useCallback(() => {
+    regenerateLastMessage(model, cwd, selectedProjectId);
+  }, [model, cwd, selectedProjectId, regenerateLastMessage]);
+
   const handleEdit = useCallback((messageId: string, content: string) => {
     const lines = content.split('\n');
     const clean = lines.filter((l) => !l.startsWith('---') && !l.startsWith('File:') && !l.startsWith('```')).join('\n').trim() || content;
     setInput(clean); startEdit(messageId, content);
+    setBranchIndicator({ show: true, fromMessage: content.slice(0, 50) + (content.length > 50 ? '...' : '') });
+    setTimeout(() => setBranchIndicator(null), 5000);
   }, [startEdit]);
 
   const handleSuggestionSelect = useCallback((p: string) => { setInput(p); }, []);
@@ -214,6 +245,12 @@ export function OpenCodePage() {
       <button onClick={() => setShowFallbackEditor(true)} className={`rounded px-1.5 py-0.5 text-[10px] ${fallbackModels.length > 0 ? 'bg-vestara-purple/15 text-vestara-purple border border-vestara-purple/20' : 'text-vestara-text-dim border border-transparent hover:text-vestara-text'}`}>{fallbackModels.length > 0 ? `⇄ ${fallbackModels.length}` : '⇄'}</button>
       <button onClick={() => setShowTemplates(true)} className="rounded px-1.5 py-0.5 text-[10px] text-vestara-text-dim hover:text-vestara-text border border-transparent" title="Templates">📋</button>
       {activeChat && <button onClick={() => setShowCompare(true)} className="rounded px-1.5 py-0.5 text-[10px] text-vestara-text-dim hover:text-vestara-text border border-transparent" title="Compare chats">⇔</button>}
+      {activeChat && messages.length > 0 && <button onClick={() => setShowSearch(true)} className="rounded px-1.5 py-0.5 text-[10px] text-vestara-text-dim hover:text-vestara-text border border-transparent" title="Search messages (Ctrl+F)">🔍</button>}
+      {branchIndicator && (
+        <span className="flex items-center gap-1 rounded bg-vestara-purple/15 px-1.5 py-0.5 text-[10px] text-vestara-purple border border-vestara-purple/20 animate-pulse">
+          <span>⑂</span> Branching from: {branchIndicator.fromMessage}
+        </span>
+      )}
 
       {activeChat && <div className="flex items-center gap-0.5">
         <button onClick={handleExportJSON} className="rounded px-1 py-0.5 text-[10px] text-vestara-text-dim hover:text-vestara-text">⤓J</button>
@@ -229,7 +266,7 @@ export function OpenCodePage() {
         <select value={selectedProjectId || ''} onChange={(e) => handleProjectChange(e.target.value)} className="w-24 rounded border border-vestara-glass-border bg-vestara-bg px-1.5 py-0.5 text-[10px] text-vestara-text outline-none"><option value="">None</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
         <span className="text-[10px] text-vestara-text-dim">cwd:</span>
         <CwdInput value={cwd} onChange={setCwd} token={token} onBrowse={() => openBrowser(cwd)} />
-        <select value={model} onChange={(e) => setModel(e.target.value)} className="w-32 rounded border border-vestara-glass-border bg-vestara-bg px-1.5 py-0.5 text-[10px] text-vestara-text outline-none">{defaultModels.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+        <select value={model} onChange={(e) => setModel(e.target.value)} className="w-32 rounded border border-vestara-glass-border bg-vestara-bg px-1.5 py-0.5 text-[10px] text-vestara-text outline-none">{OPENCODE_MODELS.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
       </div>
     </div>
   );
@@ -237,7 +274,7 @@ export function OpenCodePage() {
   return (
     <ErrorBoundary>
       <div className="flex h-full gap-0 overflow-hidden rounded-lg border border-vestara-glass-border">
-        <ChatSidebar chats={chats} activeChatId={activeChatId} onSelect={setActiveChatId} onCreate={handleCreateChat} onDelete={deleteChat} show={showSidebar} onToggle={() => setShowSidebar(false)} editingChatId={editingMessageId ? activeChatId : null} />
+        <ChatSidebar chats={chats} activeChatId={activeChatId} onSelect={setActiveChatId} onCreate={handleCreateChat} onDelete={deleteChat} onRename={handleRenameChat} show={showSidebar} onToggle={() => setShowSidebar(false)} editingChatId={editingMessageId ? activeChatId : null} />
 
         <div className="flex flex-1 flex-col overflow-hidden bg-vestara-bg">
           {narrowHeader}
@@ -256,6 +293,14 @@ export function OpenCodePage() {
                 ))}
                 {loading && streamingContent && <StreamingMessage content={streamingContent} />}
                 {loading && !streamingContent && <div className="flex justify-start"><div className="glass-sm flex items-center gap-2 px-4 py-2.5 text-sm text-vestara-blue"><span className="ai-active">●</span><span>Thinking...</span></div></div>}
+                {!loading && messages.length > 0 && messages[messages.length - 1].role === 'assistant' && (
+                  <div className="flex justify-start">
+                    <button onClick={handleRegenerate} className="flex items-center gap-1.5 rounded-lg border border-vestara-glass-border bg-vestara-glass px-3 py-1.5 text-xs text-vestara-text-muted hover:text-vestara-text transition-colors">
+                      <span>↻</span> Regenerate
+                      <span className="text-[9px] text-vestara-text-dim/50">(creates branch)</span>
+                    </button>
+                  </div>
+                )}
                 {chatLoading && !loading && <MessageSkeleton />}
                 <div ref={messagesEndRef} />
               </div>
@@ -280,6 +325,7 @@ export function OpenCodePage() {
           {showTemplates && <ChatTemplates open={showTemplates} onSelect={handleTemplateSelect} currentPrompt={input} currentModel={model} currentAgent={agent} currentInstructions={customInstructions} onClose={() => setShowTemplates(false)} />}
           {showCompare && <MultiChatCompare open={showCompare} chats={chats} currentChatId={activeChatId} messages={messages} onLoadMessages={loadMessages} onClose={() => setShowCompare(false)} />}
         </Suspense>
+        {showSearch && <MessageSearch messages={messages} onJumpTo={handleJumpToMessage} onClose={() => setShowSearch(false)} />}
       </div>
     </ErrorBoundary>
   );

@@ -73,7 +73,7 @@ const ALL_SETTINGS_ROWS: SettingRowDef[] = [
 export function Settings() {
   const { settings, loading, dirty, error, clearError, updateSetting, bulkUpdate, resetSettings, backupSettings } = useSettings();
   const { user } = useAuth();
-  const { theme, setTheme, font, setFont } = useTheme();
+  const { theme, setTheme, resolvedTheme, font, setFont } = useTheme();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [searchQuery, setSearchQuery] = useState('');
@@ -339,13 +339,54 @@ export function Settings() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <SettingsCard title="Theme" icon="🎨">
             {matchesSearch('Theme', 'Theme') && (
-              <SettingRow
-                label="Theme"
-                value={theme}
-                type="select"
-                options={THEME_OPTIONS}
-                onChange={handleThemeChange}
-              />
+              <div className="space-y-3">
+                <p className="text-[10px] text-vestara-text-dim">Choose your preferred theme</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {THEME_OPTIONS.map((opt) => {
+                    const isActive = theme === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleThemeChange(opt.value)}
+                        className={`relative rounded-lg border p-3 text-left transition-all ${
+                          isActive
+                            ? 'border-vestara-gold bg-vestara-gold/10'
+                            : 'border-vestara-glass-border hover:border-vestara-text-dim'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            isActive ? 'border-vestara-gold bg-vestara-gold' : 'border-vestara-text-dim'
+                          }`}>
+                            {isActive && (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-vestara-bg" />
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs font-medium text-vestara-text">{opt.label}</span>
+                        </div>
+                        {/* Theme preview */}
+                        <div className={`rounded-md p-2 text-[9px] ${
+                          opt.value === 'dark' || (opt.value === 'system' && resolvedTheme === 'dark')
+                            ? 'bg-[#06060C] text-[#E8ECF1]'
+                            : opt.value === 'light' || (opt.value === 'system' && resolvedTheme === 'light')
+                              ? 'bg-[#F8F9FC] text-[#1A1D29]'
+                              : 'bg-[#06060C] text-[#E8ECF1]'
+                        }`}>
+                          <div className="flex gap-1 mb-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-vestara-gold" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-vestara-success" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-vestara-error" />
+                          </div>
+                          <div className="h-1 w-3/4 rounded bg-current opacity-20 mb-0.5" />
+                          <div className="h-1 w-1/2 rounded bg-current opacity-20" />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
             {matchesSearch('Font', 'Theme') && (
               <SettingRow

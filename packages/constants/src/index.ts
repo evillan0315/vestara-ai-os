@@ -14,7 +14,7 @@ export const OLLAMA_PORT = 11434;
 export const DATABASE_NAME = 'vestara.db';
 
 export const JWT_EXPIRES_IN = '7d';
-export const JWT_SECRET = process.env.JWT_SECRET || 'vestara-dev-secret';
+export const JWT_SECRET = (typeof process !== 'undefined' && process.env?.JWT_SECRET) || 'vestara-dev-secret';
 
 export const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 export const MAX_MESSAGE_LENGTH = 100_000;
@@ -89,3 +89,20 @@ export const ACTIVITY_ACTIONS = {
   UPLOAD: 'upload',
   DOWNLOAD: 'download',
 } as const;
+
+export const OPENCODE_MODELS = [
+  { id: 'opencode/deepseek-v4-flash-free', name: 'DeepSeek V4 Flash (Free)' },
+  { id: 'opencode/mimo-v2.5-free', name: 'Mimo V2.5 (Free)' },
+  { id: 'opencode/nemotron-3-ultra-free', name: 'Nemotron 3 Ultra (Free)' },
+  { id: 'opencode/north-mini-code-free', name: 'North Mini Code (Free)' },
+  { id: 'opencode/big-pickle', name: 'Big Pickle' },
+] as const;
+
+export const AGENT_MODES = ['build', 'plan', 'explore', 'general'] as const;
+
+export const AGENT_MODE_LABELS: Record<string, string> = {
+  build: 'Build',
+  plan: 'Plan',
+  explore: 'Explore',
+  general: 'General',
+};

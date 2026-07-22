@@ -78,20 +78,22 @@ export function useOpenCodeChat(token: string | null) {
   const abortRef = useRef<AbortController | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
-  useEffect(() => {
+  const [draft, setDraft] = useState<string>(() => {
     try {
       const saved = localStorage.getItem(DRAFT_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.timestamp && Date.now() - parsed.timestamp < 300_000) {
-          return parsed.value;
+          return parsed.value as string;
         }
         localStorage.removeItem(DRAFT_KEY);
       }
     } catch {}
-  }, []);
+    return '';
+  });
 
   const saveDraft = useCallback((value: string) => {
+    setDraft(value);
     if (value.trim()) {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({ value, timestamp: Date.now() }));
     } else {
@@ -123,7 +125,9 @@ export function useOpenCodeChat(token: string | null) {
         return res.json();
       });
       setChats(data.chats);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load chats:', err);
+    }
   }, [token]);
 
   const loadMessages = useCallback(async (chatId: string): Promise<{ model: string; cwd: string; agent: string; customInstructions: string; fallbackModels: string[] } | null> => {
@@ -142,7 +146,10 @@ export function useOpenCodeChat(token: string | null) {
       if (chat.custom_instructions) setCustomInstructions(chat.custom_instructions);
       if (chat.fallback_models) { try { setFallbackModels(JSON.parse(chat.fallback_models)); } catch { setFallbackModels([]); } }
       return { model: chat.model, cwd: chat.cwd || '', agent: chat.agent || 'build', customInstructions: chat.custom_instructions || '', fallbackModels: chat.fallback_models ? JSON.parse(chat.fallback_models) : [] };
-    } catch { return null; }
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+      return null;
+    }
   }, [token]);
 
   const createChat = useCallback(async (model: string, cwd: string, selectedProjectId?: string | null, agentMode?: AgentMode, customInst?: string, fallbacks?: string[]) => {
@@ -159,7 +166,9 @@ export function useOpenCodeChat(token: string | null) {
         setMessages([]);
         return data.chat.id;
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to create chat:', err);
+    }
     return null;
   }, [token, agent, customInstructions, fallbackModels]);
 
@@ -168,8 +177,25 @@ export function useOpenCodeChat(token: string | null) {
       await fetch(`/api/providers/opencode/chats/${chatId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       setChats((prev) => prev.filter((c) => c.id !== chatId));
       if (activeChatId === chatId) { setActiveChatId(null); setMessages([]); }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to delete chat:', err);
+    }
   }, [token, activeChatId]);
+
+  const renameChat = useCallback(async (chatId: string, title: string) => {
+    try {
+      const res = await fetch(`/api/providers/opencode/chats/${chatId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title }),
+      });
+      if (res.ok) {
+        setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, title } : c));
+      }
+    } catch (err) {
+      console.error('Failed to rename chat:', err);
+    }
+  }, [token]);
 
   const buildFileContext = (files: AttachedFile[]): string => {
     if (files.length === 0) return '';
@@ -239,6 +265,19 @@ export function useOpenCodeChat(token: string | null) {
     setLoading(false);
   }, [streamingContent]);
 
+  const regenerateLastMessage = useCallback(async (model: string, cwd: string, selectedProjectId?: string | null) => {
+    if (loading || messages.length === 0) return;
+
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== 'assistant') return;
+
+    const previousUserMsg = messages.slice().reverse().find((m) => m.role === 'user');
+    if (!previousUserMsg) return;
+
+    setMessages((prev) => prev.slice(0, -1));
+    await sendMessage(previousUserMsg.content, model, cwd, selectedProjectId);
+  }, [loading, messages, sendMessage]);
+
   const exportChatAsMarkdown = useCallback((chat: Chat, msgs: Message[]): string => {
     const lines = [`# ${chat.title}`, `- **Model**: ${chat.model}`, `- **Agent**: ${chat.agent || 'build'}`, `- **CWD**: ${chat.cwd}`];
     if (chat.custom_instructions) lines.push(`- **Custom Instructions**: ${chat.custom_instructions}`);
@@ -255,16 +294,19 @@ export function useOpenCodeChat(token: string | null) {
       const chat = data.chat; const msgs = data.messages || [];
       const chatId = await createChat(chat.model || 'opencode/deepseek-v4-flash-free', chat.cwd || '', null, chat.agent || 'build', chat.custom_instructions || '', chat.fallback_models || []);
       if (!chatId) return null;
-      for (const msg of msgs) { if (msg.role === 'user' || msg.role === 'assistant') { await fetch(`/api/providers/opencode/chats/${chatId}/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ content: msg.content, model: msg.model || chat.model }) }).catch(() => {}); } }
+      for (const msg of msgs) { if (msg.role === 'user' || msg.role === 'assistant') { await fetch(`/api/providers/opencode/chats/${chatId}/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ content: msg.content, model: msg.model || chat.model }) }).catch((err) => console.error('Failed to import message:', err)); } }
       return chatId;
-    } catch { return null; }
+    } catch (err) {
+      console.error('Failed to import chat from JSON:', err);
+      return null;
+    }
   }, [token, createChat]);
 
   const importChatFromMarkdown = useCallback(async (mdContent: string): Promise<string | null> => {
     const model = mdContent.match(/\*\*Model\*\*:\s*(.+)/)?.[1]?.trim() || 'opencode/deepseek-v4-flash-free';
     const chatId = await createChat(model, ''); if (!chatId) return null;
     const regex = /### \*\*(You|Assistant)\*\*\n\n([\s\S]*?)(?=\n### \*\*|\n---\n|$)/g; let m;
-    while ((m = regex.exec(mdContent)) !== null) { const content = m[2].trim(); if (content) { await fetch(`/api/providers/opencode/chats/${chatId}/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ content, model }) }).catch(() => {}); } }
+    while ((m = regex.exec(mdContent)) !== null) { const content = m[2].trim(); if (content) { await fetch(`/api/providers/opencode/chats/${chatId}/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ content, model }) }).catch((err) => console.error('Failed to import message:', err)); } }
     return chatId;
   }, [token, createChat]);
 
@@ -278,7 +320,7 @@ export function useOpenCodeChat(token: string | null) {
     });
   }, []);
 
-  const handleReact = useCallback((_messageId: string, _reaction: 'like' | 'dislike') => {
+  const handleReact = useCallback((_messageId: string, _reaction: 'like' | 'dislike' | null) => {
     /* Could sync to backend */
   }, []);
 
@@ -286,8 +328,8 @@ export function useOpenCodeChat(token: string | null) {
     chats, setChats, activeChatId, setActiveChatId, messages, setMessages, loading, streamingContent,
     editingMessageId, setEditingMessageId, agent, setAgent, customInstructions, setCustomInstructions,
     webSearch, setWebSearch, fallbackModels, setFallbackModels, totalTokens, tokenPercentage, estimatedCost,
-    pinnedIds, togglePin, handleReact, saveDraft,
-    loadChats, loadMessages, createChat, deleteChat, sendMessage, cancelStream,
+    pinnedIds, togglePin, handleReact, saveDraft, draft,
+    loadChats, loadMessages, createChat, deleteChat, renameChat, sendMessage, cancelStream, regenerateLastMessage,
     exportChatAsMarkdown, exportChatAsJSON, importChatFromJSON, importChatFromMarkdown, startEdit, AGENT_MODES,
   };
 }

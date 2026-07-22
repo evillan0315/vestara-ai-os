@@ -74,7 +74,7 @@ export function ChatInput({
     }
   }, [loading, streaming]);
 
-  const handleFilePick = async (fileList: FileList | null) => {
+  const handleFilePick = useCallback(async (fileList: FileList | null) => {
     if (!fileList) return;
     const newFiles: AttachedFile[] = [];
 
@@ -88,11 +88,13 @@ export function ChatInput({
       try {
         const content = await file.text();
         newFiles.push({ name: file.name, path: file.name, content, size: file.size });
-      } catch {}
+      } catch (err) {
+        console.error(`Failed to read file ${file.name}:`, err);
+      }
     }
 
     if (newFiles.length > 0) onAttachFiles(newFiles);
-  };
+  }, [onAttachFiles, onAttachImage]);
 
   const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -113,7 +115,7 @@ export function ChatInput({
     e.preventDefault();
     setDragOver(false);
     handleFilePick(e.dataTransfer.files);
-  }, [onAttachFiles, onAttachImage]);
+  }, [handleFilePick]);
 
   const handleVoiceResult = useCallback((text: string) => {
     onChange(value ? value + ' ' + text : text);

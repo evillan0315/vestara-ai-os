@@ -5,6 +5,7 @@ import { PinButton } from './PinnedMessages';
 
 const MarkdownRenderer = lazy(() => import('./MarkdownRenderer').then((m) => ({ default: m.MarkdownRenderer })));
 const DiffView = lazy(() => import('./DiffView').then((m) => ({ default: m.DiffView })));
+const StreamingMarkdownRenderer = lazy(() => import('./MarkdownRenderer').then((m) => ({ default: m.MarkdownRenderer })));
 
 export interface Message {
   id: string;
@@ -17,7 +18,7 @@ export interface Message {
 interface ChatMessageProps {
   message: Message;
   onEdit?: (messageId: string, content: string) => void;
-  onReact?: (messageId: string, reaction: 'like' | 'dislike') => void;
+  onReact?: (messageId: string, reaction: 'like' | 'dislike' | null) => void;
   isPinned?: boolean;
   onTogglePin?: (messageId: string) => void;
   isEditing?: boolean;
@@ -37,7 +38,9 @@ export function ChatMessage({ message, onEdit, onReact, isPinned, onTogglePin, i
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to copy message:', err);
+    }
   };
 
   const hasDiff = !isUser && message.content.includes('```diff');
@@ -85,14 +88,12 @@ interface StreamingMessageProps {
 }
 
 export function StreamingMessage({ content }: StreamingMessageProps) {
-  const MarkdownRendererLazy = lazy(() => import('./MarkdownRenderer').then((m) => ({ default: m.MarkdownRenderer })));
-
   return (
     <div className="flex justify-start">
       <div className="w-full max-w-[80%]">
         <div className="glass-sm rounded-lg px-4 py-2.5 text-sm leading-relaxed text-vestara-text">
           <Suspense fallback={<span className="ai-active">●</span>}>
-            <MarkdownRendererLazy content={content} />
+            <StreamingMarkdownRenderer content={content} />
           </Suspense>
           <span className="inline-block h-4 w-1.5 ml-0.5 bg-vestara-blue animate-pulse" />
         </div>

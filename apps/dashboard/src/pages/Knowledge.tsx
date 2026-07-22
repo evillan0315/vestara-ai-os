@@ -138,7 +138,7 @@ export default function Knowledge() {
       note: 'bg-yellow-500/20 text-yellow-400',
       conversation: 'bg-pink-500/20 text-pink-400',
     };
-    return colors[type] || 'bg-gray-500/20 text-gray-400';
+    return colors[type] || 'bg-vestara-glass text-vestara-text-dim';
   };
 
   const formatSize = (bytes: number) => {
@@ -149,24 +149,24 @@ export default function Knowledge() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a12] flex items-center justify-center">
-        <div className="text-[#4a9eff] text-lg">Loading knowledge base...</div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-vestara-blue text-lg">Loading knowledge base...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a12] text-white p-6">
+    <div className="space-y-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Knowledge Base</h1>
-            <p className="text-gray-400 mt-1">Store documents, code, and notes for AI context</p>
+            <h1 className="text-3xl font-bold text-vestara-text">Knowledge Base</h1>
+            <p className="text-vestara-text-dim mt-1">Store documents, code, and notes for AI context</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef] transition-colors"
+            className="px-4 py-2 bg-vestara-blue rounded-lg hover:bg-vestara-blue/80 transition-colors"
           >
             Add Entry
           </button>
@@ -175,21 +175,21 @@ export default function Knowledge() {
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-4 gap-4 mb-8">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Total Entries</div>
-              <div className="text-2xl font-bold text-white mt-1">{stats.total}</div>
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
+              <div className="text-vestara-text-dim text-sm">Total Entries</div>
+              <div className="text-2xl font-bold text-vestara-text mt-1">{stats.total}</div>
             </div>
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Total Size</div>
-              <div className="text-2xl font-bold text-white mt-1">{formatSize(stats.totalSize)}</div>
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
+              <div className="text-vestara-text-dim text-sm">Total Size</div>
+              <div className="text-2xl font-bold text-vestara-text mt-1">{formatSize(stats.totalSize)}</div>
             </div>
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Types</div>
-              <div className="text-2xl font-bold text-white mt-1">{Object.keys(stats.byType).length}</div>
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
+              <div className="text-vestara-text-dim text-sm">Types</div>
+              <div className="text-2xl font-bold text-vestara-text mt-1">{Object.keys(stats.byType).length}</div>
             </div>
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Avg Size</div>
-              <div className="text-2xl font-bold text-white mt-1">
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
+              <div className="text-vestara-text-dim text-sm">Avg Size</div>
+              <div className="text-2xl font-bold text-vestara-text mt-1">
                 {stats.total > 0 ? formatSize(stats.totalSize / stats.total) : '0 B'}
               </div>
             </div>
@@ -204,12 +204,12 @@ export default function Knowledge() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && searchEntries()}
-            className="flex-1 px-4 py-2 bg-[#12121e] border border-[#1e1e2e] rounded-lg focus:outline-none focus:border-[#4a9eff]"
+            className="flex-1 px-4 py-2 bg-vestara-surface border border-vestara-glass-border rounded-lg focus:outline-none focus:border-vestara-blue"
           />
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 bg-[#12121e] border border-[#1e1e2e] rounded-lg focus:outline-none focus:border-[#4a9eff]"
+            className="px-4 py-2 bg-vestara-surface border border-vestara-glass-border rounded-lg focus:outline-none focus:border-vestara-blue"
           >
             <option value="">All Types</option>
             <option value="document">Document</option>
@@ -220,7 +220,7 @@ export default function Knowledge() {
           </select>
           <button
             onClick={searchEntries}
-            className="px-6 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef] transition-colors"
+            className="px-6 py-2 bg-vestara-blue rounded-lg hover:bg-vestara-blue/80 transition-colors"
           >
             Search
           </button>
@@ -231,7 +231,7 @@ export default function Knowledge() {
           {/* Entry List */}
           <div className="col-span-1 space-y-3">
             {entries.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-vestara-text-dim">
                 No entries found. Add one to get started.
               </div>
             ) : (
@@ -239,10 +239,10 @@ export default function Knowledge() {
                 <div
                   key={entry.id}
                   onClick={() => setSelectedEntry(entry)}
-                  className={`bg-[#12121e] border rounded-lg p-4 cursor-pointer transition-colors ${
+                  className={`bg-vestara-surface border rounded-lg p-4 cursor-pointer transition-colors ${
                     selectedEntry?.id === entry.id
-                      ? 'border-[#4a9eff]'
-                      : 'border-[#1e1e2e] hover:border-[#2a2a3e]'
+                      ? 'border-vestara-blue'
+                      : 'border-vestara-glass-border hover:border-vestara-glass'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-2">
@@ -251,17 +251,17 @@ export default function Knowledge() {
                       {entry.type}
                     </span>
                   </div>
-                  <h3 className="font-medium text-white truncate">{entry.title}</h3>
-                  <p className="text-gray-400 text-sm mt-1 line-clamp-2">{entry.content}</p>
+                  <h3 className="font-medium text-vestara-text truncate">{entry.title}</h3>
+                  <p className="text-vestara-text-dim text-sm mt-1 line-clamp-2">{entry.content}</p>
                   {entry.tags.length > 0 && (
                     <div className="flex gap-1 mt-2 flex-wrap">
                       {entry.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="px-2 py-0.5 bg-[#1a1a2e] rounded text-xs text-gray-400">
+                        <span key={tag} className="px-2 py-0.5 bg-vestara-glass rounded text-xs text-vestara-text-dim">
                           {tag}
                         </span>
                       ))}
                       {entry.tags.length > 3 && (
-                        <span className="text-xs text-gray-500">+{entry.tags.length - 3}</span>
+                        <span className="text-xs text-vestara-text-dim/60">+{entry.tags.length - 3}</span>
                       )}
                     </div>
                   )}
@@ -273,11 +273,11 @@ export default function Knowledge() {
           {/* Entry Detail */}
           <div className="col-span-2">
             {selectedEntry ? (
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6">
+              <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span>{getTypeIcon(selectedEntry.type)}</span>
-                    <h2 className="text-xl font-bold text-white">{selectedEntry.title}</h2>
+                    <h2 className="text-xl font-bold text-vestara-text">{selectedEntry.title}</h2>
                   </div>
                   <button
                     onClick={() => deleteEntry(selectedEntry.id)}
@@ -291,28 +291,28 @@ export default function Knowledge() {
                     {selectedEntry.type}
                   </span>
                   {selectedEntry.tags.map((tag) => (
-                    <span key={tag} className="px-2 py-0.5 bg-[#1a1a2e] rounded text-xs text-gray-400">
+                    <span key={tag} className="px-2 py-0.5 bg-vestara-glass rounded text-xs text-vestara-text-dim">
                       {tag}
                     </span>
                   ))}
                 </div>
                 {selectedEntry.source && (
-                  <div className="text-gray-400 text-sm mb-4">
-                    Source: <a href={selectedEntry.source} target="_blank" rel="noopener noreferrer" className="text-[#4a9eff] hover:underline">{selectedEntry.source}</a>
+                  <div className="text-vestara-text-dim text-sm mb-4">
+                    Source: <a href={selectedEntry.source} target="_blank" rel="noopener noreferrer" className="text-vestara-blue hover:underline">{selectedEntry.source}</a>
                   </div>
                 )}
-                <div className="bg-[#0a0a12] rounded-lg p-4 text-gray-300 whitespace-pre-wrap">
+                <div className="bg-vestara-bg rounded-lg p-4 text-vestara-text whitespace-pre-wrap">
                   {selectedEntry.content}
                 </div>
-                <div className="text-gray-500 text-sm mt-4">
+                <div className="text-vestara-text-dim text-sm mt-4">
                   Created: {new Date(selectedEntry.createdAt).toLocaleDateString()}
                   {' · '}
                   Updated: {new Date(selectedEntry.updatedAt).toLocaleDateString()}
                 </div>
               </div>
             ) : (
-              <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 flex items-center justify-center h-64">
-                <div className="text-gray-500">Select an entry to view details</div>
+              <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-6 flex items-center justify-center h-64">
+                <div className="text-vestara-text-dim">Select an entry to view details</div>
               </div>
             )}
           </div>
@@ -321,15 +321,15 @@ export default function Knowledge() {
         {/* Add Entry Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 w-full max-w-lg">
-              <h2 className="text-xl font-bold mb-4">Add Knowledge Entry</h2>
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-6 w-full max-w-lg">
+              <h2 className="text-xl font-bold mb-4 text-vestara-text">Add Knowledge Entry</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Type</label>
+                  <label className="block text-sm text-vestara-text-dim mb-1">Type</label>
                   <select
                     value={newEntry.type}
                     onChange={(e) => setNewEntry({ ...newEntry, type: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
+                    className="w-full px-3 py-2 bg-vestara-bg border border-vestara-glass-border rounded-lg"
                   >
                     <option value="note">Note</option>
                     <option value="document">Document</option>
@@ -339,54 +339,54 @@ export default function Knowledge() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Title</label>
+                  <label className="block text-sm text-vestara-text-dim mb-1">Title</label>
                   <input
                     type="text"
                     value={newEntry.title}
                     onChange={(e) => setNewEntry({ ...newEntry, title: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
+                    className="w-full px-3 py-2 bg-vestara-bg border border-vestara-glass-border rounded-lg"
                     placeholder="Entry title"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Content</label>
+                  <label className="block text-sm text-vestara-text-dim mb-1">Content</label>
                   <textarea
                     value={newEntry.content}
                     onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg h-32"
+                    className="w-full px-3 py-2 bg-vestara-bg border border-vestara-glass-border rounded-lg h-32"
                     placeholder="Content to store..."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Tags (comma-separated)</label>
+                  <label className="block text-sm text-vestara-text-dim mb-1">Tags (comma-separated)</label>
                   <input
                     type="text"
                     value={newEntry.tags}
                     onChange={(e) => setNewEntry({ ...newEntry, tags: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
+                    className="w-full px-3 py-2 bg-vestara-bg border border-vestara-glass-border rounded-lg"
                     placeholder="ai, research, important"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Source URL (optional)</label>
+                  <label className="block text-sm text-vestara-text-dim mb-1">Source URL (optional)</label>
                   <input
                     type="text"
                     value={newEntry.source}
                     onChange={(e) => setNewEntry({ ...newEntry, source: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
+                    className="w-full px-3 py-2 bg-vestara-bg border border-vestara-glass-border rounded-lg"
                     placeholder="https://..."
                   />
                 </div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowAddModal(false)}
-                    className="flex-1 px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e]"
+                    className="flex-1 px-4 py-2 bg-vestara-glass border border-vestara-glass-border rounded-lg hover:bg-vestara-surface"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={addEntry}
-                    className="flex-1 px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef]"
+                    className="flex-1 px-4 py-2 bg-vestara-blue rounded-lg hover:bg-vestara-blue/80"
                   >
                     Add
                   </button>

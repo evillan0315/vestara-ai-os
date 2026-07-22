@@ -1,12 +1,5 @@
 import { useState } from 'react';
-
-const AVAILABLE_MODELS = [
-  { id: 'opencode/deepseek-v4-flash-free', name: 'DeepSeek V4 Flash (Free)' },
-  { id: 'opencode/mimo-v2.5-free', name: 'Mimo V2.5 (Free)' },
-  { id: 'opencode/nemotron-3-ultra-free', name: 'Nemotron 3 Ultra (Free)' },
-  { id: 'opencode/north-mini-code-free', name: 'North Mini Code (Free)' },
-  { id: 'opencode/big-pickle', name: 'Big Pickle' },
-];
+import { OPENCODE_MODELS } from '@vestara/constants';
 
 interface FallbackModelsEditorProps {
   open: boolean;
@@ -21,7 +14,7 @@ export function FallbackModelsEditor({ open, models, primaryModel, onSave, onClo
 
   if (!open) return null;
 
-  const available = AVAILABLE_MODELS.filter((m) => m.id !== primaryModel);
+  const available = OPENCODE_MODELS.filter((m) => m.id !== primaryModel);
 
   const toggleModel = (modelId: string) => {
     setDraft((prev) =>
@@ -63,7 +56,7 @@ export function FallbackModelsEditor({ open, models, primaryModel, onSave, onClo
         <div className="mb-3">
           <p className="text-xs text-vestara-text-muted mb-1">Primary:</p>
           <div className="rounded-lg border border-vestara-gold/30 bg-vestara-gold/5 px-3 py-2 text-xs text-vestara-gold font-mono">
-            {AVAILABLE_MODELS.find((m) => m.id === primaryModel)?.name || primaryModel}
+            {OPENCODE_MODELS.find((m) => m.id === primaryModel)?.name || primaryModel}
           </div>
         </div>
 
@@ -76,7 +69,7 @@ export function FallbackModelsEditor({ open, models, primaryModel, onSave, onClo
             </p>
           )}
           {draft.map((modelId, i) => {
-            const model = AVAILABLE_MODELS.find((m) => m.id === modelId);
+            const model = OPENCODE_MODELS.find((m) => m.id === modelId);
             return (
               <div
                 key={modelId}

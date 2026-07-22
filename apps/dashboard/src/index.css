@@ -67,7 +67,7 @@ body {
 
 /* Gold button */
 .btn-gold {
-  background: linear-gradient(135deg, #C9A84C, #E4C76B);
+  background: linear-gradient(135deg, var(--color-vestara-gold), var(--color-vestara-gold-light));
   color: #06060C;
   font-weight: 600;
   border-radius: 8px;
@@ -78,6 +78,11 @@ body {
 }
 .btn-gold:hover {
   box-shadow: 0 0 20px rgba(201, 168, 76, 0.3);
+}
+
+:root:not(.dark) .btn-gold,
+[data-theme="light"] .btn-gold {
+  color: #FFFFFF;
 }
 
 /* AI activity pulse */
@@ -238,15 +243,6 @@ pre code {
   }
 }
 
-@media (max-width: 640px) {
-  .responsive-sidebar {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    width: 100% !important;
-  }
-}
-
 /* Floating action bar animation */
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(4px); }
@@ -270,6 +266,45 @@ pre code {
 /* Scroll margin for pinned message anchor */
 .pinned-anchor {
   scroll-margin-top: 60px;
+}
+
+/* ── Light theme overrides ───────────────────── */
+:root:not(.dark),
+[data-theme="light"] {
+  --color-vestara-bg: #F8F9FC;
+  --color-vestara-surface: #FFFFFF;
+  --color-vestara-surface-2: #F0F1F5;
+  --color-vestara-glass: rgba(0, 0, 0, 0.02);
+  --color-vestara-glass-border: rgba(0, 0, 0, 0.08);
+  --color-vestara-gold: #B8942E;
+  --color-vestara-gold-light: #C9A84C;
+  --color-vestara-gold-dim: #6B5A25;
+  --color-vestara-blue: #3B7BF5;
+  --color-vestara-purple: #7C5AE0;
+  --color-vestara-cyan: #0EA5C9;
+  --color-vestara-text: #1A1D29;
+  --color-vestara-text-muted: #5A6275;
+  --color-vestara-text-dim: #8892A4;
+  --color-vestara-success: #16A34A;
+  --color-vestara-warning: #D97706;
+  --color-vestara-error: #DC2626;
+}
+
+:root:not(.dark) body,
+[data-theme="light"] body {
+  background: var(--color-vestara-bg);
+  color: var(--color-vestara-text);
+}
+
+/* Light scrollbar */
+:root:not(.dark) ::-webkit-scrollbar-thumb,
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+:root:not(.dark) ::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* ── Projects Page Animations ───────────────── */

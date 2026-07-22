@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 
 interface Chat {
   id: string;
@@ -17,6 +17,7 @@ interface ChatSidebarProps {
   onSelect: (id: string) => void;
   onCreate: () => void;
   onDelete: (id: string) => void;
+  onRename?: (id: string, title: string) => void;
   show: boolean;
   onToggle: () => void;
   editingChatId?: string | null;
@@ -34,9 +35,19 @@ function getDateGroup(dateStr: string): string {
   return 'Older';
 }
 
-export function ChatSidebar({ chats, activeChatId, onSelect, onCreate, onDelete, show, onToggle, editingChatId }: ChatSidebarProps) {
+export function ChatSidebar({ chats, activeChatId, onSelect, onCreate, onDelete, onRename, show, onToggle, editingChatId }: ChatSidebarProps) {
   const [search, setSearch] = useState('');
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingId]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return chats;
@@ -73,12 +84,31 @@ export function ChatSidebar({ chats, activeChatId, onSelect, onCreate, onDelete,
     });
   }, [grouped]);
 
+  const handleRenameStart = useCallback((chat: Chat) => {
+    setEditingId(chat.id);
+    setEditTitle(chat.title);
+  }, []);
+
+  const handleRenameSubmit = useCallback(() => {
+    if (editingId && editTitle.trim() && onRename) {
+      onRename(editingId, editTitle.trim());
+    }
+    setEditingId(null);
+    setEditTitle('');
+  }, [editingId, editTitle, onRename]);
+
+  const handleRenameCancel = useCallback(() => {
+    setEditingId(null);
+    setEditTitle('');
+  }, []);
+
   const renderChatItem = (chat: Chat) => {
     const isActive = activeChatId === chat.id;
     const isEditingBranch = editingChatId === chat.id;
+    const isRenaming = editingId === chat.id;
 
     return (
-      <div key={chat.id} onClick={() => onSelect(chat.id)}
+      <div key={chat.id} onClick={() => !isRenaming && onSelect(chat.id)}
         className={`group flex cursor-pointer items-start justify-between border-b border-vestara-glass-border px-3 py-2 transition-colors ${
           isActive ? 'bg-vestara-gold/10 text-vestara-text' : 'text-vestara-text-muted hover:bg-vestara-glass hover:text-vestara-text'
         } ${isEditingBranch ? 'ring-1 ring-vestara-gold/30' : ''}`}
@@ -86,13 +116,33 @@ export function ChatSidebar({ chats, activeChatId, onSelect, onCreate, onDelete,
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
             {isEditingBranch && <span className="shrink-0 text-[9px] text-vestara-gold">⑂</span>}
-            <span className="block truncate text-xs font-medium">{chat.title}</span>
-            {isEditingBranch && <span className="shrink-0 rounded bg-vestara-gold/15 px-1 py-0.5 text-[8px] text-vestara-gold uppercase">edit</span>}
+            {isRenaming ? (
+              <input
+                ref={editInputRef}
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRenameSubmit();
+                  if (e.key === 'Escape') handleRenameCancel();
+                }}
+                onBlur={handleRenameSubmit}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full rounded border border-vestara-gold/50 bg-vestara-bg px-1 py-0.5 text-xs font-medium text-vestara-text outline-none"
+              />
+            ) : (
+              <span className="block truncate text-xs font-medium">{chat.title}</span>
+            )}
+            {isEditingBranch && !isRenaming && <span className="shrink-0 rounded bg-vestara-gold/15 px-1 py-0.5 text-[8px] text-vestara-gold uppercase">edit</span>}
             <span className="shrink-0 text-[8px] text-vestara-text-dim/40">{(chat.model || '').split('/').pop()}</span>
           </div>
-          {chat.cwd && <span className="mt-0.5 block truncate text-[10px] font-mono text-vestara-text-dim">{chat.cwd}</span>}
+          {chat.cwd && !isRenaming && <span className="mt-0.5 block truncate text-[10px] font-mono text-vestara-text-dim">{chat.cwd}</span>}
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onDelete(chat.id); }} className="hidden text-vestara-text-dim hover:text-red-400 group-hover:inline-block text-xs leading-none mt-0.5">&times;</button>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onRename && !isRenaming && (
+            <button onClick={(e) => { e.stopPropagation(); handleRenameStart(chat); }} className="text-vestara-text-dim hover:text-vestara-gold text-xs leading-none mt-0.5" title="Rename">✎</button>
+          )}
+          <button onClick={(e) => { e.stopPropagation(); onDelete(chat.id); }} className="text-vestara-text-dim hover:text-red-400 text-xs leading-none mt-0.5">&times;</button>
+        </div>
       </div>
     );
   };

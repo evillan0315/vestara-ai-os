@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthContext } from '../contexts/AuthContext';
+import { ThemeProvider } from '../contexts/ThemeContext';
+import { ToastProvider } from '../contexts/ToastContext';
 import { AppRoutes } from '../App';
 import { mockAuthValue } from './mocks';
 import type { ReactNode } from 'react';
@@ -12,7 +14,11 @@ import type { ReactNode } from 'react';
 function renderWithAuth(ui: ReactNode, { initialEntries = ['/'] } = {}) {
   return render(
     <AuthContext.Provider value={mockAuthValue}>
-      <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
+      <ThemeProvider>
+        <ToastProvider>
+          <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
+        </ToastProvider>
+      </ThemeProvider>
     </AuthContext.Provider>,
   );
 }
@@ -21,9 +27,13 @@ function renderUnauthenticated(initialEntries = ['/dashboard']) {
   const noAuth = { ...mockAuthValue, user: null, token: null };
   return render(
     <AuthContext.Provider value={noAuth}>
-      <MemoryRouter initialEntries={initialEntries}>
-        <AppRoutes />
-      </MemoryRouter>
+      <ThemeProvider>
+        <ToastProvider>
+          <MemoryRouter initialEntries={initialEntries}>
+            <AppRoutes />
+          </MemoryRouter>
+        </ToastProvider>
+      </ThemeProvider>
     </AuthContext.Provider>,
   );
 }

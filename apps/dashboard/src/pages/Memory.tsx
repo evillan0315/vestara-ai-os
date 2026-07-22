@@ -135,7 +135,7 @@ export default function Memory() {
       insight: 'bg-yellow-500/20 text-yellow-400',
       interaction: 'bg-pink-500/20 text-pink-400',
     };
-    return colors[type] || 'bg-gray-500/20 text-gray-400';
+    return colors[type] || 'bg-vestara-glass text-vestara-text-dim';
   };
 
   const getImportanceColor = (importance: number) => {
@@ -146,31 +146,31 @@ export default function Memory() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a12] flex items-center justify-center">
-        <div className="text-[#4a9eff] text-lg">Loading memories...</div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-vestara-blue text-lg">Loading memories...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a12] text-white p-6">
+    <div className="space-y-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Memory</h1>
-            <p className="text-gray-400 mt-1">Store and retrieve information across conversations</p>
+            <h1 className="text-3xl font-bold text-vestara-text">Memory</h1>
+            <p className="text-vestara-text-dim mt-1">Store and retrieve information across conversations</p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={consolidateMemories}
-              className="px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] transition-colors"
+              className="px-4 py-2 bg-vestara-glass border border-vestara-glass-border rounded-lg hover:bg-vestara-surface transition-colors"
             >
               Consolidate
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef] transition-colors"
+              className="px-4 py-2 bg-vestara-blue rounded-lg hover:bg-vestara-blue/80 transition-colors"
             >
               Add Memory
             </button>
@@ -180,23 +180,23 @@ export default function Memory() {
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-4 gap-4 mb-8">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Total Memories</div>
-              <div className="text-2xl font-bold text-white mt-1">{stats.total}</div>
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
+              <div className="text-vestara-text-dim text-sm">Total Memories</div>
+              <div className="text-2xl font-bold text-vestara-text mt-1">{stats.total}</div>
             </div>
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Avg Importance</div>
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
+              <div className="text-vestara-text-dim text-sm">Avg Importance</div>
               <div className={`text-2xl font-bold mt-1 ${getImportanceColor(stats.avgImportance)}`}>
                 {(stats.avgImportance * 100).toFixed(0)}%
               </div>
             </div>
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Consolidated</div>
-              <div className="text-2xl font-bold text-white mt-1">{stats.consolidatedCount}</div>
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
+              <div className="text-vestara-text-dim text-sm">Consolidated</div>
+              <div className="text-2xl font-bold text-vestara-text mt-1">{stats.consolidatedCount}</div>
             </div>
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4">
-              <div className="text-gray-400 text-sm">Types</div>
-              <div className="text-2xl font-bold text-white mt-1">{Object.keys(stats.byType).length}</div>
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
+              <div className="text-vestara-text-dim text-sm">Types</div>
+              <div className="text-2xl font-bold text-vestara-text mt-1">{Object.keys(stats.byType).length}</div>
             </div>
           </div>
         )}
@@ -209,12 +209,12 @@ export default function Memory() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && searchMemories()}
-            className="flex-1 px-4 py-2 bg-[#12121e] border border-[#1e1e2e] rounded-lg focus:outline-none focus:border-[#4a9eff]"
+            className="flex-1 px-4 py-2 bg-vestara-surface border border-vestara-glass-border rounded-lg focus:outline-none focus:border-vestara-blue"
           />
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 bg-[#12121e] border border-[#1e1e2e] rounded-lg focus:outline-none focus:border-[#4a9eff]"
+            className="px-4 py-2 bg-vestara-surface border border-vestara-glass-border rounded-lg focus:outline-none focus:border-vestara-blue"
           >
             <option value="">All Types</option>
             <option value="fact">Fact</option>
@@ -225,7 +225,7 @@ export default function Memory() {
           </select>
           <button
             onClick={searchMemories}
-            className="px-6 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef] transition-colors"
+            className="px-6 py-2 bg-vestara-blue rounded-lg hover:bg-vestara-blue/80 transition-colors"
           >
             Search
           </button>
@@ -234,14 +234,14 @@ export default function Memory() {
         {/* Memory List */}
         <div className="space-y-4">
           {memories.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-vestara-text-dim">
               No memories found. Add one to get started.
             </div>
           ) : (
             memories.map((memory) => (
               <div
                 key={memory.id}
-                className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-4 hover:border-[#2a2a3e] transition-colors"
+                className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4 hover:border-vestara-glass transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -252,12 +252,12 @@ export default function Memory() {
                       <span className={`text-sm ${getImportanceColor(memory.importance)}`}>
                         Importance: {(memory.importance * 100).toFixed(0)}%
                       </span>
-                      <span className="text-gray-500 text-sm">
+                      <span className="text-vestara-text-dim text-sm">
                         Accessed {memory.accessCount} times
                       </span>
                     </div>
-                    <p className="text-gray-300">{memory.content}</p>
-                    <div className="text-gray-500 text-sm mt-2">
+                    <p className="text-vestara-text">{memory.content}</p>
+                    <div className="text-vestara-text-dim text-sm mt-2">
                       Created: {new Date(memory.createdAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -276,15 +276,15 @@ export default function Memory() {
         {/* Add Memory Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#12121e] border border-[#1e1e2e] rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold mb-4">Add Memory</h2>
+            <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-bold mb-4 text-vestara-text">Add Memory</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Type</label>
+                  <label className="block text-sm text-vestara-text-dim mb-1">Type</label>
                   <select
                     value={newMemory.type}
                     onChange={(e) => setNewMemory({ ...newMemory, type: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg"
+                    className="w-full px-3 py-2 bg-vestara-bg border border-vestara-glass-border rounded-lg"
                   >
                     <option value="fact">Fact</option>
                     <option value="preference">Preference</option>
@@ -294,16 +294,16 @@ export default function Memory() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Content</label>
+                  <label className="block text-sm text-vestara-text-dim mb-1">Content</label>
                   <textarea
                     value={newMemory.content}
                     onChange={(e) => setNewMemory({ ...newMemory, content: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#0a0a12] border border-[#1e1e2e] rounded-lg h-24"
+                    className="w-full px-3 py-2 bg-vestara-bg border border-vestara-glass-border rounded-lg h-24"
                     placeholder="What should I remember?"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
+                  <label className="block text-sm text-vestara-text-dim mb-1">
                     Importance: {(newMemory.importance * 100).toFixed(0)}%
                   </label>
                   <input
@@ -319,13 +319,13 @@ export default function Memory() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowAddModal(false)}
-                    className="flex-1 px-4 py-2 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e]"
+                    className="flex-1 px-4 py-2 bg-vestara-glass border border-vestara-glass-border rounded-lg hover:bg-vestara-surface"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={addMemory}
-                    className="flex-1 px-4 py-2 bg-[#4a9eff] rounded-lg hover:bg-[#3a8eef]"
+                    className="flex-1 px-4 py-2 bg-vestara-blue rounded-lg hover:bg-vestara-blue/80"
                   >
                     Add
                   </button>

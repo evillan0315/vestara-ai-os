@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
-import { Layout } from './components/Layout';
+import { DashboardLayout } from './components/DashboardLayout';
 import { LoginPage } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Chat } from './pages/Chat';
@@ -49,7 +49,7 @@ export function AppRoutes() {
       <Route
         element={
           <ProtectedRoute>
-            <Layout />
+            <DashboardLayout />
           </ProtectedRoute>
         }
       >

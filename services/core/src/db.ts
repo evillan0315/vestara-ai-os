@@ -301,6 +301,15 @@ db.run(`
   if (!ocColumns.some(c => c.name === 'cwd')) {
     db.run("ALTER TABLE opencode_chats ADD COLUMN cwd TEXT");
   }
+  if (!ocColumns.some(c => c.name === 'agent')) {
+    db.run("ALTER TABLE opencode_chats ADD COLUMN agent TEXT DEFAULT 'build'");
+  }
+  if (!ocColumns.some(c => c.name === 'custom_instructions')) {
+    db.run("ALTER TABLE opencode_chats ADD COLUMN custom_instructions TEXT");
+  }
+  if (!ocColumns.some(c => c.name === 'fallback_models')) {
+    db.run("ALTER TABLE opencode_chats ADD COLUMN fallback_models TEXT");
+  }
 
   // Migration: Add task columns for new features
   const taskColumns = db.all<{ name: string }>("PRAGMA table_info(tasks)");
@@ -368,4 +377,6 @@ db.run(`
   if (!hasIndex('idx_notifications_user'))       db.run('CREATE INDEX idx_notifications_user ON notifications(user_id)');
   if (!hasIndex('idx_knowledge_project'))        db.run('CREATE INDEX idx_knowledge_project ON knowledge_entries(project_id)');
   if (!hasIndex('idx_agents_user'))              db.run('CREATE INDEX idx_agents_user ON agents(user_id)');
+  if (!hasIndex('idx_oc_chats_project'))         db.run('CREATE INDEX idx_oc_chats_project ON opencode_chats(project_id)');
+  if (!hasIndex('idx_oc_msgs_chat'))             db.run('CREATE INDEX idx_oc_msgs_chat ON opencode_messages(chat_id)');
 }

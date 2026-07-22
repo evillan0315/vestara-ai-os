@@ -27,7 +27,9 @@ function applyThemeToDOM(theme: Theme) {
   const resolved = theme === 'system' ? getSystemTheme() : theme;
   if (resolved === 'light') {
     document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
   } else {
+    document.documentElement.classList.remove('light');
     document.documentElement.classList.add('dark');
   }
 }

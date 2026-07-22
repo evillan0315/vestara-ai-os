@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 interface MessageReactionsProps {
   messageId: string;
-  onReact: (messageId: string, reaction: 'like' | 'dislike') => void;
+  onReact: (messageId: string, reaction: 'like' | 'dislike' | null) => void;
 }
 
 export function MessageReactions({ messageId, onReact }: MessageReactionsProps) {
@@ -12,7 +12,7 @@ export function MessageReactions({ messageId, onReact }: MessageReactionsProps) 
   const handleReact = (type: 'like' | 'dislike') => {
     const newReaction = reaction === type ? null : type;
     setReaction(newReaction);
-    onReact(messageId, type);
+    onReact(messageId, newReaction);
     if (type === 'dislike' || newReaction === null) {
       setShowFeedback(true);
       setTimeout(() => setShowFeedback(false), 2000);

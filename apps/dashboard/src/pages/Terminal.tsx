@@ -218,51 +218,51 @@ System commands:
 
   const getPromptColor = (type: TerminalLine['type']) => {
     switch (type) {
-      case 'input': return 'text-[#d4af37]';
+      case 'input': return 'text-vestara-gold';
       case 'error': return 'text-red-400';
-      case 'system': return 'text-[#60a5fa]';
-      default: return 'text-gray-300';
+      case 'system': return 'text-vestara-blue';
+      default: return 'text-vestara-text';
     }
   };
 
   return (
-    <div className="-m-6 h-[calc(100vh+3rem)] flex flex-col bg-[#0a0a12] text-white">
+    <div className="h-full flex flex-col bg-vestara-bg text-vestara-text">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1e1e2e] shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-vestara-glass-border shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-bold text-white">Terminal</h1>
-          <span className="text-[10px] text-gray-500 hidden sm:inline">{cwd}</span>
+          <h1 className="text-sm font-bold text-vestara-text">Terminal</h1>
+          <span className="text-[10px] text-vestara-text-dim hidden sm:inline">{cwd}</span>
         </div>
         <div className="flex items-center gap-2">
           {/* Vestara quick menu */}
           <div className="relative">
             <button
               onClick={() => setShowVestaraMenu(!showVestaraMenu)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-lg text-[#d4af37] hover:bg-[#d4af37]/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-vestara-gold/10 border border-vestara-gold/30 rounded-lg text-vestara-gold hover:bg-vestara-gold/20 transition-colors"
             >
               ⚡ Vestara
             </button>
             {showVestaraMenu && (
-              <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-[#12121e] border border-[#2a2a3e] rounded-lg shadow-xl py-1">
+              <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-vestara-surface border border-vestara-glass-border rounded-lg shadow-xl py-1">
                 {VESTARA_COMMANDS.map((vc) => (
                   <button
                     key={vc.cmd}
                     onClick={() => runVestaraQuick(vc.cmd)}
-                    className="w-full text-left px-3 py-2 text-xs hover:bg-[#1a1a2e] transition-colors"
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-vestara-glass transition-colors"
                   >
-                    <span className="text-[#d4af37] font-mono">{vc.cmd}</span>
-                    <span className="text-gray-500 ml-2">{vc.desc}</span>
+                    <span className="text-vestara-gold font-mono">{vc.cmd}</span>
+                    <span className="text-vestara-text-dim ml-2">{vc.desc}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <span className="text-[10px] text-gray-500 hidden sm:inline">
+          <span className="text-[10px] text-vestara-text-dim hidden sm:inline">
             {commandHistory.length} cmds
           </span>
           <button
             onClick={() => setLines([])}
-            className="px-2.5 py-1.5 text-xs bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] transition-colors text-gray-400"
+            className="px-2.5 py-1.5 text-xs bg-vestara-glass border border-vestara-glass-border rounded-lg hover:bg-vestara-surface transition-colors text-vestara-text-dim"
           >
             Clear
           </button>
@@ -278,7 +278,7 @@ System commands:
         {lines.map((line, i) => (
           <div key={i} className={`whitespace-pre-wrap break-all ${getPromptColor(line.type)}`}>
             {line.type === 'input' && (
-              <span className="text-[#d4af37]">vestara@ai:{cwd}$ </span>
+              <span className="text-vestara-gold">vestara@ai:{cwd}$ </span>
             )}
             {line.content}
           </div>
@@ -286,25 +286,25 @@ System commands:
 
         {/* Input line */}
         <div className="flex items-center mt-1">
-          <span className="text-[#d4af37] shrink-0">vestara@ai:{cwd}$ </span>
+          <span className="text-vestara-gold shrink-0">vestara@ai:{cwd}$ </span>
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 min-w-0 bg-transparent outline-none text-gray-300 font-mono"
+            className="flex-1 min-w-0 bg-transparent outline-none text-vestara-text font-mono"
             disabled={isRunning}
             autoFocus
           />
           {isRunning && (
-            <span className="text-[#d4af37] animate-pulse shrink-0 text-xs">running...</span>
+            <span className="text-vestara-gold animate-pulse shrink-0 text-xs">running...</span>
           )}
         </div>
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-4 py-1 border-t border-[#1e1e2e] text-[10px] text-gray-500 shrink-0">
+      <div className="flex items-center justify-between px-4 py-1 border-t border-vestara-glass-border text-[10px] text-vestara-text-dim shrink-0">
         <span>Ctrl+L clear | ↑↓ history | ⚡ Vestara CLI</span>
         <span className="hidden sm:inline">Vestara Terminal v0.1.0</span>
       </div>

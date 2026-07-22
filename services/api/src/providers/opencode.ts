@@ -13,7 +13,7 @@
  * OpenCode auth: ~/.local/share/opencode/auth.json
  */
 
-import { execSync, spawn, ChildProcess } from 'node:child_process';
+import { execSync, exec, spawn, ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createLogger } from '@vestara/core';
@@ -379,14 +379,11 @@ function sendPromptViaCLI(
   opts: { model?: string; cwd?: string; agent?: string },
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const args = ['run', prompt];
-    if (opts.model) args.push('--model', opts.model);
-
-    const child = execSync(
-      `opencode run "${prompt.replace(/"/g, '\\"')}"${opts.model ? ` --model ${opts.model}` : ''}`,
+    const cmd = `opencode run "${prompt.replace(/"/g, '\\"')}"${opts.model ? ` --model ${opts.model}` : ''}`;
+    exec(
+      cmd,
       {
         cwd: opts.cwd || config.workDir,
-        stdio: 'pipe',
         timeout: 120000,
         shell: '/usr/bin/sh',
         env: {
@@ -395,9 +392,17 @@ function sendPromptViaCLI(
           OPENCODE_MODEL: opts.model || '',
         },
       },
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(new Error(error.message));
+          return;
+        }
+        if (stderr) {
+          logger.warn(`OpenCode CLI stderr: ${stderr}`);
+        }
+        resolve(stdout);
+      },
     );
-
-    resolve(child.toString());
   });
 }
 

@@ -16,7 +16,10 @@ function loadTemplates(): ChatTemplate[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  } catch (err) {
+    console.error('Failed to load chat templates:', err);
+    return [];
+  }
 }
 
 function saveTemplates(templates: ChatTemplate[]) {

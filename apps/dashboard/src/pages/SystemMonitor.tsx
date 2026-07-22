@@ -19,7 +19,21 @@ interface Process {
   status: string;
 }
 
-const COLORS = ['#d4af37', '#4ade80', '#60a5fa', '#f87171', '#a78bfa', '#facc15'];
+const COLORS = ['#C9A84C', '#22C55E', '#4F8CFF', '#EF4444', '#9B6DFF', '#FACC15'];
+
+const CHART = {
+  gold: '#C9A84C',
+  green: '#22C55E',
+  blue: '#4F8CFF',
+  purple: '#9B6DFF',
+  amber: '#F59E0B',
+  tick: '#505A6E',
+  tickDim: '#8892A4',
+  tooltipBg: '#0F0F19',
+  tooltipBorder: 'rgba(255,255,255,0.1)',
+  grid: 'rgba(255,255,255,0.05)',
+  surface: '#161625',
+};
 
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
   R: { label: 'running', class: 'bg-green-500/20 text-green-400' },
@@ -95,9 +109,9 @@ export default function SystemMonitor() {
   }, [fetchData, refreshInterval]);
 
   const gaugeData = systemInfo ? [
-    { name: 'CPU', value: systemInfo.cpu.usage, fill: '#d4af37' },
-    { name: 'RAM', value: systemInfo.memory.usage, fill: '#4ade80' },
-    { name: 'Disk', value: systemInfo.disk.usage, fill: '#60a5fa' },
+    { name: 'CPU', value: systemInfo.cpu.usage, fill: CHART.gold },
+    { name: 'RAM', value: systemInfo.memory.usage, fill: CHART.green },
+    { name: 'Disk', value: systemInfo.disk.usage, fill: CHART.blue },
   ] : [];
 
   const diskPie = systemInfo ? [
@@ -171,20 +185,20 @@ export default function SystemMonitor() {
               <AreaChart data={cpuHistory.map((c, i) => ({ ...c, mem: memHistory[i]?.value || 0 }))}>
                 <defs>
                   <linearGradient id="cpuG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    <stop offset="5%" stopColor={CHART.amber} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={CHART.amber} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="memG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4ade80" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#4ade80" stopOpacity={0} />
+                    <stop offset="5%" stopColor={CHART.green} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={CHART.green} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="time" tick={{ fontSize: 9, fill: '#666' }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: '#666' }} />
-                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }} />
-                <Area type="monotone" dataKey="value" stroke="#f59e0b" fill="url(#cpuG)" strokeWidth={2} />
-                <Area type="monotone" dataKey="mem" stroke="#4ade80" fill="url(#memG)" strokeWidth={2} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="time" tick={{ fontSize: 9, fill: CHART.tick }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: CHART.tick }} />
+                <Tooltip contentStyle={{ background: CHART.tooltipBg, border: `1px solid ${CHART.tooltipBorder}`, borderRadius: '8px', fontSize: '12px' }} />
+                <Area type="monotone" dataKey="value" stroke={CHART.amber} fill="url(#cpuG)" strokeWidth={2} />
+                <Area type="monotone" dataKey="mem" stroke={CHART.green} fill="url(#memG)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -197,8 +211,8 @@ export default function SystemMonitor() {
             <ResponsiveContainer width="100%" height="100%">
               <RadialBarChart cx="50%" cy="50%" innerRadius="15%" outerRadius="85%" barSize={12} data={gaugeData} startAngle={180} endAngle={0}>
                 <RadialBar background dataKey="value" />
-                <Legend iconSize={8} layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: '10px', color: '#999' }} />
-                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }} />
+                <Legend iconSize={8} layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: '10px', color: CHART.tickDim }} />
+                <Tooltip contentStyle={{ background: CHART.tooltipBg, border: `1px solid ${CHART.tooltipBorder}`, borderRadius: '8px', fontSize: '12px' }} />
               </RadialBarChart>
             </ResponsiveContainer>
           </div>
@@ -215,20 +229,20 @@ export default function SystemMonitor() {
               <AreaChart data={netHistory}>
                 <defs>
                   <linearGradient id="rxG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#60a5fa" stopOpacity={0} />
+                    <stop offset="5%" stopColor={CHART.blue} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={CHART.blue} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="txG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
+                    <stop offset="5%" stopColor={CHART.purple} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={CHART.purple} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="time" tick={{ fontSize: 9, fill: '#666' }} />
-                <YAxis tick={{ fontSize: 9, fill: '#666' }} tickFormatter={(v) => formatBytes(v)} />
-                <Tooltip formatter={(v) => formatBytes(Number(v))} contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }} />
-                <Area type="monotone" dataKey="rx" stroke="#60a5fa" fill="url(#rxG)" strokeWidth={2} name="Download" />
-                <Area type="monotone" dataKey="tx" stroke="#a78bfa" fill="url(#txG)" strokeWidth={2} name="Upload" />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="time" tick={{ fontSize: 9, fill: CHART.tick }} />
+                <YAxis tick={{ fontSize: 9, fill: CHART.tick }} tickFormatter={(v) => formatBytes(v)} />
+                <Tooltip formatter={(v) => formatBytes(Number(v))} contentStyle={{ background: CHART.tooltipBg, border: `1px solid ${CHART.tooltipBorder}`, borderRadius: '8px', fontSize: '12px' }} />
+                <Area type="monotone" dataKey="rx" stroke={CHART.blue} fill="url(#rxG)" strokeWidth={2} name="Download" />
+                <Area type="monotone" dataKey="tx" stroke={CHART.purple} fill="url(#txG)" strokeWidth={2} name="Upload" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -241,9 +255,9 @@ export default function SystemMonitor() {
             <ResponsiveContainer width="50%" height="100%">
               <PieChart>
                 <Pie data={diskPie} cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={3} dataKey="value">
-                  {diskPie.map((_, i) => <Cell key={i} fill={i === 0 ? '#60a5fa' : 'rgba(255,255,255,0.05)'} />)}
+                  {diskPie.map((_, i) => <Cell key={i} fill={i === 0 ? CHART.blue : 'rgba(255,255,255,0.05)'} />)}
                 </Pie>
-                <Tooltip formatter={(v) => formatBytes(Number(v))} contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(96,165,250,0.2)', borderRadius: '8px', fontSize: '12px' }} />
+                <Tooltip formatter={(v) => formatBytes(Number(v))} contentStyle={{ background: CHART.tooltipBg, border: `1px solid rgba(79,140,255,0.2)`, borderRadius: '8px', fontSize: '12px' }} />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex-1 space-y-2 text-xs">
@@ -260,12 +274,12 @@ export default function SystemMonitor() {
           <div className="h-40">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={processChart} layout="vertical" margin={{ left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis type="number" tick={{ fontSize: 9, fill: '#666' }} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: '#999' }} width={70} />
-                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }} />
-                <Bar dataKey="cpu" fill="#d4af37" radius={[0, 4, 4, 0]} name="CPU %" />
-                <Bar dataKey="mem" fill="#4ade80" radius={[0, 4, 4, 0]} name="RAM %" />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis type="number" tick={{ fontSize: 9, fill: CHART.tick }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: CHART.tickDim }} width={70} />
+                <Tooltip contentStyle={{ background: CHART.tooltipBg, border: `1px solid ${CHART.tooltipBorder}`, borderRadius: '8px', fontSize: '12px' }} />
+                <Bar dataKey="cpu" fill={CHART.gold} radius={[0, 4, 4, 0]} name="CPU %" />
+                <Bar dataKey="mem" fill={CHART.green} radius={[0, 4, 4, 0]} name="RAM %" />
               </BarChart>
             </ResponsiveContainer>
           </div>

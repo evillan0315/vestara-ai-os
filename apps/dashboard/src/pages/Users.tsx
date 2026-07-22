@@ -128,7 +128,7 @@ export default function Users() {
   };
 
   return (
-    <div className="text-white">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-vestara-text">Users</h1>

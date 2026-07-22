@@ -199,7 +199,7 @@ export default function Projects() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-vestara-bg text-vestara-text p-3 md:p-6">
+      <div className="space-y-6">
         <div className="max-w-6xl mx-auto">
           <div ref={headerRef} className="flex flex-wrap items-center justify-between gap-3 mb-4 md:mb-6">
             <div>
