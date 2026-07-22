@@ -557,27 +557,107 @@ export function Chat() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      {/* Sidebar */}
-      <ChatSidebar
-        chats={conversations.map((c) => ({
-          id: c.id,
-          title: c.title,
-          model: c.model_id || model,
-          cwd: c.project_id || '',
-          created_at: c.created_at,
-          updated_at: c.updated_at,
-        }))}
-        activeChatId={activeConversationId}
-        onSelect={selectConversation}
-        onCreate={createConversation}
-        onDelete={deleteConversation}
-        show={sidebarOpen}
-        onToggle={() => setSidebarOpen(false)}
-      />
-
+    <div className="flex h-full overflow-hidden">
       {/* Main Chat Area */}
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+        {/* Top Bar */}
+        <div className="flex items-center justify-between border-b border-vestara-glass-border px-4 py-2.5 bg-vestara-surface/80 backdrop-blur sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <ChatSidebarToggle show={sidebarOpen} onClick={() => setSidebarOpen(true)} />
+            <h1 className="text-sm font-semibold text-vestara-text">AI Chat</h1>
+            {loadingMessages && (
+              <span className="flex items-center gap-1.5 text-[10px] text-vestara-text-dim">
+                <span className="inline-flex gap-0.5">
+                  <span className="h-1 w-1 rounded-full bg-vestara-text-dim animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="h-1 w-1 rounded-full bg-vestara-text-dim animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="h-1 w-1 rounded-full bg-vestara-text-dim animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+                Loading
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <TokenUsageBar
+              totalTokens={totalTokens}
+              percentage={tokenPercentage}
+              estimatedCost={estimatedCost}
+              limit={TOKEN_LIMIT}
+            />
+
+            {/* Pinned messages */}
+            <PinnedMessages
+              messages={messages}
+              pinnedIds={pinnedIds}
+              onTogglePin={togglePin}
+              onJumpTo={jumpToMessage}
+            />
+
+            {/* Search messages */}
+            {messages.length > 0 && (
+              <button
+                onClick={() => setShowSearch(true)}
+                className="rounded px-1.5 py-0.5 text-[10px] text-vestara-text-dim hover:text-vestara-text transition-colors"
+                title="Search messages (Ctrl+K)"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </button>
+            )}
+
+            {/* Copy conversation */}
+            {messages.length > 0 && (
+              <button
+                onClick={copyConversation}
+                className="rounded px-1.5 py-0.5 text-[10px] text-vestara-text-dim hover:text-vestara-text transition-colors"
+                title="Copy conversation as markdown"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            )}
+
+            {/* Model Selector */}
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="rounded border border-vestara-glass-border bg-vestara-bg px-2 py-1 text-[11px] text-vestara-text outline-none focus:border-vestara-gold/50 max-w-[160px]"
+              disabled={sending}
+            >
+              {Object.entries(modelGroups).map(([group, items]) => (
+                <optgroup key={group} label={group}>
+                  {items.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+
+            {activeConversationId && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Delete this conversation?')) {
+                    deleteConversation(activeConversationId);
+                  }
+                }}
+                className="rounded px-1.5 py-0.5 text-[10px] text-vestara-text-dim hover:text-red-400 transition-colors"
+                title="Delete conversation"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Messages Area */}
+        <div ref={messagesContainerRef} className="flex-1 overflow-auto relative">
         {/* Top Bar */}
         <div className="flex items-center justify-between border-b border-vestara-glass-border px-4 py-2.5">
           <div className="flex items-center gap-3">

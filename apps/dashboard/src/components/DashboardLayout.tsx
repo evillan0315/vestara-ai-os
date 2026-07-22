@@ -29,7 +29,7 @@ interface PageMeta {
 
 const PAGE_META: Record<string, PageMeta> = {
   '/dashboard': { title: 'Dashboard', fullWidth: true },
-  '/chat': { title: 'AI Chat', fullWidth: true },
+  '/chat': { title: 'AI Chat', description: 'Start a new conversation or select an existing chat', fullWidth: true },
   '/opencode': { title: 'OpenCode', fullWidth: true },
   '/agents': { title: 'Agent Manager', fullWidth: true },
   '/models': { title: 'Models', fullWidth: true },
@@ -154,12 +154,12 @@ export function DashboardLayout() {
 
   const contextValue = useMemo(() => ({ sidebarOpen, setSidebarOpen }), [sidebarOpen]);
 
-return (
+  return (
     <DashboardLayoutContext.Provider value={contextValue}>
       <div className="flex h-screen bg-vestara-bg" data-theme={resolvedTheme}>
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden md:ml-56">
           {/* Mobile header */}
           <div className="flex items-center gap-3 border-b border-vestara-glass-border px-4 py-3 md:hidden">
             <button

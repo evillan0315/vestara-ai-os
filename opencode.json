@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "ollama/second_constantine/deepseek-coder-v2:16b",
+  "model": "ollama/second_constantine/deepseek-coder:1.3b",
   "provider": {
     "ollama": {
       "npm": "@ai-sdk/openai-compatible",
@@ -13,8 +13,7 @@
           "name": "Llama 2"
         },
     "deepseek-coder": {
-      "name": "DeepSeek Coder",
-      "tool_call": true
+      "name": "DeepSeek Coder"
     }
       }
     }

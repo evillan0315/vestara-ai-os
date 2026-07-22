@@ -40,7 +40,7 @@ export function Layout() {
   return (
     <div className="flex min-h-screen bg-vestara-bg" data-theme={resolvedTheme}>
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex flex-1 flex-col">
+          <div className="flex flex-1 flex-col md:ml-56">
         {/* Mobile header */}
         <div className="flex items-center gap-3 border-b border-vestara-glass-border px-4 py-3 md:hidden">
           <button

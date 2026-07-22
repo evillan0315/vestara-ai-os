@@ -431,10 +431,108 @@ export class ProjectService {
 
     await this.logActivity(userId, 'project:synced', `project:${projectId}`, { path: vestaraDir });
     log.info({ projectId, path: vestaraDir }, 'Synced to .vestara');
-    return { success: true, path: vestaraDir };
-  }
+      return { success: true, path: vestaraDir };
+    }
 
-  async getVestaraConfig(projectId: string, userId: string): Promise<any> {
+    async getOpenCodeChats(projectId: string, userId: string): Promise<any[]> {
+      const project = await this.getProject(projectId, userId);
+      if (!project) return [];
+
+      return this.db.all<any>(
+        'SELECT * FROM opencode_chats WHERE project_id = ? OR project_id IS NULL ORDER BY updated_at DESC',
+        projectId,
+      );
+    }
+
+    async getOpenCodeChat(chatId: string): Promise<any | null> {
+      const chat = this.db.get<any>('SELECT * FROM opencode_chats WHERE id = ?', chatId);
+      if (!chat) return null;
+
+      const project = await this.getProject(chat.project_id as string, chat.user_id as string);
+      if (!project) return null;
+
+      const messages = this.db.all('SELECT * FROM opencode_messages WHERE chat_id = ? ORDER BY created_at ASC', chatId);
+
+      return {
+        ...chat,
+        project,
+        messages,
+      };
+    }
+
+    async createOpenCodeChat(userId: string, data: {
+      projectId?: string | null;
+      cwd?: string;
+      model?: string;
+      agent?: string;
+      title?: string;
+      customInstructions?: string;
+      fallbackModels?: string[];
+    }): Promise<any> {
+      const id = generateId();
+      const model = data.model || 'opencode/deepseek-v4-flash-free';
+      const agent = data.agent || 'build';
+      const projectId = data.projectId || null;
+
+      this.db.run(
+        'INSERT INTO opencode_chats (id, user_id, project_id, title, model, cwd, agent, custom_instructions, fallback_models) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        id, userId, projectId, data.title || 'New Chat', model, data.cwd || null, agent, data.customInstructions || null, data.fallbackModels ? JSON.stringify(data.fallbackModels) : null,
+      );
+
+      const chat = this.getOpenCodeChat(id);
+      await this.logActivity(userId, 'opencode_chat:created', `opencode_chat:${id}`, { projectId });
+      log.info({ userId, chatId: id, projectId }, 'OpenCode chat created');
+      return chat;
+    }
+
+    async updateOpenCodeChat(chatId: string, userId: string, updates: Partial<any>): Promise<any | null> {
+      const chat = await this.getOpenCodeChat(chatId);
+      if (!chat) return null;
+
+      const fields: string[] = [];
+      const values: unknown[] = [];
+
+      if (updates.title !== undefined) { fields.push('title = ?'); values.push(updates.title); }
+      if (updates.model !== undefined) { fields.push('model = ?'); values.push(updates.model); }
+      if (updates.cwd !== undefined) { fields.push('cwd = ?'); values.push(updates.cwd); }
+      if (updates.agent !== undefined) { fields.push('agent = ?'); values.push(updates.agent); }
+      if (updates.customInstructions !== undefined) { fields.push('custom_instructions = ?'); values.push(updates.customInstructions); }
+      if (updates.fallbackModels !== undefined) { fields.push('fallback_models = ?'); values.push(updates.fallbackModels ? JSON.stringify(updates.fallbackModels) : null); }
+
+      if (fields.length > 0) {
+        fields.push("updated_at = datetime('now')");
+        values.push(chatId);
+        this.db.run(`UPDATE opencode_chats SET ${fields.join(', ')} WHERE id = ?`, ...values);
+      }
+
+      return this.getOpenCodeChat(chatId);
+    }
+
+    async deleteOpenCodeChat(chatId: string, userId: string): Promise<boolean> {
+      const chat = await this.getOpenCodeChat(chatId);
+      if (!chat) return false;
+
+      this.db.run('DELETE FROM opencode_messages WHERE chat_id = ?', chatId);
+      this.db.run('DELETE FROM opencode_chats WHERE id = ?', chatId);
+
+      await this.logActivity(userId, 'opencode_chat:deleted', `opencode_chat:${chatId}`, { projectId: chat.projectId });
+      log.info({ userId, chatId }, 'OpenCode chat deleted');
+      return true;
+    }
+
+    async getOpenCodeChatWithContext(chatId: string): Promise<any | null> {
+      const chat = await this.getOpenCodeChat(chatId);
+      if (!chat) return null;
+
+      const context = {
+        chat,
+        project: chat.project,
+      };
+
+      return context;
+    }
+
+    async getVestaraConfig(projectId: string, userId: string): Promise<any> {
     const project = await this.getProject(projectId, userId);
     if (!project || !project.path) return null;
 

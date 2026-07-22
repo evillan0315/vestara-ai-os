@@ -49,7 +49,7 @@ export class MemoryService {
     type: Memory['type'],
     content: string,
     importance: number = 0.5,
-    metadata: Record<string, unknown> = {}
+    metadata?: Record<string, unknown>
   ): Promise<Memory> {
     const id = generateId();
     this.db.prepare(`
@@ -278,4 +278,66 @@ export class MemoryService {
       createdAt: row.created_at,
     };
   }
+
+  async addOpenCodeInteraction(
+    userId: string,
+    sessionId: string,
+    content: string,
+    type: 'chat' | 'prompt' | 'response' | 'analysis',
+    metadata: Record<string, unknown> = {}
+  ): Promise<Memory> {
+    const importance = calculateImportance(content, type);
+
+    const memory = await this.addMemory(userId, 'interaction', content, importance, {
+      sessionId,
+      ...metadata,
+    });
+
+    await this.logOpenCodeMemory(userId, sessionId, type, content, memory.id);
+    log.info({ userId, sessionId, type, memoryId: memory.id }, 'OpenCode interaction saved as memory');
+    return memory;
+  }
+
+  async getOpenCodeMemories(userId: string, sessionId?: string, limit: number = 20): Promise<Memory[]> {
+    let query = `
+      SELECT * FROM memories
+      WHERE user_id = ? AND type = 'interaction'
+    `;
+    const params: any[] = [userId];
+
+    if (sessionId) {
+      query += ' AND metadata LIKE ?';
+      params.push(`%"${sessionId}"%`);
+    }
+
+    query += ' ORDER BY created_at DESC LIMIT ?';
+    params.push(limit);
+
+    const rows = this.db.prepare(query).all(...params) as any[];
+    return rows.map(this.mapMemory);
+  }
+
+  private logOpenCodeMemory(userId: string, sessionId: string, type: string, content: string, memoryId: string): Promise<void> {
+    // This can be extended to log to activity or notification service
+    this.events.emit('memory:opencode_interaction', {
+      userId,
+      sessionId,
+      type,
+      content,
+      memoryId,
+    });
+    return Promise.resolve();
+  }
+}
+
+function calculateImportance(content: string, type: string): number {
+  let importance = 0.1;
+
+  if (type === 'analysis' || type === 'response') importance += 0.3;
+  if (type === 'chat') importance += 0.2;
+
+  if (content.length > 200) importance += 0.2;
+  if (content.includes('error') || content.includes('bug') || content.includes('fix')) importance += 0.3;
+
+  return Math.min(importance, 1.0);
 }

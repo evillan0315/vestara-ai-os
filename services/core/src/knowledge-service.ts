@@ -37,9 +37,9 @@ export class KnowledgeService {
     type: KnowledgeEntry['type'],
     title: string,
     content: string,
-    tags: string[] = [],
-    source: string | null = null,
-    metadata: Record<string, unknown> = {}
+    tags?: string[],
+    source?: string | null,
+    metadata?: Record<string, unknown>
   ): Promise<KnowledgeEntry> {
     const stmt = this.db.prepare(`
       INSERT INTO knowledge_entries (project_id, type, title, content, tags, source, metadata)
@@ -250,6 +250,76 @@ export class KnowledgeService {
     }
 
     return context;
+  }
+
+  async importOpenCodeConversations(
+    projectId: string | null,
+    conversations: any[]
+  ): Promise<KnowledgeEntry[]> {
+    const entries: KnowledgeEntry[] = [];
+
+    for (const conv of conversations) {
+      const entryId = await this.addEntry(
+        projectId,
+        'conversation',
+        conv.title || `OpenCode Chat - ${conv.agent || 'general'} (${conv.created_at ? new Date(conv.created_at).toLocaleDateString() : 'unknown'})`,
+        this.formatOpenCodeConversation(conv),
+        ['opencode', 'chat', conv.agent || 'general'],
+        `opencode:${conv.id}`,
+        {
+          opencodeId: conv.id,
+          model: conv.model,
+          agent: conv.agent,
+          cwd: conv.cwd,
+          messages: conv.messages?.length || 0,
+          userId: projectId ? null : conv.user_id,
+        }
+      );
+      entries.push(entryId);
+
+      this.events.emit('knowledge:imported_opencode_conversation', {
+        projectId,
+        entry: entryId,
+        conversationId: conv.id,
+      });
+    }
+
+    return entries;
+  }
+
+  async getOpenCodeConversations(
+    projectId: string | null,
+    limit: number = 20
+  ): Promise<SearchResult[]> {
+    return this.search(projectId, 'opencode', 'conversation', ['opencode', 'chat'], limit);
+  }
+
+  private formatOpenCodeConversation(conversation: any): string {
+    let formatted = `## OpenCode Conversation\n\n`;
+
+    if (conversation.agent) {
+      formatted += `**Agent**: ${conversation.agent}\n`;
+    }
+    if (conversation.model) {
+      formatted += `**Model**: ${conversation.model}\n`;
+    }
+    if (conversation.cwd) {
+      formatted += `**Working Directory**: ${conversation.cwd}\n`;
+    }
+    if (conversation.created_at) {
+      formatted += `**Created**: ${new Date(conversation.created_at).toLocaleString()}\n`;
+    }
+
+    formatted += '\n### Messages\n\n';
+
+    if (conversation.messages && Array.isArray(conversation.messages)) {
+      for (const msg of conversation.messages) {
+        const role = msg.role === 'user' ? '**You**' : '**OpenCode**';
+        formatted += `#### ${role}\n\n${msg.content}\n\n---\n\n`;
+      }
+    }
+
+    return formatted;
   }
 
   private mapEntry(row: any): KnowledgeEntry {

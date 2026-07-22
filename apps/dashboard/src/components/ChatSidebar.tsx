@@ -148,7 +148,7 @@ export function ChatSidebar({ chats, activeChatId, onSelect, onCreate, onDelete,
   };
 
   return (
-    <div className={`flex flex-col border-r border-vestara-glass-border bg-vestara-surface/30 transition-all duration-200 ${show ? 'w-64' : 'w-0 overflow-hidden'}`}>
+    <div className={`flex flex-col border-r border-vestara-glass-border bg-vestara-surface/30 transition-all duration-200 ${show ? 'w-64' : 'w-0 overflow-hidden md:w-0'}`}>
       <div className="flex items-center justify-between border-b border-vestara-glass-border p-3">
         <span className="text-sm font-semibold text-vestara-text">Chats</span>
         <div className="flex items-center gap-1">
