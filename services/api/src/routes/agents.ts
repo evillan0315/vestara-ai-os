@@ -24,12 +24,23 @@ export function registerAgentRoutes(app: VestaraApp) {
       'SELECT * FROM agents WHERE user_id = ? ORDER BY created_at DESC',
       userId,
     );
-    return {
-      agents: agents.map((a) => ({
-        ...a,
-        config: JSON.parse(a.config),
-      })),
-    };
+    
+    const enhancedAgents = agents.map((agent) => {
+      const statistics = app.db.get<{ count: number }>(`
+        SELECT COUNT(*) as count FROM agent_executions 
+        WHERE agent_id = ?
+      `, agent.id) || { count: 0 };
+      
+      return {
+        ...agent,
+        config: JSON.parse(agent.config),
+        statistics: {
+          totalExecutions: statistics.count,
+        },
+      };
+    });
+    
+    return { agents: enhancedAgents };
   });
 
   app.post<{

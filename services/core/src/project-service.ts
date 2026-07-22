@@ -30,6 +30,7 @@ export interface Task {
   estimatedHours: number | null;
   loggedHours: number;
   sortOrder: number;
+  dueDate: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -240,7 +241,7 @@ export class ProjectService {
 
   async createTask(projectId: string, userId: string, data: {
     title: string; description?: string; status?: string; assigneeId?: string;
-    parentId?: string; tags?: string[]; estimatedHours?: number;
+    parentId?: string; tags?: string[]; estimatedHours?: number; dueDate?: string;
   }): Promise<Task | null> {
     const project = this.db.get<any>(
       'SELECT * FROM projects WHERE id = ? AND user_id = ?',
@@ -251,8 +252,8 @@ export class ProjectService {
     const id = generateId();
     const tags = data.tags ? JSON.stringify(data.tags) : '[]';
     this.db.run(
-      'INSERT INTO tasks (id, project_id, title, description, status, assignee_id, parent_id, tags, estimated_hours) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, projectId, data.title, data.description || null, data.status || 'todo', data.assigneeId || null, data.parentId || null, tags, data.estimatedHours || null,
+      'INSERT INTO tasks (id, project_id, title, description, status, assignee_id, parent_id, tags, estimated_hours, due_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, projectId, data.title, data.description || null, data.status || 'todo', data.assigneeId || null, data.parentId || null, tags, data.estimatedHours || null, data.dueDate || null,
     );
 
     this.db.run("UPDATE projects SET updated_at = datetime('now') WHERE id = ?", projectId);
@@ -576,6 +577,7 @@ export class ProjectService {
       estimatedHours: row.estimated_hours,
       loggedHours: row.logged_hours || 0,
       sortOrder: row.sort_order || 0,
+      dueDate: row.due_date || null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

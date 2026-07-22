@@ -7,3 +7,4 @@ export { KnowledgeService } from './knowledge-service.js';
 export { AgentRuntime } from './agent-runtime.js';
 export { ProjectService } from './project-service.js';
 export { SettingsService } from './settings-service.js';
+export { ProjectAnalyticsService } from './project-analytics.js';

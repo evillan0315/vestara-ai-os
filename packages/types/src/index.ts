@@ -194,6 +194,7 @@ export interface Task {
   estimatedHours?: number;
   loggedHours?: number;
   sortOrder?: number;
+  dueDate?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -209,6 +210,16 @@ export interface Agent {
   status: AgentStatus;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface AgentStatistics {
+  totalExecutions: number;
+  successfulExecutions: number;
+  failedExecutions: number;
+  lastExecutionAt?: Date;
+  averageTokens?: number;
+  totalCost?: number;
+  uptime?: number;
 }
 
 export interface AgentConfig {

@@ -174,6 +174,12 @@ export function migrate(db: Database): void {
       description TEXT,
       status TEXT NOT NULL DEFAULT 'todo',
       assignee_id TEXT,
+      parent_id TEXT,
+      tags TEXT DEFAULT '[]',
+      estimated_hours REAL,
+      logged_hours REAL DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      due_date TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )

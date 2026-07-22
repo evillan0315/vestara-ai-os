@@ -97,6 +97,7 @@ export const createTaskSchema = z.object({
   parentId: z.string().optional(),
   tags: z.array(z.string().max(50)).max(10).optional(),
   estimatedHours: z.number().min(0).max(10000).optional(),
+  dueDate: z.string().datetime().optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -109,6 +110,7 @@ export const updateTaskSchema = z.object({
   estimatedHours: z.number().min(0).max(10000).optional(),
   loggedHours: z.number().min(0).max(100000).optional(),
   sortOrder: z.number().int().min(0).optional(),
+  dueDate: z.string().datetime().optional(),
 });
 
 export const bulkUpdateTasksSchema = z.object({
