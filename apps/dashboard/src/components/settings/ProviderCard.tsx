@@ -1,18 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useCallback } from 'react';
+import { useProviders } from '../../hooks/useProviders';
+import { useToast } from '../../contexts/ToastContext';
 import { SettingRow } from './SettingRow';
 import { AddProviderDialog } from './AddProviderDialog';
 import { ConfirmDialog } from '../ConfirmDialog';
-
-interface Provider {
-  id: string;
-  name: string;
-  type: string;
-  api_key_encrypted: string | null;
-  base_url: string | null;
-  enabled: boolean;
-  config: Record<string, unknown>;
-}
 
 const PROVIDER_LOGOS: Record<string, string> = {
   openai: '🤖',
@@ -23,76 +14,28 @@ const PROVIDER_LOGOS: Record<string, string> = {
 };
 
 export function ProviderCard() {
-  const { token } = useAuth();
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { addToast } = useToast();
+  const { providers, loading, toggleProvider, deleteProvider, addProvider, updateProvider } = useProviders();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  const fetchProviders = useCallback(async () => {
-    try {
-      const res = await fetch('/api/providers', { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) {
-        const data = await res.json();
-        setProviders(data.providers || []);
-      }
-    } catch {} finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => { fetchProviders(); }, [fetchProviders]);
-
-  const toggleProvider = useCallback(async (id: string, enabled: boolean) => {
-    setProviders(prev => prev.map(p => p.id === id ? { ...p, enabled } : p));
-    try {
-      await fetch(`/api/providers/${id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ enabled }),
-      });
-    } catch {}
-  }, [headers]);
-
-  const updateProviderField = useCallback(async (id: string, field: string, value: string) => {
+  const handleUpdateField = useCallback(async (id: string, field: string, value: string) => {
     setSavingId(id);
-    try {
-      const body: Record<string, string> = {};
-      if (field === 'api_key') body.apiKey = value;
-      if (field === 'base_url') body.baseUrl = value;
-      const res = await fetch(`/api/providers/${id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        setProviders(prev => prev.map(p => {
-          if (p.id !== id) return p;
-          if (field === 'api_key') return { ...p, api_key_encrypted: value ? 'encrypted' : null };
-          if (field === 'base_url') return { ...p, base_url: value || null };
-          return p;
-        }));
-      }
-    } catch {} finally {
-      setSavingId(null);
-    }
-  }, [headers]);
+    const body: Record<string, string> = {};
+    if (field === 'api_key') body.apiKey = value;
+    if (field === 'base_url') body.baseUrl = value;
+    const ok = await updateProvider(id, body);
+    if (ok) addToast(`${field === 'api_key' ? 'API key' : 'Base URL'} updated`);
+    setSavingId(null);
+  }, [updateProvider, addToast]);
 
-  const deleteProvider = useCallback(async () => {
+  const handleDelete = useCallback(async () => {
     if (!deleteId) return;
-    try {
-      await fetch(`/api/providers/${deleteId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setProviders(prev => prev.filter(p => p.id !== deleteId));
-    } catch {} finally {
-      setDeleteId(null);
-    }
-  }, [deleteId, token]);
+    const ok = await deleteProvider(deleteId);
+    if (ok) addToast('Provider deleted');
+    setDeleteId(null);
+  }, [deleteId, deleteProvider, addToast]);
 
   if (loading) {
     return (
@@ -162,13 +105,13 @@ export function ProviderCard() {
                     value={provider.base_url || ''}
                     type="text"
                     monospace
-                    onChange={(v) => updateProviderField(provider.id, 'base_url', v)}
+                    onChange={(v) => handleUpdateField(provider.id, 'base_url', v)}
                   />
                   <SettingRow
                     label="API Key"
                     value={provider.api_key_encrypted ? '••••••••' : ''}
                     type="password"
-                    onChange={(v) => updateProviderField(provider.id, 'api_key', v)}
+                    onChange={(v) => handleUpdateField(provider.id, 'api_key', v)}
                   />
                 </div>
               )}
@@ -180,7 +123,7 @@ export function ProviderCard() {
       <AddProviderDialog
         open={showAddDialog}
         onClose={() => setShowAddDialog(false)}
-        onAdded={fetchProviders}
+        onAdded={() => addToast('Provider added')}
       />
 
       <ConfirmDialog
@@ -189,7 +132,7 @@ export function ProviderCard() {
         message="Are you sure you want to delete this provider? This action cannot be undone."
         confirmLabel="Delete"
         variant="danger"
-        onConfirm={deleteProvider}
+        onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />
     </div>
