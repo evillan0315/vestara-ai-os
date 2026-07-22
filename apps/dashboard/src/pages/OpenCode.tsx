@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
+import { seedVestaraThemeInIframe, injectVestaraTheme } from '../lib/opencode-theme';
 
 type ServerStatus = 'loading' | 'running' | 'stopped' | 'error';
 
@@ -13,6 +15,7 @@ interface OpenCodeStatus {
 
 export function OpenCodePage() {
   const { token } = useAuth();
+  const { resolvedTheme } = useTheme();
   const { addToast } = useToast();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -93,6 +96,21 @@ export function OpenCodePage() {
     const interval = setInterval(checkStatus, 5000);
     return () => clearInterval(interval);
   }, [serverStatus, checkStatus]);
+
+  /** Apply Vestara theme after iframe loads */
+  const handleIframeLoad = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    seedVestaraThemeInIframe(iframe);
+    injectVestaraTheme(iframe, resolvedTheme);
+  }, [resolvedTheme]);
+
+  /** Re-apply theme when dashboard theme changes */
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || serverStatus !== 'running') return;
+    injectVestaraTheme(iframe, resolvedTheme);
+  }, [resolvedTheme, serverStatus, key]);
 
   if (serverStatus === 'loading') {
     return (
@@ -193,6 +211,7 @@ export function OpenCodePage() {
         title="OpenCode"
         allow="clipboard-write; clipboard-read"
         sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+        onLoad={handleIframeLoad}
       />
     </div>
   );
