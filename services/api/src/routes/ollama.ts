@@ -4,8 +4,8 @@ import { authMiddleware } from './auth.js';
 
 let ollamaProcess: ChildProcess | null = null;
 
-function ollamaFetch(path: string): Promise<Response> {
-  return fetch(`http://localhost:11434${path}`);
+function ollamaFetch(path: string, options?: RequestInit): Promise<Response> {
+  return fetch(`http://localhost:11434${path}`, options);
 }
 
 export function registerOllamaRoutes(app: VestaraApp) {
@@ -52,12 +52,14 @@ export function registerOllamaRoutes(app: VestaraApp) {
     const { model } = request.body as { model?: string };
     if (!model) return reply.status(400).send({ error: 'Model name required' });
 
+    // Ollama pull is async — we fire-and-forget it
     try {
-      const res = await ollamaFetch('/api/pull');
+      const res = await ollamaFetch('/api/pull', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: model, stream: false }),
+      });
       if (!res.ok) return reply.status(500).send({ error: 'Failed to pull model' });
-
-      // Ollama pull is async — we just trigger it
-      ollamaFetch('/api/pull').catch(() => {});
       return { status: 'pulling', model };
     } catch (e) {
       return reply.status(500).send({ error: e instanceof Error ? e.message : 'Pull failed' });

@@ -536,3 +536,31 @@ pre code {
 .chart-expand-enter {
   animation: fade-in 0.2s ease-out;
 }
+
+/* ── Chat Page Animations ────────────────────── */
+
+/* Fade in for streaming messages and skeleton */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Slide up + fade in for message groups */
+@keyframes fadeInSlideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeInSlideUp {
+  animation: fadeInSlideUp 0.2s ease-out;
+}
+
+/* kbd element styling */
+kbd {
+  font-family: var(--font-mono);
+  background: var(--color-vestara-glass);
+}

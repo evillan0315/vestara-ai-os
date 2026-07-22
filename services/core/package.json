@@ -20,19 +20,22 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@vestara/config": "workspace:*",
     "@vestara/constants": "workspace:*",
     "@vestara/types": "workspace:*",
     "@vestara/utils": "workspace:*",
-    "@vestara/config": "workspace:*",
     "better-sqlite3": "^11.8.0",
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.10"
   }
 }

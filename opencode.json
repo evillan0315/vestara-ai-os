@@ -1,5 +1,24 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "ollama/deepseek-coder",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "llama2": {
+          "name": "Llama 2"
+        },
+    "deepseek-coder": {
+      "name": "DeepSeek Coder",
+      "tool_call": false
+    }
+      }
+    }
+  },
   "lsp": {
     "typescript-language-server": {
       "command": ["typescript-language-server", "--stdio"],

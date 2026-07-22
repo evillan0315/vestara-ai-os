@@ -15,7 +15,26 @@ export const OPENCODE_PORT = 4096;
 export const DATABASE_NAME = 'vestara.db';
 
 export const JWT_EXPIRES_IN = '7d';
-export const JWT_SECRET = (typeof process !== 'undefined' && process.env?.JWT_SECRET) || 'vestara-dev-secret';
+
+const JWT_DEV_SECRET = 'vestara-dev-secret';
+
+/** Get the JWT secret from env or generate a dev-only fallback with a warning */
+export function getJwtSecret(): string {
+  if (typeof process !== 'undefined' && process.env?.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
+    throw new Error(
+      'JWT_SECRET environment variable is required in production. ' +
+      'Set it to a long, random string (e.g., openssl rand -hex 64).'
+    );
+  }
+  console.warn(
+    '[vestara] WARNING: Using default JWT_SECRET for development only. ' +
+    'Set JWT_SECRET environment variable in production.'
+  );
+  return JWT_DEV_SECRET;
+}
 
 export const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 export const MAX_MESSAGE_LENGTH = 100_000;

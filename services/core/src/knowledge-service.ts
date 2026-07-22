@@ -6,7 +6,7 @@ const log = createLogger('knowledge-service');
 
 export interface KnowledgeEntry {
   id: number;
-  projectId: number | null;
+  projectId: string | null;
   type: 'document' | 'code' | 'url' | 'note' | 'conversation';
   title: string;
   content: string;
@@ -33,7 +33,7 @@ export class KnowledgeService {
   }
 
   async addEntry(
-    projectId: number | null,
+    projectId: string | null,
     type: KnowledgeEntry['type'],
     title: string,
     content: string,
@@ -74,7 +74,7 @@ export class KnowledgeService {
   }
 
   async search(
-    projectId: number | null,
+    projectId: string | null,
     query: string,
     type?: KnowledgeEntry['type'],
     tags?: string[],
@@ -131,7 +131,7 @@ export class KnowledgeService {
   }
 
   async getEntries(
-    projectId: number | null,
+    projectId: string | null,
     type?: KnowledgeEntry['type'],
     limit: number = 50,
     offset: number = 0
@@ -198,7 +198,7 @@ export class KnowledgeService {
     log.info({ id }, 'Knowledge entry deleted');
   }
 
-  async getStats(projectId: number | null): Promise<{
+  async getStats(projectId: string | null): Promise<{
     total: number;
     byType: Record<string, number>;
     totalSize: number;
@@ -228,7 +228,7 @@ export class KnowledgeService {
   }
 
   async getContextForQuery(
-    projectId: number | null,
+    projectId: string | null,
     query: string,
     maxTokens: number = 2000
   ): Promise<string> {

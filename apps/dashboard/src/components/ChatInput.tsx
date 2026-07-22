@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { VoiceInput } from './VoiceInput';
 import { SlashCommands } from './SlashCommands';
 
-interface AttachedFile {
+export interface AttachedFile {
   name: string;
   path: string;
   content: string;

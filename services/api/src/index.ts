@@ -1,15 +1,11 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
+import rateLimit from '@fastify/rate-limit';
 import { getConfig } from '@vestara/config';
-import { createLogger } from '@vestara/core';
-import { createDatabase, migrate } from '@vestara/core';
-import { MemoryService } from '@vestara/core';
-import { KnowledgeService } from '@vestara/core';
-import { AgentRuntime } from '@vestara/core';
-import { ProjectService } from '@vestara/core';
-import { ProjectAnalyticsService } from '@vestara/core';
-import { SettingsService } from '@vestara/core';
+import { createLogger, createDatabase, migrate, KnowledgeService, ProjectService, ProjectAnalyticsService, SettingsService } from '@vestara/core';
+import { MemoryService } from '@vestara/memory';
+import { AgentRuntime, type AIProvider } from '@vestara/agents';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerConversationRoutes } from './routes/conversations.js';
@@ -74,7 +70,17 @@ async function main() {
   app.decorate('events', events);
   app.decorate('memoryService', new MemoryService(db, events));
   app.decorate('knowledgeService', new KnowledgeService(db, events));
-  app.decorate('agentRuntime', new AgentRuntime(db, events));
+  const aiProvider: AIProvider = {
+    chat: async (request) => {
+      const response = await aiRouter.chat(request);
+      return {
+        content: response.content,
+        model: response.model,
+        tokens: response.tokens,
+      };
+    },
+  };
+  app.decorate('agentRuntime', new AgentRuntime(db, events, aiProvider));
   app.decorate('projectService', new ProjectService(db, events));
   app.decorate('settingsService', new SettingsService(db));
 
@@ -86,6 +92,16 @@ async function main() {
 
   // WebSocket
   await app.register(websocket);
+
+  // Rate limiting — 100 req/min global, stricter on auth routes
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+    allowList: ['/api/health', '/api/system/health'],
+    keyGenerator: (request) => {
+      return request.ip;
+    },
+  });
 
   // Global error handler
   app.setErrorHandler((error: any, request, reply) => {

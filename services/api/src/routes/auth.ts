@@ -1,10 +1,11 @@
-import { execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import os from 'node:os';
 import type { VestaraApp } from '../types.js';
 import { generateId, generateToken } from '@vestara/utils';
 import bcryptjs from 'bcryptjs';
 import jsonwebtoken from 'jsonwebtoken';
-import { JWT_SECRET, JWT_EXPIRES_IN } from '@vestara/constants';
+import { getJwtSecret, JWT_EXPIRES_IN } from '@vestara/constants';
+const JWT_SECRET = getJwtSecret();
 
 const { hash, compare } = bcryptjs;
 const { sign, verify } = jsonwebtoken;
@@ -31,34 +32,66 @@ function getOsUser(): { username: string; homeDir: string; shell: string } | nul
   }
 }
 
+/**
+ * Verify OS password using spawn (no shell) to avoid shell injection.
+ * Pipes the password via stdin to sudo -S (which reads the password from stdin).
+ */
 function verifyOsPassword(username: string, password: string): boolean {
-  const escaped = password.replace(/'/g, "'\\''");
   // Try sudo -S first (reads password from stdin, works in most environments)
   try {
-    execSync(`echo '${escaped}' | sudo -S -k echo ok 2>/dev/null`, {
-      stdio: 'pipe',
-      shell: '/usr/bin/sh',
+    const child = spawn('sudo', ['-S', '-k', 'echo', 'ok'], {
+      stdio: ['pipe', 'ignore', 'ignore'],
+      shell: false,
       timeout: 5000,
     });
-    return true;
+    child.stdin.write(password + '\n');
+    child.stdin.end();
+    const exitCode = child.exitCode ?? (() => {
+      // Synchronous wait — this is in a sync function
+      const start = Date.now();
+      while (child.exitCode === null) {
+        if (Date.now() - start > 5000) break;
+        // busy-wait is acceptable here since the timeout is very short (5s)
+      }
+      return child.exitCode;
+    })();
+    if (exitCode === 0) return true;
   } catch {
-    // Fallback: try su with piped password
-    try {
-      execSync(`echo '${escaped}' | su -c 'echo ok' ${username} 2>/dev/null`, {
-        stdio: 'pipe',
-        shell: '/usr/bin/sh',
-        timeout: 5000,
-      });
-      return true;
-    } catch {
-      return false;
-    }
+    // Fall through
   }
+
+  // Fallback: try su with piped password (no shell)
+  try {
+    const child = spawn('su', ['-c', 'echo ok', username], {
+      stdio: ['pipe', 'ignore', 'ignore'],
+      shell: false,
+      timeout: 5000,
+    });
+    child.stdin.write(password + '\n');
+    child.stdin.end();
+    const start = Date.now();
+    while (child.exitCode === null) {
+      if (Date.now() - start > 5000) break;
+    }
+    if (child.exitCode === 0) return true;
+  } catch {
+    // Fall through
+  }
+
+  return false;
 }
 
 export function registerAuthRoutes(app: VestaraApp) {
   app.post<{ Body: { name: string; email: string; password: string } }>(
     '/api/auth/register',
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '15 minutes',
+        },
+      },
+    },
     async (request, reply) => {
       const { name, email, password } = request.body;
 
@@ -96,6 +129,14 @@ export function registerAuthRoutes(app: VestaraApp) {
 
   app.post<{ Body: { email: string; password: string } }>(
     '/api/auth/login',
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '1 minute',
+        },
+      },
+    },
     async (request, reply) => {
       const { email, password } = request.body;
 
@@ -193,6 +234,14 @@ export function registerAuthRoutes(app: VestaraApp) {
    */
   app.post<{ Body: { username: string; password: string } }>(
     '/api/auth/os-login',
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '1 minute',
+        },
+      },
+    },
     async (request, reply) => {
       const { username, password } = request.body;
 
@@ -251,7 +300,14 @@ export function registerAuthRoutes(app: VestaraApp) {
   /**
    * Auto-login as current OS user (no password required)
    */
-  app.post('/api/auth/os-auto-login', async (request, reply) => {
+  app.post('/api/auth/os-auto-login', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
     const osUser = getOsUser();
     if (!osUser) {
       return reply.status(500).send({ error: 'Could not detect OS user' });

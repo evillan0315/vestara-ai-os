@@ -1,11 +1,12 @@
 import type { Database } from './db.js';
 import type { EventBus } from './events.js';
 import { createLogger } from './logger.js';
+import { generateId } from '@vestara/utils';
 
 const log = createLogger('agent-runtime');
 
 export interface Agent {
-  id: number;
+  id: string;
   userId: string;
   name: string;
   description: string;
@@ -22,10 +23,10 @@ export interface Agent {
 }
 
 export interface Task {
-  id: number;
-  agentId: number;
+  id: string;
+  agentId: string;
   userId: string;
-  conversationId: number | null;
+  conversationId: string | null;
   input: string;
   output: string | null;
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
@@ -55,7 +56,7 @@ export class AgentRuntime {
   private db: Database;
   private events: EventBus;
   private tools: Map<string, ToolDefinition> = new Map();
-  private activeTasks: Map<number, AbortController> = new Map();
+  private activeTasks: Map<string, AbortController> = new Map();
 
   constructor(db: Database, events: EventBus) {
     this.db = db;
@@ -64,7 +65,6 @@ export class AgentRuntime {
   }
 
   private registerDefaultTools(): void {
-    // Web search tool
     this.registerTool({
       name: 'web_search',
       description: 'Search the web for information',
@@ -76,12 +76,10 @@ export class AgentRuntime {
         required: ['query'],
       },
       execute: async (input) => {
-        // Placeholder — in production use a real search API
         return `Search results for "${input.query}": [Results would appear here]`;
       },
     });
 
-    // File read tool
     this.registerTool({
       name: 'read_file',
       description: 'Read contents of a file',
@@ -103,7 +101,6 @@ export class AgentRuntime {
       },
     });
 
-    // Execute code tool
     this.registerTool({
       name: 'execute_code',
       description: 'Execute code in a sandboxed environment',
@@ -116,12 +113,10 @@ export class AgentRuntime {
         required: ['language', 'code'],
       },
       execute: async (input) => {
-        // Placeholder — in production use a sandboxed runner
         return `Code execution result for ${input.language}: [Output would appear here]`;
       },
     });
 
-    // Database query tool
     this.registerTool({
       name: 'db_query',
       description: 'Execute a database query',
@@ -160,12 +155,12 @@ export class AgentRuntime {
     systemPrompt: string,
     options: Partial<Pick<Agent, 'description' | 'temperature' | 'maxTokens' | 'tools' | 'metadata'>> = {}
   ): Promise<Agent> {
-    const stmt = this.db.prepare(`
-      INSERT INTO agents (user_id, name, description, type, model, system_prompt, temperature, max_tokens, tools, metadata)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = stmt.run(
+    const id = generateId();
+    this.db.prepare(`
+      INSERT INTO agents (id, user_id, name, description, type, model, system_prompt, temperature, max_tokens, tools, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
       userId,
       name,
       options.description || '',
@@ -178,14 +173,14 @@ export class AgentRuntime {
       JSON.stringify(options.metadata || {})
     );
 
-    const agent = this.getAgent(Number(result.lastInsertRowid));
+    const agent = this.getAgent(id);
     this.events.emit('agent:created', { agent });
 
     log.info({ agentId: agent.id, name, type }, 'Agent created');
     return agent;
   }
 
-  getAgent(id: number): Agent {
+  getAgent(id: string): Agent {
     const row = this.db.prepare('SELECT * FROM agents WHERE id = ?').get(id) as any;
     if (!row) throw new Error(`Agent ${id} not found`);
     return this.mapAgent(row);
@@ -206,7 +201,7 @@ export class AgentRuntime {
     return rows.map(this.mapAgent);
   }
 
-  async updateAgent(id: number, updates: Partial<Pick<Agent, 'name' | 'description' | 'model' | 'systemPrompt' | 'temperature' | 'maxTokens' | 'tools' | 'metadata' | 'isActive'>>): Promise<Agent> {
+  async updateAgent(id: string, updates: Partial<Pick<Agent, 'name' | 'description' | 'model' | 'systemPrompt' | 'temperature' | 'maxTokens' | 'tools' | 'metadata' | 'isActive'>>): Promise<Agent> {
     const fields: string[] = [];
     const params: any[] = [];
 
@@ -261,28 +256,27 @@ export class AgentRuntime {
     return agent;
   }
 
-  async deleteAgent(id: number): Promise<void> {
+  async deleteAgent(id: string): Promise<void> {
     this.db.prepare('DELETE FROM agents WHERE id = ?').run(id);
     this.events.emit('agent:deleted', { id });
     log.info({ id }, 'Agent deleted');
   }
 
   async executeTask(
-    agentId: number,
+    agentId: string,
     userId: string,
     input: string,
-    conversationId?: number,
+    conversationId?: string,
     signal?: AbortSignal
   ): Promise<Task> {
     const agent = this.getAgent(agentId);
 
-    // Create task record
-    const stmt = this.db.prepare(`
-      INSERT INTO tasks (agent_id, user_id, conversation_id, input, status)
-      VALUES (?, ?, ?, ?, 'running')
-    `);
-    const result = stmt.run(agentId, userId, conversationId || null, input);
-    const taskId = Number(result.lastInsertRowid);
+    // Create task record with a generated UUID
+    const taskId = generateId();
+    this.db.prepare(`
+      INSERT INTO agent_executions (id, agent_id, user_id, conversation_id, input, status)
+      VALUES (?, ?, ?, ?, ?, 'running')
+    `).run(taskId, agentId, userId, conversationId || null, input);
 
     const task = this.getTask(taskId);
     this.events.emit('task:started', { task });
@@ -304,11 +298,9 @@ export class AgentRuntime {
         }
 
         // In production, call the AI model here
-        // For now, simulate tool execution
         const lastMessage = messages[messages.length - 1];
 
         if (lastMessage.role === 'user') {
-          // Simulate AI response
           output = `Agent "${agent.name}" processed: "${input}"`;
           break;
         }
@@ -318,7 +310,7 @@ export class AgentRuntime {
 
       // Update task
       this.db.prepare(`
-        UPDATE tasks
+        UPDATE agent_executions
         SET output = ?, status = 'completed', duration = ?, completed_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(output, duration, taskId);
@@ -334,7 +326,7 @@ export class AgentRuntime {
       const error = err instanceof Error ? err.message : String(err);
 
       this.db.prepare(`
-        UPDATE tasks
+        UPDATE agent_executions
         SET status = 'failed', error = ?, duration = ?, completed_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(error, duration, taskId);
@@ -347,7 +339,7 @@ export class AgentRuntime {
     }
   }
 
-  cancelTask(taskId: number): void {
+  cancelTask(taskId: string): void {
     const controller = this.activeTasks.get(taskId);
     if (controller) {
       controller.abort();
@@ -355,26 +347,26 @@ export class AgentRuntime {
     }
 
     this.db.prepare(`
-      UPDATE tasks SET status = 'cancelled', completed_at = CURRENT_TIMESTAMP
+      UPDATE agent_executions SET status = 'cancelled', completed_at = CURRENT_TIMESTAMP
       WHERE id = ? AND status IN ('pending', 'running')
     `).run(taskId);
 
     log.info({ taskId }, 'Task cancelled');
   }
 
-  getTask(id: number): Task {
-    const row = this.db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as any;
+  getTask(id: string): Task {
+    const row = this.db.prepare('SELECT * FROM agent_executions WHERE id = ?').get(id) as any;
     if (!row) throw new Error(`Task ${id} not found`);
     return this.mapTask(row);
   }
 
   async listTasks(
     userId: string,
-    agentId?: number,
+    agentId?: string,
     status?: Task['status'],
     limit: number = 50
   ): Promise<Task[]> {
-    let sql = 'SELECT * FROM tasks WHERE user_id = ?';
+    let sql = 'SELECT * FROM agent_executions WHERE user_id = ?';
     const params: any[] = [userId];
 
     if (agentId) {
@@ -413,19 +405,19 @@ export class AgentRuntime {
     `).all(userId) as any[];
 
     const totalTasks = this.db.prepare(
-      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ?'
+      'SELECT COUNT(*) as count FROM agent_executions WHERE user_id = ?'
     ).get(userId) as any;
 
     const completedTasks = this.db.prepare(
-      "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = 'completed'"
+      "SELECT COUNT(*) as count FROM agent_executions WHERE user_id = ? AND status = 'completed'"
     ).get(userId) as any;
 
     const failedTasks = this.db.prepare(
-      "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND status = 'failed'"
+      "SELECT COUNT(*) as count FROM agent_executions WHERE user_id = ? AND status = 'failed'"
     ).get(userId) as any;
 
     const avgDuration = this.db.prepare(
-      'SELECT AVG(duration) as avg FROM tasks WHERE user_id = ? AND status = \'completed\''
+      "SELECT AVG(duration) as avg FROM agent_executions WHERE user_id = ? AND status = 'completed'"
     ).get(userId) as any;
 
     return {

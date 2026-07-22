@@ -1,6 +1,7 @@
 import DatabaseDriver from 'better-sqlite3';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { runMigrations } from './migrations.js';
 
 export class Database {
   private db: DatabaseDriver.Database;
@@ -143,11 +144,16 @@ export function migrate(db: Database): void {
     CREATE TABLE IF NOT EXISTS memories (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type TEXT NOT NULL DEFAULT 'long_term',
-      key TEXT NOT NULL,
-      value TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'fact',
+      key TEXT,
+      value TEXT,
       context TEXT,
+      content TEXT,
       importance REAL NOT NULL DEFAULT 0.5,
+      access_count INTEGER NOT NULL DEFAULT 0,
+      last_accessed_at TEXT,
+      consolidation_id INTEGER,
+      metadata TEXT DEFAULT '{}',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
@@ -191,6 +197,14 @@ export function migrate(db: Database): void {
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       type TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      model TEXT NOT NULL DEFAULT '',
+      system_prompt TEXT NOT NULL DEFAULT '',
+      temperature REAL NOT NULL DEFAULT 0.7,
+      max_tokens INTEGER NOT NULL DEFAULT 4096,
+      tools TEXT NOT NULL DEFAULT '[]',
+      is_active INTEGER NOT NULL DEFAULT 1,
+      metadata TEXT NOT NULL DEFAULT '{}',
       provider_id TEXT,
       model_id TEXT,
       config TEXT DEFAULT '{}',
@@ -203,11 +217,17 @@ export function migrate(db: Database): void {
   db.run(`
     CREATE TABLE IF NOT EXISTS agent_executions (
       id TEXT PRIMARY KEY,
-      agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      agent_id TEXT REFERENCES agents(id) ON DELETE SET NULL,
+      user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      conversation_id TEXT,
       input TEXT NOT NULL,
       output TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
       tokens INTEGER,
       cost REAL,
+      duration INTEGER,
+      error TEXT,
+      metadata TEXT DEFAULT '{}',
       started_at TEXT NOT NULL DEFAULT (datetime('now')),
       completed_at TEXT
     )
@@ -274,7 +294,7 @@ db.run(`
   db.run(`
     CREATE TABLE IF NOT EXISTS knowledge_entries (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER,
+      project_id TEXT,
       type TEXT NOT NULL CHECK(type IN ('document', 'code', 'url', 'note', 'conversation')),
       title TEXT NOT NULL,
       content TEXT NOT NULL,
@@ -287,96 +307,6 @@ db.run(`
     )
   `);
 
-  // Migration: Add project_id to conversations if missing
-  const convColumns = db.all<{ name: string }>("PRAGMA table_info(conversations)");
-  if (!convColumns.some(c => c.name === 'project_id')) {
-    db.run("ALTER TABLE conversations ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL");
-  }
-
-  // Migration: Add project_id to opencode_chats if missing
-  const ocColumns = db.all<{ name: string }>("PRAGMA table_info(opencode_chats)");
-  if (!ocColumns.some(c => c.name === 'project_id')) {
-    db.run("ALTER TABLE opencode_chats ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL");
-  }
-  if (!ocColumns.some(c => c.name === 'cwd')) {
-    db.run("ALTER TABLE opencode_chats ADD COLUMN cwd TEXT");
-  }
-  if (!ocColumns.some(c => c.name === 'agent')) {
-    db.run("ALTER TABLE opencode_chats ADD COLUMN agent TEXT DEFAULT 'build'");
-  }
-  if (!ocColumns.some(c => c.name === 'custom_instructions')) {
-    db.run("ALTER TABLE opencode_chats ADD COLUMN custom_instructions TEXT");
-  }
-  if (!ocColumns.some(c => c.name === 'fallback_models')) {
-    db.run("ALTER TABLE opencode_chats ADD COLUMN fallback_models TEXT");
-  }
-
-  // Migration: Add task columns for new features
-  const taskColumns = db.all<{ name: string }>("PRAGMA table_info(tasks)");
-  if (!taskColumns.some(c => c.name === 'parent_id')) {
-    db.run("ALTER TABLE tasks ADD COLUMN parent_id TEXT REFERENCES tasks(id) ON DELETE SET NULL");
-  }
-  if (!taskColumns.some(c => c.name === 'tags')) {
-    db.run("ALTER TABLE tasks ADD COLUMN tags TEXT DEFAULT '[]'");
-  }
-  if (!taskColumns.some(c => c.name === 'estimated_hours')) {
-    db.run("ALTER TABLE tasks ADD COLUMN estimated_hours REAL");
-  }
-  if (!taskColumns.some(c => c.name === 'logged_hours')) {
-    db.run("ALTER TABLE tasks ADD COLUMN logged_hours REAL DEFAULT 0");
-  }
-  if (!taskColumns.some(c => c.name === 'sort_order')) {
-    db.run("ALTER TABLE tasks ADD COLUMN sort_order INTEGER DEFAULT 0");
-  }
-
-  // Migration: Add memory columns for MemoryService
-  const memColumns = db.all<{ name: string }>("PRAGMA table_info(memories)");
-  if (!memColumns.some(c => c.name === 'consolidation_id')) {
-    db.run("ALTER TABLE memories ADD COLUMN consolidation_id INTEGER REFERENCES consolidations(id) ON DELETE SET NULL");
-  }
-  if (!memColumns.some(c => c.name === 'content')) {
-    db.run("ALTER TABLE memories ADD COLUMN content TEXT");
-  }
-  if (!memColumns.some(c => c.name === 'access_count')) {
-    db.run("ALTER TABLE memories ADD COLUMN access_count INTEGER DEFAULT 0");
-  }
-  if (!memColumns.some(c => c.name === 'last_accessed_at')) {
-    db.run("ALTER TABLE memories ADD COLUMN last_accessed_at TEXT");
-  }
-  if (!memColumns.some(c => c.name === 'metadata')) {
-    db.run("ALTER TABLE memories ADD COLUMN metadata TEXT DEFAULT '{}'");
-  }
-
-  // Migration: Create memory_consolidations table if missing
-  db.run(`
-    CREATE TABLE IF NOT EXISTS consolidations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      summary TEXT NOT NULL,
-      memory_count INTEGER NOT NULL DEFAULT 0,
-      importance REAL NOT NULL DEFAULT 0.5,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Indexes for query performance
-  const existingIndexes = db.all<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL");
-  const hasIndex = (name: string) => existingIndexes.some(i => i.name === name);
-
-  if (!hasIndex('idx_memories_user_id'))        db.run('CREATE INDEX idx_memories_user_id ON memories(user_id)');
-  if (!hasIndex('idx_memories_user_type'))       db.run('CREATE INDEX idx_memories_user_type ON memories(user_id, type)');
-  if (!hasIndex('idx_memories_consolidation'))   db.run('CREATE INDEX idx_memories_consolidation ON memories(consolidation_id)');
-  if (!hasIndex('idx_memories_created_at'))      db.run('CREATE INDEX idx_memories_created_at ON memories(created_at)');
-  if (!hasIndex('idx_tasks_project_id'))         db.run('CREATE INDEX idx_tasks_project_id ON tasks(project_id)');
-  if (!hasIndex('idx_tasks_status'))             db.run('CREATE INDEX idx_tasks_status ON tasks(status)');
-  if (!hasIndex('idx_tasks_parent'))             db.run('CREATE INDEX idx_tasks_parent ON tasks(parent_id)');
-  if (!hasIndex('idx_projects_user'))            db.run('CREATE INDEX idx_projects_user ON projects(user_id)');
-  if (!hasIndex('idx_conversations_user'))       db.run('CREATE INDEX idx_conversations_user ON conversations(user_id)');
-  if (!hasIndex('idx_activity_user'))            db.run('CREATE INDEX idx_activity_user ON activity_log(user_id)');
-  if (!hasIndex('idx_activity_created'))         db.run('CREATE INDEX idx_activity_created ON activity_log(created_at)');
-  if (!hasIndex('idx_notifications_user'))       db.run('CREATE INDEX idx_notifications_user ON notifications(user_id)');
-  if (!hasIndex('idx_knowledge_project'))        db.run('CREATE INDEX idx_knowledge_project ON knowledge_entries(project_id)');
-  if (!hasIndex('idx_agents_user'))              db.run('CREATE INDEX idx_agents_user ON agents(user_id)');
-  if (!hasIndex('idx_oc_chats_project'))         db.run('CREATE INDEX idx_oc_chats_project ON opencode_chats(project_id)');
-  if (!hasIndex('idx_oc_msgs_chat'))             db.run('CREATE INDEX idx_oc_msgs_chat ON opencode_messages(chat_id)');
+  // Run formal migrations (PRAGMA-based additive changes)
+  runMigrations(db);
 }

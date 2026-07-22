@@ -59,6 +59,7 @@ export function formatDuration(ms: number): string {
 }
 
 export function formatCost(cents: number): string {
+  if (cents <= 0) return '$0.00';
   if (cents < 1) return '<$0.01';
   return `$${(cents / 100).toFixed(2)}`;
 }

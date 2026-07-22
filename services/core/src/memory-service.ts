@@ -1,11 +1,12 @@
 import type { Database } from './db.js';
 import type { EventBus } from './events.js';
 import { createLogger } from './logger.js';
+import { generateId } from '@vestara/utils';
 
 const log = createLogger('memory-service');
 
 export interface Memory {
-  id: number;
+  id: string;
   userId: string;
   type: 'fact' | 'preference' | 'context' | 'insight' | 'interaction';
   content: string;
@@ -50,14 +51,13 @@ export class MemoryService {
     importance: number = 0.5,
     metadata: Record<string, unknown> = {}
   ): Promise<Memory> {
-    const stmt = this.db.prepare(`
-      INSERT INTO memories (user_id, type, content, importance, metadata)
-      VALUES (?, ?, ?, ?, ?)
-    `);
+    const id = generateId();
+    this.db.prepare(`
+      INSERT INTO memories (id, user_id, type, content, importance, metadata)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(id, userId, type, content, importance, JSON.stringify(metadata));
 
-    const result = stmt.run(userId, type, content, importance, JSON.stringify(metadata));
-
-    const memory = this.getMemory(Number(result.lastInsertRowid));
+    const memory = this.getMemory(id);
 
     this.events.emit('memory:added', { userId, memory });
 
@@ -65,7 +65,7 @@ export class MemoryService {
     return memory;
   }
 
-  getMemory(id: number): Memory {
+  getMemory(id: string): Memory {
     const row = this.db.prepare('SELECT * FROM memories WHERE id = ?').get(id) as any;
     if (!row) throw new Error(`Memory ${id} not found`);
 
@@ -130,7 +130,7 @@ export class MemoryService {
     return rows.map(this.mapMemory);
   }
 
-  async deleteMemory(id: number): Promise<void> {
+  async deleteMemory(id: string): Promise<void> {
     this.db.prepare('DELETE FROM memories WHERE id = ?').run(id);
     this.events.emit('memory:deleted', { id });
     log.info({ id }, 'Memory deleted');
