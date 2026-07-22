@@ -93,15 +93,36 @@ DELETE /api/conversations/:id  → Delete conversation
 
 ## OpenCode
 
-OpenCode CLI integration with persistent chat history.
+Embedded OpenCode web UI with project directory selection and Vestara theme.
 
 ### Features
 
-- **CLI integration** — Run OpenCode commands via API
-- **Chat history** — Persistent chat storage in SQLite
-- **Auto-titles** — First message becomes chat title
-- **Working directory** — Configurable CWD per session
-- **Model selector** — Choose from OpenCode free models
+- **Embedded web UI** — OpenCode server runs on port 4096, embedded via iframe
+- **Project directory** — Select a project to start OpenCode in that directory
+- **Vestara theme** — CSS variable injection matches dark/light dashboard theme
+- **Server controls** — Start, stop, reload from the toolbar
+- **Auto-start** — Server starts automatically when page loads
+- **Project switcher** — Switch projects without leaving the page (restarts server)
+
+### Architecture
+
+```
+Dashboard (React)
+  └─ OpenCode Page
+       ├─ Toolbar (status, project selector, controls)
+       └─ iframe → http://localhost:4096
+            └─ OpenCode Web UI (Hono + WebSocket)
+                 └─ Reads Vestara theme from injected <style> tag
+```
+
+### Theme Injection
+
+OpenCode reads its theme from localStorage and CSS variables. Vestara injects a custom theme via:
+
+1. `seedVestaraThemeInIframe()` — Sets localStorage keys before iframe renders
+2. `injectVestaraTheme()` — Injects `<style id="vestara-opencode-theme">` with mapped CSS variables
+
+Color mapping: Vestara palette → OpenCode `--v2-*` variables (background, text, accent, agent badges).
 
 ### Default Models
 
@@ -111,19 +132,23 @@ opencode/mimo-v2.5-free
 opencode/nemotron-3-ultra-free
 opencode/north-mini-code-free
 opencode/big-pickle
+ollama/deepseek-coder (local, requires Ollama)
 ```
 
 ### API Endpoints
 
 ```typescript
-GET  /api/providers/opencode/status
-POST /api/providers/opencode/chat
-GET  /api/providers/opencode/models
-GET  /api/providers/opencode/chats
-POST /api/providers/opencode/chats
-GET  /api/providers/opencode/chats/:id
-POST /api/providers/opencode/chats/:id/messages
-DELETE /api/providers/opencode/chats/:id
+GET  /api/providers/opencode/status    → Status + serverUrl
+POST /api/providers/opencode/start     → Start server (accepts { cwd })
+POST /api/providers/opencode/stop      → Stop server
+GET  /api/providers/opencode/models    → List available models
+POST /api/providers/opencode/chat      → Send prompt
+GET  /api/providers/opencode/chats     → List chat history
+POST /api/providers/opencode/chats     → Create new chat
+GET  /api/providers/opencode/chats/:id → Get chat with messages
+POST /api/providers/opencode/chats/:id/messages → Add message
+DELETE /api/providers/opencode/chats/:id → Delete chat
+PATCH /api/providers/opencode/chats/:id → Rename chat
 ```
 
 ---
@@ -351,12 +376,12 @@ User management with OS-based authentication.
 
 ## Settings
 
-System configuration.
+System configuration with visual theme picker.
 
 ### Categories
 
-- Appearance (theme, fonts)
-- AI Providers (API keys, connection status)
+- Appearance (dark/light/system theme picker with preview cards, fonts)
+- AI Providers (API keys, connection status, Ollama provider config)
 - Local Models (Ollama config)
 - Security (password, encryption)
 - Startup (service management)

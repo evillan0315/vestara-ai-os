@@ -11,14 +11,14 @@
 ┌─────────────────────────────────────┐
 │         Vestara Dashboard           │
 │  React 19 · Vite 6 · Tailwind 4    │
-│  14 Pages · Glassmorphism           │
+│  14 Pages · Dark/Light · Glassmorphism│
 ├─────────────────────────────────────┤
 │         Vestara API                 │
 │  Fastify 5 · WebSocket · REST      │
 │  15 Route Modules · JWT Auth        │
 ├─────────────────────────────────────┤
 │         AI Services                 │
-│  OpenCode · Agent Runtime ·         │
+│  OpenCode (iframe) · Agent Runtime  │
 │  Memory Service · Knowledge Base    │
 ├─────────────────────────────────────┤
 │         Data Layer                  │
@@ -128,17 +128,19 @@ packages/
 ┌─────────────┐     HTTP      ┌──────────────┐
 │  Dashboard  │◄─────────────►│  Vestara API │
 │  (React)    │    WebSocket  │  (Fastify)   │
-└─────────────┘               └──────┬───────┘
-                                     │
-                          ┌──────────┼──────────┐
-                          │          │          │
-                   ┌──────┴──┐ ┌────┴────┐ ┌───┴──────┐
-                   │ OpenCode│ │ Memory  │ │ Knowledge│
-                   │ (chat)  │ │ Service │ │ Service  │
-                   └─────────┘ └─────────┘ └──────────┘
+└──────┬──────┘               └──────┬───────┘
+       │ iframe                      │
+       ▼                             │
+┌──────────────┐            ┌────────┼────────┐
+│  OpenCode    │            │        │        │
+│  Web UI      │       ┌────┴──┐ ┌──┴───┐ ┌──┴──────┐
+│  (port 4096) │       │Memory │ │ Know │ │ Agent   │
+└──────────────┘       │Service│ │ledge │ │ Runtime │
+                       └───────┘ └──────┘ └─────────┘
 ```
 
 - **Dashboard ↔ API**: HTTP REST + WebSocket for real-time updates
+- **Dashboard ↔ OpenCode**: Embedded iframe (same-origin sandbox, Vestara theme injected via CSS variables)
 - **API ↔ Services**: Direct function calls (in-process)
 - **API ↔ SQLite**: Direct queries (better-sqlite3 is synchronous, fast)
 - **Services ↔ Ollama**: HTTP (Ollama runs on localhost:11434)
@@ -262,7 +264,7 @@ File Routes        /api/files/*         File manager operations
 |------|-------|---------|
 | Dashboard | `/dashboard` | System overview, recharts visualizations |
 | AI Chat | `/chat` | Streaming chat with multi-model support |
-| OpenCode | `/opencode` | OpenCode CLI integration with chat history |
+| OpenCode | `/opencode` | Embedded OpenCode web UI with project directory selector |
 | Agents | `/agents` | Agent management and execution |
 | Models | `/models` | Provider and model selection |
 | Memory | `/memory` | Memory store with search |
@@ -273,4 +275,4 @@ File Routes        /api/files/*         File manager operations
 | Monitor | `/monitor` | Real-time system monitoring with recharts |
 | Users | `/users` | User management (admin only) |
 | Scripts | `/scripts` | Script runner with documentation |
-| Settings | `/settings` | System configuration |
+| Settings | `/settings` | System configuration, theme picker |

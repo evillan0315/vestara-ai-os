@@ -191,6 +191,11 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 | Memory service | ✅ Complete | 1 |
 | Knowledge service | ✅ Complete | 1 |
 | OpenCode integration | ✅ Complete | 1 |
+| OpenCode iframe + theme | ✅ Complete | 1 |
+| OpenCode project directory | ✅ Complete | 1 |
+| Ollama provider (deepseek-coder) | ✅ Complete | 1 |
+| Light theme support | ✅ Complete | 1 |
+| Toast notifications | ✅ Complete | 1 |
 | OS-based authentication | ✅ Complete | 1 |
 | File manager | ✅ Complete | 1 |
 | Script runner | ✅ Complete | 1 |
@@ -220,7 +225,7 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 |---|------|-------|--------------|
 | 1 | Dashboard | `/dashboard` | Recharts (area, radial, pie), quick actions |
 | 2 | AI Chat | `/chat` | SSE streaming, multi-model, code blocks |
-| 3 | OpenCode | `/opencode` | CLI integration, chat history, CWD config |
+| 3 | OpenCode | `/opencode` | Embedded web UI, project directory selector, Vestara theme |
 | 4 | Agents | `/agents` | 8 built-in agents, tool execution |
 | 5 | Models | `/models` | Provider management, connection testing |
 | 6 | Memory | `/memory` | Auto-consolidation, search, importance |
@@ -241,7 +246,7 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 |--------|-----------|------|
 | auth | 4 | Public |
 | system | 4 | Public |
-| opencode | 10 | Public |
+| opencode | 12 | Public |
 | providers | 5 | Protected |
 | chat | 1 | Protected |
 | conversations | 4 | Protected |
@@ -252,7 +257,7 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 | users | 5 | Admin |
 | scripts | 4 | Protected |
 | files | 8 | Protected |
-| **Total** | **72** | |
+| **Total** | **74** | |
 
 ---
 
@@ -264,7 +269,11 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 - [x] All services start and report healthy
 - [x] Dashboard loads with 14 pages
 - [x] AI Chat works with cloud APIs and free OpenCode models
-- [x] Ollama starts on-demand
+- [x] OpenCode embedded web UI with Vestara theme
+- [x] OpenCode project directory selection
+- [x] Ollama starts on-demand with deepseek-coder pre-configured
+- [x] Light/dark theme with visual picker
+- [x] Toast notification system
 - [x] CLI tool manages services
 - [x] File manager with tree view and editor
 - [x] Script runner with documentation

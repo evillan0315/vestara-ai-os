@@ -190,7 +190,7 @@ const activity = await projectService.getProjectActivity(projectId);
 
 ## Default Models
 
-The project uses OpenCode free models by default:
+The project uses OpenCode free models by default, with Ollama local models available:
 
 ```typescript
 const DEFAULT_MODELS = [
@@ -201,6 +201,10 @@ const DEFAULT_MODELS = [
   'opencode/big-pickle',
 ];
 ```
+
+Ollama models (configured in `~/.config/opencode/opencode.json`):
+- `ollama/deepseek-coder` — Default local model
+- `ollama/llama2` — Available via Ollama
 
 ## Environment Variables
 
@@ -308,3 +312,57 @@ Data fetching lives in `apps/dashboard/src/hooks/useProjects.ts` using the SWR c
 9. **Shell is `/usr/bin/sh`** — Use `shell: '/usr/bin/sh'` for `execSync` and `spawn`
 10. **Project service is decorated** — `app.projectService` is available on `VestaraApp` (decorated in `api/src/index.ts`)
 11. **DB migrations are additive** — New columns use `ALTER TABLE ... ADD COLUMN` with `PRAGMA table_info` checks
+
+## OpenCode Integration
+
+### Web UI Embedding
+
+OpenCode runs as a headless server (`opencode serve`) on port 4096. The dashboard embeds it via iframe:
+
+```tsx
+// OpenCode page starts the server with a project directory
+const res = await fetch('/api/providers/opencode/start', {
+  method: 'POST',
+  body: JSON.stringify({ cwd: project.path }),
+});
+// → { status: 'started', port: 4096, serverUrl: 'http://localhost:4096' }
+```
+
+### Theme Injection
+
+OpenCode reads its theme from localStorage and CSS variables. Vestara injects a custom theme:
+
+```typescript
+// apps/dashboard/src/lib/opencode-theme.ts
+import { seedVestaraThemeInIframe, injectVestaraTheme } from '../lib/opencode-theme';
+
+// After iframe loads:
+seedVestaraThemeInIframe(iframe);  // Sets localStorage keys
+injectVestaraTheme(iframe, 'dark'); // Injects <style> with --v2-* variable mappings
+```
+
+The theme maps Vestara's color palette to OpenCode's `--v2-*` CSS variables:
+- `--v2-background-bg-deep` → `#06060C` (vestara-bg)
+- `--v2-text-text-base` → `#E8ECF1` (vestara-text)
+- `--v2-text-text-accent` → `#C9A84C` (vestara-gold)
+
+### Provider Configuration
+
+OpenCode providers are configured in `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": { "baseURL": "http://localhost:11434/v1" },
+      "models": {
+        "deepseek-coder": { "name": "DeepSeek Coder" },
+        "llama2": { "name": "Llama 2" }
+      }
+    }
+  },
+  "model": "ollama/deepseek-coder"
+}
+```

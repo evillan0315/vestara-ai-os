@@ -32,10 +32,10 @@ cd packages/cli && pnpm build
 
 ## Features
 
-- **14-screen Dashboard** — Dark glassmorphism AI command center with recharts visualizations
+- **14-screen Dashboard** — Dark/light glassmorphism AI command center with recharts visualizations
 - **OS Authentication** — Login with your system username/password
 - **AI Chat** — Stream responses from OpenAI, Anthropic, Google, Ollama
-- **OpenCode Integration** — First-class OpenCode support with chat history persistence
+- **OpenCode Integration** — Embedded web UI with project directory selection and Vestara theme
 - **Agent Runtime** — Create and execute AI agents with tools
 - **Memory System** — Store and recall information across sessions
 - **Knowledge Base** — Document storage with search and retrieval
@@ -123,7 +123,7 @@ vestara-ai-os/
 | Dashboard | `/dashboard` | System overview with recharts (CPU, RAM, Disk, Network) |
 | Login | `/login` | OS-based authentication |
 | AI Chat | `/chat` | Chat with AI models (streaming) |
-| OpenCode | `/opencode` | OpenCode integration with chat history |
+| OpenCode | `/opencode` | Embedded OpenCode web UI with project directory selector |
 | Agents | `/agents` | Agent management and execution |
 | Models | `/models` | AI model manager |
 | Memory | `/memory` | Memory store with search |
@@ -146,7 +146,7 @@ Vestara uses OpenCode free models by default (no API key required):
 - `opencode/north-mini-code-free`
 - `opencode/big-pickle`
 
-Additional providers: OpenAI, Anthropic, Google, Ollama (local).
+Additional providers: OpenAI, Anthropic, Google, Ollama (local with `deepseek-coder` pre-configured).
 
 ## API Endpoints
 
@@ -173,7 +173,9 @@ Additional providers: OpenAI, Anthropic, Google, Ollama (local).
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/providers/opencode/status` | OpenCode status |
+| GET | `/api/providers/opencode/status` | OpenCode status (includes serverUrl) |
+| POST | `/api/providers/opencode/start` | Start server (accepts `{ cwd }` for project directory) |
+| POST | `/api/providers/opencode/stop` | Stop server |
 | GET | `/api/providers/opencode/models` | List available models |
 | POST | `/api/providers/opencode/chat` | Send prompt to OpenCode |
 | GET | `/api/providers/opencode/chats` | List chat sessions |
@@ -323,7 +325,7 @@ sudo dd if=dist/vestara-ai-os.img of=/dev/sdX bs=4M status=progress
 - [Boot Experience](./blueprints/02-boot-experience.md) — Auto-login, systemd services
 - [Services](./blueprints/03-services.md) — Lightweight AI services
 - [Filesystem](./blueprints/04-filesystem.md) — Purpose-built filesystem layout
-- [Desktop](./blueprints/05-desktop.md) — 14-screen dark glassmorphism UI
+- [Desktop](./blueprints/05-desktop.md) — 14-screen dark/light glassmorphism UI
 - [Applications](./blueprints/06-applications.md) — Built-in AI applications
 - [Implementation Roadmap](./blueprints/07-implementation-roadmap.md) — 4-stage build plan
 

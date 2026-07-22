@@ -11,6 +11,7 @@
 |---|---|---|---|
 | `vestara-api` | 3000 | Yes | Fastify REST + WebSocket + all services |
 | `vestara-dashboard` | — | Yes | Browser kiosk mode (Nginx in production) |
+| `opencode` | 4096 | **No** | OpenCode headless server (on-demand, project-scoped) |
 | `ollama` | 11434 | **No** | Local model inference (on-demand) |
 
 ---
@@ -90,6 +91,32 @@ Start condition: User selects local model in Model Manager
 Stop condition: User switches to cloud API or after 5min idle
 ```
 
+### opencode (On-Demand)
+
+OpenCode headless server. Started on-demand with optional project directory.
+
+```
+Responsibilities:
+- Serve OpenCode web UI (embedded via iframe in dashboard)
+- AI coding agent with 75+ LLM provider support
+- Project-scoped working directory
+- Vestara theme injection (dark/light)
+
+Dependencies: None (standalone)
+Port: 4096
+RAM: ~100MB
+
+Start condition: User opens OpenCode page or clicks Start
+Stop condition: User clicks Stop or switches project directory
+Configuration: ~/.config/opencode/opencode.json
+
+Providers configured:
+- opencode (free models, default)
+- nvidia
+- vercel
+- ollama (deepseek-coder, llama2)
+```
+
 ---
 
 ## Resource Budget
@@ -143,16 +170,17 @@ POST /api/system/exec           Execute shell command
 ### OpenCode (Public)
 
 ```
-GET  /api/providers/opencode/status    OpenCode status
+GET  /api/providers/opencode/status    OpenCode status (includes serverUrl)
+POST /api/providers/opencode/start     Start server (accepts { cwd } for project dir)
+POST /api/providers/opencode/stop      Stop server
 POST /api/providers/opencode/chat      Send chat message
 GET  /api/providers/opencode/models    List available models
-POST /api/providers/opencode/start     Start OpenCode server
-POST /api/providers/opencode/stop      Stop OpenCode server
 GET  /api/providers/opencode/chats     List chat history
 POST /api/providers/opencode/chats     Create new chat
 GET  /api/providers/opencode/chats/:id Get chat with messages
 POST /api/providers/opencode/chats/:id/messages  Add message
 DELETE /api/providers/opencode/chats/:id  Delete chat
+PATCH /api/providers/opencode/chats/:id  Rename chat
 ```
 
 ### AI Chat (Protected)
@@ -247,6 +275,7 @@ chat:stream
 model:loaded
 model:unloaded
 system:stats
+log:entry
 ```
 
 ### EventEmitter (In-Process)
