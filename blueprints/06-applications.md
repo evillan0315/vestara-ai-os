@@ -1,7 +1,7 @@
 # Vestara AI OS — Applications
 
 > Built-in applications that make the AI workstation complete.
-> All 14 screens are implemented and working.
+> All 16 screens are implemented and working.
 
 ---
 
@@ -9,21 +9,24 @@
 
 ### Implemented (Phase 1) ✅
 
-| App | Screen | Purpose | Status |
-|---|---|---|---|
-| Dashboard | 1 | System overview, recharts visualizations | ✅ |
-| AI Chat | 2 | Streaming chat with multi-model support | ✅ |
-| OpenCode | 3 | OpenCode CLI integration with chat history | ✅ |
-| Agent Manager | 4 | Agent configuration and execution | ✅ |
-| Model Manager | 5 | Provider and model selection | ✅ |
-| Memory | 6 | Memory store with auto-consolidation | ✅ |
-| Knowledge Base | 7 | RAG, document indexing, search | ✅ |
-| Terminal | 8 | Full-width terminal with Vestara CLI | ✅ |
-| File Manager | 9 | Tree view, editor, file operations | ✅ |
-| System Monitor | 10 | Real-time monitoring with recharts | ✅ |
-| Scripts | 11 | Script runner with documentation | ✅ |
-| Users | 12 | User management (admin only) | ✅ |
-| Settings | 13 | System configuration | ✅ |
+| # | App | Route | Purpose | Status |
+|---|-----|-------|---------|--------|
+| 1 | Dashboard | `/dashboard` | System overview, recharts visualizations | ✅ |
+| 2 | Login | `/login` | OS-based authentication | ✅ |
+| 3 | AI Chat | `/chat` | Streaming chat with multi-model support | ✅ |
+| 4 | OpenCode | `/opencode` | OpenCode CLI integration with chat history | ✅ |
+| 5 | Agent Manager | `/agents` | Agent configuration and execution | ✅ |
+| 6 | Model Manager | `/models` | Provider and model selection | ✅ |
+| 7 | Memory | `/memory` | Memory store with auto-consolidation | ✅ |
+| 8 | Projects | `/projects` | Project and task management (Kanban, sub-tasks) | ✅ |
+| 9 | Knowledge Base | `/knowledge` | RAG, document indexing, search | ✅ |
+| 10 | Terminal | `/terminal` | Full-width terminal with Vestara CLI | ✅ |
+| 11 | File Manager | `/files` | Tree view, editor, file operations | ✅ |
+| 12 | System Monitor | `/monitor` | Real-time monitoring with recharts | ✅ |
+| 13 | Scripts | `/scripts` | Script runner with documentation | ✅ |
+| 14 | Logs | `/logs` | Real-time log viewer with ring buffer | ✅ |
+| 15 | Users | `/users` | User management (admin only) | ✅ |
+| 16 | Settings | `/settings` | System configuration, theme picker | ✅ |
 
 ### Future
 

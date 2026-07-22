@@ -47,21 +47,27 @@ pnpm test
 
 ### Packages (`packages/`)
 
-- `@vestara/types` — Shared TypeScript types
-- `@vestara/validation` — Zod schemas
+- `@vestara/types` — Shared TypeScript types and interfaces
+- `@vestara/validation` — Zod schemas for API validation
 - `@vestara/constants` — Constants and defaults
-- `@vestara/utils` — Utility functions
-- `@vestara/config` — Configuration loader
-- `@vestara/cli` — Command-line interface
+- `@vestara/utils` — Utility functions (ID generation, etc.)
+- `@vestara/config` — Configuration loader (env, defaults)
+- `@vestara/cli` — Command-line interface (`vestara` binary)
+- `@vestara/deb` — Debian package definitions (vestara-{api,cli,core,dashboard,systemd})
+- `@vestara/immutable` — Immutable OS infrastructure (A/B system, rollback, Secure Boot, updater)
+- `@vestara/iso` — Custom ISO builder (config, hooks, includes, installer, recovery)
 
 ### Services (`services/`)
 
-- `@vestara/core` — Core library (SQLite, memory, knowledge, agents)
-- `@vestara/api` — Fastify API server
+- `@vestara/core` — Core library (SQLite wrapper, migrations, EventBus, logger, KnowledgeService, ProjectService, SettingsService, ProjectAnalyticsService)
+- `@vestara/api` — Fastify API server (20 route modules, WebSocket, AI provider routing)
+- `@vestara/agents` — Agent runtime (`AgentRuntime`, `AIProvider`, agent execution with tool support)
+- `@vestara/memory` — Memory service (automatic consolidation, search, importance scoring)
+- `@vestara/notifications` — Notification service (activity log, in-app notifications, priorities)
 
 ### Apps (`apps/`)
 
-- `@vestara/dashboard` — React dashboard (14 pages)
+- `@vestara/dashboard` — React dashboard (16 pages)
 
 ## Code Conventions
 
@@ -80,7 +86,7 @@ pnpm test
 ### API Routes
 
 - All route functions accept `VestaraApp` (from `../types.ts`), not `FastifyInstance`
-- `VestaraApp` extends `FastifyInstance` with typed `db`, `aiRouter`, `memoryService`, `knowledgeService`, `agentRuntime`, `projectService`, and `broadcast`
+- `VestaraApp` extends `FastifyInstance` with typed `db`, `aiRouter`, `memoryService`, `knowledgeService`, `agentRuntime`, `projectService`, `settingsService`, `events`, and `broadcast`
 - Use `authMiddleware` for protected routes
 - Validate input with Zod schemas
 - Return appropriate HTTP status codes
@@ -136,11 +142,23 @@ const row = db.get<T>('SELECT * FROM ...');
 const rows = db.all<T>('SELECT * FROM ...');
 ```
 
-### Memory Service (`services/core/src/memory-service.ts`)
+### EventBus (`services/core/src/events.ts`)
 
-Manages user memories with automatic consolidation:
+In-process event emitter for service communication:
 
 ```typescript
+import { EventBus } from '@vestara/core';
+const events = new EventBus();
+events.on('memory:updated', (data) => { /* ... */ });
+events.emit('config:changed', { key: 'theme', value: 'dark' });
+```
+
+### Memory Service (`services/memory/src/memory-service.ts`)
+
+Manages user memories with automatic consolidation and importance scoring:
+
+```typescript
+import { MemoryService } from '@vestara/memory';
 const memoryService = new MemoryService(db, events);
 await memoryService.addMemory(userId, 'fact', 'User prefers dark mode');
 const memories = await memoryService.searchMemories(userId, 'dark mode');
@@ -151,17 +169,19 @@ const memories = await memoryService.searchMemories(userId, 'dark mode');
 Manages knowledge base entries with full-text search:
 
 ```typescript
+import { KnowledgeService } from '@vestara/core';
 const knowledgeService = new KnowledgeService(db, events);
 await knowledgeService.addKnowledge({ content: '...', type: 'document' });
 const results = await knowledgeService.searchKnowledge(query);
 ```
 
-### Agent Runtime (`services/core/src/agent-runtime.ts`)
+### Agent Runtime (`services/agents/src/agent-runtime.ts`)
 
 Creates and executes AI agents with tools:
 
 ```typescript
-const agentRuntime = new AgentRuntime(db, events);
+import { AgentRuntime } from '@vestara/agents';
+const agentRuntime = new AgentRuntime(db, events, aiProvider);
 const agent = await agentRuntime.createAgent({ name: 'assistant', ... });
 const result = await agentRuntime.executeAgent(agent.id, task);
 ```
@@ -171,6 +191,7 @@ const result = await agentRuntime.executeAgent(agent.id, task);
 Full CRUD for projects and tasks with .vestara sync, activity logging, and notifications:
 
 ```typescript
+import { ProjectService } from '@vestara/core';
 const projectService = new ProjectService(db, events);
 
 // Projects
@@ -186,6 +207,29 @@ await projectService.getSubTasks(projectId, parentTaskId);
 // Activity
 await projectService.logActivity(userId, 'task:created', `task:${id}`, { projectId });
 const activity = await projectService.getProjectActivity(projectId);
+```
+
+### Settings Service (`services/core/src/settings-service.ts`)
+
+Key-value settings store:
+
+```typescript
+import { SettingsService } from '@vestara/core';
+const settingsService = new SettingsService(db);
+settingsService.set('theme', 'dark');
+const theme = settingsService.get('theme');
+const all = settingsService.getAll();
+```
+
+### Notification Service (`services/notifications/src/notification-service.ts`)
+
+Activity log and in-app notification system:
+
+```typescript
+import { NotificationService } from '@vestara/notifications';
+const notificationService = new NotificationService(db, events);
+await notificationService.createNotification(userId, 'task:assigned', 'high', 'New task assigned', '...');
+const notifications = await notificationService.getNotifications(userId);
 ```
 
 ## Default Models
@@ -242,6 +286,7 @@ GET  /api/auth/os-user      — Detect current OS user
 POST /api/auth/os-login     — Login with OS credentials
 POST /api/auth/os-auto-login— Auto-login (no password)
 GET  /api/auth/me           — Get current user
+DELETE /api/auth/logout     — Logout
 ```
 
 ## Git Workflow

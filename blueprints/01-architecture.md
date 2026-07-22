@@ -11,15 +11,15 @@
 ┌─────────────────────────────────────┐
 │         Vestara Dashboard           │
 │  React 19 · Vite 6 · Tailwind 4    │
-│  14 Pages · Dark/Light · Glassmorphism│
+│  16 Pages · Dark/Light · Glassmorphism│
 ├─────────────────────────────────────┤
 │         Vestara API                 │
 │  Fastify 5 · WebSocket · REST      │
-│  15 Route Modules · JWT Auth        │
+│  20 Route Modules · JWT Auth        │
 ├─────────────────────────────────────┤
 │         AI Services                 │
 │  OpenCode (iframe) · Agent Runtime  │
-│  Memory Service · Knowledge Base    │
+│  Memory · Knowledge · Notifications  │
 ├─────────────────────────────────────┤
 │         Data Layer                  │
 │  SQLite (better-sqlite3)            │
@@ -95,15 +95,23 @@
 
 ---
 
-## Vestara Core Library
+## Core Library & Services
 
 ```
 @vestara/core
 ├── db.ts                  # Database wrapper (better-sqlite3)
-├── memory-service.ts      # Memory with auto-consolidation
+├── events.ts              # EventBus (in-process event emitter)
 ├── knowledge-service.ts   # Knowledge base with full-text search
-├── agent-runtime.ts       # Agent lifecycle and tool execution
-├── index.ts               # Exports: Database, MemoryService, KnowledgeService, AgentRuntime
+├── project-service.ts     # Project CRUD, tasks, activity
+├── project-analytics.ts   # Project analytics service
+├── settings-service.ts    # Key-value settings store
+├── migrations.ts          # Database migrations
+├── logger.ts              # Pino logger wrapper
+└── index.ts               # Exports: Database, EventBus, KnowledgeService, ProjectService, etc.
+
+@vestara/agents            # Agent runtime (AgentRuntime + AIProvider)
+@vestara/memory            # Memory service (auto-consolidation, search, importance)
+@vestara/notifications     # Notification service (in-app notifications, priorities)
 ```
 
 ---
@@ -117,7 +125,10 @@ packages/
 ├── constants/             # @vestara/constants — Constants and defaults
 ├── utils/                 # @vestara/utils — Utility functions
 ├── config/                # @vestara/config — Configuration loader
-└── cli/                   # @vestara/cli — Command-line interface
+├── cli/                   # @vestara/cli — Command-line interface
+├── deb/                   # @vestara/deb — Debian package definitions
+├── immutable/             # @vestara/immutable — A/B system, rollback, Secure Boot
+└── iso/                   # @vestara/iso — Custom ISO builder
 ```
 
 ---
@@ -131,12 +142,11 @@ packages/
 └──────┬──────┘               └──────┬───────┘
        │ iframe                      │
        ▼                             │
-┌──────────────┐            ┌────────┼────────┐
-│  OpenCode    │            │        │        │
-│  Web UI      │       ┌────┴──┐ ┌──┴───┐ ┌──┴──────┐
-│  (port 4096) │       │Memory │ │ Know │ │ Agent   │
-└──────────────┘       │Service│ │ledge │ │ Runtime │
-                       └───────┘ └──────┘ └─────────┘
+┌──────────────┐       ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌──────────────┐
+│  OpenCode    │       │  Memory  │ │Knowledge│ │  Agent   │ │ Notification │
+│  Web UI      │       │ Service  │ │ Service │ │ Runtime  │ │   Service    │
+│  (port 4096) │       └──────────┘ └─────────┘ └──────────┘ └──────────────┘
+└──────────────┘
 ```
 
 - **Dashboard ↔ API**: HTTP REST + WebSocket for real-time updates
@@ -218,17 +228,23 @@ activity_log (id, user_id, action, resource, metadata, created_at)
 ```
 vestara-ai-os/
 ├── apps/
-│   └── dashboard/              # React dashboard (14 pages)
+│   └── dashboard/              # React dashboard (16 pages)
 ├── services/
-│   ├── core/                   # @vestara/core (DB, memory, knowledge, agents)
-│   └── api/                    # Fastify API server (14 route modules)
+│   ├── core/                   # @vestara/core (DB, events, services, migrations)
+│   ├── api/                    # Fastify API server (20 route modules)
+│   ├── agents/                 # @vestara/agents (AgentRuntime + AIProvider)
+│   ├── memory/                 # @vestara/memory (auto-consolidation)
+│   └── notifications/          # @vestara/notifications (activity log)
 ├── packages/
 │   ├── types/                  # Shared TypeScript types
 │   ├── validation/             # Zod schemas
 │   ├── constants/              # Shared constants
 │   ├── utils/                  # Shared utilities
 │   ├── config/                 # Configuration loader
-│   └── cli/                    # Command-line interface
+│   ├── cli/                    # Command-line interface
+│   ├── deb/                    # Debian package definitions
+│   ├── immutable/              # A/B system, rollback, Secure Boot, updater
+│   └── iso/                    # Custom ISO builder
 ├── scripts/                    # Build, deploy, backup, upgrade
 ├── branding/                   # Logo, Plymouth theme, icons
 ├── systemd/                    # Service unit files
@@ -238,41 +254,50 @@ vestara-ai-os/
 
 ---
 
-## API Routes (15 Modules)
+## API Routes (20 Modules)
 
 ```
-Auth Routes        /api/auth/*          OS-based authentication
-System Routes      /api/system/*        System stats, health, exec
-Provider Routes    /api/providers/*     AI provider management
-OpenCode Routes    /api/providers/opencode/*  OpenCode CLI + chat
-Chat Routes        /api/chat/*          AI chat (SSE streaming)
+Auth Routes         /api/auth/*          OS-based authentication
+System Routes       /api/system/*        System stats, health, exec
+Provider Routes     /api/providers/*     AI provider management
+OpenCode Routes     /api/providers/opencode/*  OpenCode CLI + chat
+Chat Routes         /api/chat/*          AI chat (SSE streaming)
 Conversation Routes /api/conversations/* Conversation CRUD
-Agent Routes       /api/agents/*        Agent management + runtime
-Memory Routes      /api/memory/*        Memory CRUD + search
-Knowledge Routes   /api/knowledge/*     Knowledge base CRUD + search
-Project Routes     /api/projects/*      Project + task management
-User Routes        /api/users/*         User CRUD (admin only)
-Script Routes      /api/scripts/*       Script management + execution
-File Routes        /api/files/*         File manager operations
+Agent Routes        /api/agents/*        Agent management + runtime
+Memory Routes       /api/memory/*        Memory CRUD + search
+Knowledge Routes    /api/knowledge/*     Knowledge base CRUD + search
+Project Routes      /api/projects/*      Project + task management (full Kanban)
+User Routes         /api/users/*         User CRUD (admin only)
+Script Routes       /api/scripts/*       Script management + execution
+File Routes         /api/files/*         File manager operations
+Activity Routes     /api/activity/*      Activity log timeline
+Notification Routes /api/notifications/* In-app notifications
+Log Routes          /api/logs/*          Log viewer (ring buffer, SSE stream)
+Settings Routes     /api/settings/*      Key-value settings
+Analytics Routes    /api/analytics/*     Project analytics
+Ollama Routes       /api/ollama/*        Ollama management (status, pull, start, stop)
+Health Route        /api/health          Health check
 ```
 
 ---
 
-## Dashboard Pages (14)
+## Dashboard Pages (16)
 
-| Page | Route | Purpose |
-|------|-------|---------|
-| Dashboard | `/dashboard` | System overview, recharts visualizations |
-| AI Chat | `/chat` | Streaming chat with multi-model support |
-| OpenCode | `/opencode` | Embedded OpenCode web UI with project directory selector |
-| Agents | `/agents` | Agent management and execution |
-| Models | `/models` | Provider and model selection |
-| Memory | `/memory` | Memory store with search |
-| Projects | `/projects` | Project and task management |
-| Knowledge | `/knowledge` | Knowledge base with RAG |
-| Terminal | `/terminal` | Full-width terminal with Vestara CLI |
-| Files | `/files` | File manager with tree, editor, operations |
-| Monitor | `/monitor` | Real-time system monitoring with recharts |
-| Users | `/users` | User management (admin only) |
-| Scripts | `/scripts` | Script runner with documentation |
-| Settings | `/settings` | System configuration, theme picker |
+| # | Page | Route | Purpose |
+|---|------|-------|---------|
+| 1 | Dashboard | `/dashboard` | System overview, recharts visualizations |
+| 2 | Login | `/login` | OS-based authentication |
+| 3 | AI Chat | `/chat` | Streaming chat with multi-model support |
+| 4 | OpenCode | `/opencode` | Embedded OpenCode web UI with project directory selector |
+| 5 | Agents | `/agents` | Agent management and execution |
+| 6 | Models | `/models` | Provider and model selection |
+| 7 | Memory | `/memory` | Memory store with search |
+| 8 | Projects | `/projects` | Project and task management (Kanban, sub-tasks) |
+| 9 | Knowledge | `/knowledge` | Knowledge base with RAG |
+| 10 | Terminal | `/terminal` | Full-width terminal with Vestara CLI |
+| 11 | Files | `/files` | File manager with tree, editor, operations |
+| 12 | Monitor | `/monitor` | Real-time system monitoring with recharts |
+| 13 | Scripts | `/scripts` | Script runner with documentation |
+| 14 | Logs | `/logs` | Real-time log viewer with ring buffer |
+| 15 | Users | `/users` | User management (admin only) |
+| 16 | Settings | `/settings` | System configuration, theme picker |

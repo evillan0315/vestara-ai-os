@@ -15,7 +15,7 @@ Management and automation scripts for building, deploying, and maintaining Vesta
 | `install.sh` | Deploy | One-command installer |
 | `deploy.sh` | Deploy | CI/CD deployment |
 | `upgrade.sh` | Maintain | Upgrade to latest version |
-| `backup.sh` | Maintain | Backup and restore data |
+| `backup.sh` | Maintain | Backup, list, and restore data |
 
 ---
 

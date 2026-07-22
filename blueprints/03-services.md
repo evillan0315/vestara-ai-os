@@ -11,6 +11,8 @@
 |---|---|---|---|
 | `vestara-api` | 3000 | Yes | Fastify REST + WebSocket + all services |
 | `vestara-dashboard` | — | Yes | Browser kiosk mode (Nginx in production) |
+| `vestara-memory` | — | Yes | Memory consolidation daemon |
+| `vestara-core` | — | Yes | Core service dependencies |
 | `opencode` | 4096 | **No** | OpenCode headless server (on-demand, project-scoped) |
 | `ollama` | 11434 | **No** | Local model inference (on-demand) |
 
@@ -24,7 +26,7 @@ The unified API server. All Vestara services run in-process.
 
 ```
 Responsibilities:
-- REST endpoints for dashboard (14 route modules)
+- REST endpoints for dashboard (20 route modules)
 - WebSocket for real-time updates
 - AI provider routing (OpenAI, Anthropic, Google, Ollama)
 - OpenCode integration (CLI + chat history)
@@ -40,20 +42,27 @@ Dependencies: None (standalone)
 Port: 3000
 RAM: ~50MB
 
-Route Modules:
-├── auth.ts          /api/auth/*          OS-based authentication
-├── system.ts        /api/system/*        System stats, health, exec
-├── providers.ts     /api/providers/*     AI provider management
-├── opencode.ts      /api/providers/opencode/*  OpenCode CLI + chat
-├── chat.ts          /api/chat/*          AI chat (SSE streaming)
-├── conversations.ts /api/conversations/* Conversation CRUD
-├── agent-runtime.ts /api/agents/*        Agent management + runtime
-├── memory.ts        /api/memory/*        Memory CRUD + search
-├── knowledge.ts     /api/knowledge/*     Knowledge base CRUD + search
-├── projects.ts      /api/projects/*      Project CRUD, Kanban, sub-tasks, activity, .vestara sync, clone, archive, bulk ops
-├── users.ts         /api/users/*         User CRUD (admin only)
-├── scripts.ts       /api/scripts/*       Script management + execution
-└── files.ts         /api/files/*         File manager operations
+Route Modules (20):
+├── auth.ts              /api/auth/*          OS-based authentication
+├── system.ts            /api/system/*        System stats, health, exec
+├── providers.ts         /api/providers/*     AI provider management
+├── opencode.ts          /api/providers/opencode/*  OpenCode CLI + chat
+├── chat.ts              /api/chat/*          AI chat (SSE streaming)
+├── conversations.ts     /api/conversations/* Conversation CRUD
+├── agents.ts            /api/agents/*        Agent management + execution
+├── agent-runtime.ts     /api/agents/*        Agent runtime + stats
+├── memory.ts            /api/memory/*        Memory CRUD + search
+├── knowledge.ts         /api/knowledge/*     Knowledge base CRUD + search
+├── projects.ts          /api/projects/*      Project CRUD, Kanban, sub-tasks, activity, .vestara sync, clone, archive, bulk ops
+├── users.ts             /api/users/*         User CRUD (admin only)
+├── scripts.ts           /api/scripts/*       Script management + execution
+├── files.ts             /api/files/*         File manager operations
+├── activity.ts          /api/activity/*      Activity log timeline
+├── notifications.ts     /api/notifications/* In-app notifications
+├── logs.ts              /api/logs/*          Log viewer (ring buffer, SSE)
+├── settings.ts          /api/settings/*      Key-value settings
+├── analytics.ts         /api/analytics/*     Project analytics
+├── ollama.ts            /api/ollama/*        Ollama management
 ```
 
 ### vestara-dashboard
@@ -62,7 +71,7 @@ React dashboard served via Nginx (production) or Vite dev server.
 
 ```
 Responsibilities:
-- Serve React SPA (14 pages)
+- Serve React SPA (16 pages)
 - Proxy API requests to localhost:3000
 - Static asset serving
 - SPA routing (try_files)
@@ -156,6 +165,7 @@ GET  /api/auth/os-user          Detect current OS user
 POST /api/auth/os-login         Login with OS credentials
 POST /api/auth/os-auto-login    Auto-login (no password)
 GET  /api/auth/me               Get current user
+DELETE  /api/auth/logout        Logout
 ```
 
 ### System (Public)

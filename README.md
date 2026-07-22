@@ -32,7 +32,7 @@ cd packages/cli && pnpm build
 
 ## Features
 
-- **14-screen Dashboard** — Dark/light glassmorphism AI command center with recharts visualizations
+- **16-screen Dashboard** — Dark/light glassmorphism AI command center with recharts visualizations
 - **OS Authentication** — Login with your system username/password
 - **AI Chat** — Stream responses from OpenAI, Anthropic, Google, Ollama
 - **OpenCode Integration** — Embedded web UI with project directory selection and Vestara theme
@@ -53,15 +53,15 @@ cd packages/cli && pnpm build
 ┌─────────────────────────────────────┐
 │         Vestara Dashboard           │
 │  React 19 · Tailwind 4 · Vite 6   │
-│  14 pages · Recharts · Auth        │
+│  16 pages · Recharts · Auth        │
 ├─────────────────────────────────────┤
 │         Vestara API                 │
 │  Fastify 5 · WebSocket · REST      │
-│  14 route modules · SSE streaming   │
+│  20 route modules · SSE streaming   │
 ├─────────────────────────────────────┤
 │         AI Services                 │
 │  OpenCode · Agent Runtime ·         │
-│  Memory · Knowledge · Providers     │
+│  Memory · Knowledge · Notifications │
 ├─────────────────────────────────────┤
 │         Data Layer                  │
 │  SQLite (better-sqlite3) · WAL mode │
@@ -79,24 +79,47 @@ cd packages/cli && pnpm build
 ```
 vestara-ai-os/
 ├── apps/
-│   └── dashboard/              # React dashboard (14 pages)
+│   └── dashboard/              # React dashboard (16 pages)
 ├── services/
 │   ├── core/                   # @vestara/core library
 │   │   ├── db.ts               # SQLite wrapper + schema
-│   │   ├── memory-service.ts   # Memory consolidation
+│   │   ├── events.ts           # EventBus (in-process event emitter)
 │   │   ├── knowledge-service.ts# Knowledge base
-│   │   └── agent-runtime.ts    # Agent execution
-│   └── api/                    # Fastify API server
-│       ├── routes/             # 14 route modules
-│       ├── providers/          # AI provider abstraction
-│       └── types.ts            # VestaraApp type (Fastify)
+│   │   ├── project-service.ts  # Project CRUD, tasks, activity
+│   │   ├── project-analytics.ts# Project analytics service
+│   │   ├── settings-service.ts # Key-value settings store
+│   │   └── migrations.ts       # Database migrations
+│   ├── api/                    # Fastify API server
+│   │   ├── routes/             # 20 route modules
+│   │   ├── providers/          # AI provider router
+│   │   └── types.ts            # VestaraApp type (Fastify)
+│   ├── agents/                 # @vestara/agents (AgentRuntime, AIProvider)
+│   ├── memory/                 # @vestara/memory (auto-consolidation)
+│   └── notifications/          # @vestara/notifications (activity log)
 ├── packages/
 │   ├── types/                  # Shared TypeScript types
 │   ├── validation/             # Zod schemas
 │   ├── constants/              # Shared constants
 │   ├── utils/                  # Shared utilities
 │   ├── config/                 # Shared configuration
-│   └── cli/                    # Vestara CLI tool
+│   ├── cli/                    # Vestara CLI tool
+│   ├── deb/                    # Debian package definitions
+│   │   ├── vestara-api/
+│   │   ├── vestara-cli/
+│   │   ├── vestara-core/
+│   │   ├── vestara-dashboard/
+│   │   └── vestara-systemd/
+│   ├── immutable/              # Immutable OS infrastructure
+│   │   ├── ab-system/          # A/B partition scheme
+│   │   ├── rollback/           # Automatic rollback
+│   │   ├── secureboot/         # Secure Boot signing
+│   │   └── updater/            # Atomic updates
+│   └── iso/                    # Custom ISO builder
+│       ├── config/             # ISO configuration
+│       ├── hooks/              # Pre/post-install hooks
+│       ├── includes/           # Additional ISO content
+│       ├── installer/          # Installation wizard
+│       └── recovery/           # Recovery tools
 ├── branding/
 │   └── plymouth/               # Boot splash theme
 ├── scripts/
@@ -108,12 +131,12 @@ vestara-ai-os/
 │   ├── upgrade.sh              # Upgrade script
 │   ├── deploy.sh               # Deployment script
 │   └── backup.sh               # Backup/restore
-├── systemd/                    # Service unit files
-├── docker-compose.yml          # Full stack (PostgreSQL, Redis, API, Dashboard)
+├── systemd/                    # Service unit files (api, core, dashboard, memory, target)
+├── docker-compose.yml          # Full stack (API, Dashboard, Ollama)
 ├── docker-compose.dev.yml      # Development mode
 ├── Dockerfile                  # API server
 ├── Dockerfile.dashboard        # Dashboard
-└── .github/workflows/          # CI/CD pipelines
+└── .github/workflows/          # CI/CD pipelines (6 workflows)
 ```
 
 ## Dashboard Pages
@@ -127,12 +150,13 @@ vestara-ai-os/
 | Agents | `/agents` | Agent management and execution |
 | Models | `/models` | AI model manager |
 | Memory | `/memory` | Memory store with search |
-| Projects | `/projects` | Project and task management |
+| Projects | `/projects` | Project and task management (Kanban, sub-tasks, time tracking) |
 | Knowledge | `/knowledge` | Knowledge base |
 | Terminal | `/terminal` | Built-in terminal with Vestara CLI |
 | Files | `/files` | File manager (tree, editor, operations) |
 | System | `/monitor` | Resource monitor with charts |
 | Scripts | `/scripts` | Script runner with documentation |
+| Logs | `/logs` | Real-time log viewer with ring buffer |
 | Users | `/users` | User management (admin) |
 | Settings | `/settings` | Configuration |
 
@@ -150,7 +174,13 @@ Additional providers: OpenAI, Anthropic, Google, Ollama (local with `deepseek-co
 
 ## API Endpoints
 
-### Authentication
+### Health (Public)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check (uptime, version, provider availability) |
+
+### Authentication (Public)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -160,16 +190,16 @@ Additional providers: OpenAI, Anthropic, Google, Ollama (local with `deepseek-co
 | GET | `/api/auth/me` | Get current user |
 | DELETE | `/api/auth/logout` | Logout |
 
-### System
+### System (Public)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/system/stats` | System stats (CPU, RAM, Disk) |
-| GET | `/api/system/health` | Health check |
+| GET | `/api/system/health` | Service health check |
 | GET | `/api/system/info` | Full system info |
 | POST | `/api/system/exec` | Execute shell command |
 
-### OpenCode
+### OpenCode (Public)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -181,10 +211,74 @@ Additional providers: OpenAI, Anthropic, Google, Ollama (local with `deepseek-co
 | GET | `/api/providers/opencode/chats` | List chat sessions |
 | POST | `/api/providers/opencode/chats` | Create new chat |
 | GET | `/api/providers/opencode/chats/:id` | Get chat with messages |
+| PATCH | `/api/providers/opencode/chats/:id` | Rename chat |
 | DELETE | `/api/providers/opencode/chats/:id` | Delete chat |
 | POST | `/api/providers/opencode/chats/:id/messages` | Send message |
 
-### Users (Admin)
+### AI Chat & Conversations (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/chat` | Send message (SSE streaming) |
+| GET | `/api/conversations` | List conversations |
+| GET | `/api/conversations/:id` | Get conversation with messages |
+| DELETE | `/api/conversations/:id` | Delete conversation |
+
+### AI Providers (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/providers` | List configured providers |
+| POST | `/api/providers` | Add provider |
+| PUT | `/api/providers/:id` | Update provider |
+| DELETE | `/api/providers/:id` | Delete provider |
+| POST | `/api/providers/:id/test` | Test provider connection |
+
+### Agents (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/agents` | List agents |
+| GET | `/api/agents/stats` | Agent execution statistics |
+| POST | `/api/agents` | Create agent |
+| POST | `/api/agents/:id/run` | Execute agent task |
+| POST | `/api/agents/:id/execute` | Execute agent (alternative) |
+
+### Memory (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/memory` | List memories |
+| POST | `/api/memory` | Create memory |
+| GET | `/api/memory/search?q=` | Search memories |
+
+### Knowledge (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/knowledge` | List knowledge entries |
+| POST | `/api/knowledge` | Create knowledge entry |
+| GET | `/api/knowledge/search?q=` | Search knowledge base |
+
+### Projects (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/projects` | List projects |
+| GET | `/api/projects/stats` | Project statistics |
+| POST | `/api/projects` | Create project |
+| PATCH | `/api/projects/:id` | Update project |
+| DELETE | `/api/projects/:id` | Delete project |
+| POST | `/api/projects/:id/clone` | Clone project |
+| POST | `/api/projects/:id/archive` | Archive to .vestara |
+| GET | `/api/projects/:id/activity` | Project activity timeline |
+| GET | `/api/projects/:id/tasks` | List tasks |
+| POST | `/api/projects/:id/tasks` | Create task |
+| PATCH | `/api/projects/:id/tasks/:taskId` | Update task |
+| DELETE | `/api/projects/:id/tasks/:taskId` | Delete task |
+| POST | `/api/projects/:id/tasks/bulk-update` | Bulk update tasks |
+
+### Users (Admin Only)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -195,22 +289,72 @@ Additional providers: OpenAI, Anthropic, Google, Ollama (local with `deepseek-co
 | DELETE | `/api/users/:id` | Delete user |
 | POST | `/api/users/sync-os` | Import OS user |
 
-### Other
+### Scripts (Protected)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/chat` | Non-streaming chat |
-| POST | `/api/chat/stream` | SSE streaming chat |
-| GET | `/api/providers` | List providers |
-| GET | `/api/conversations` | List conversations |
-| GET | `/api/agents` | List agents |
-| POST | `/api/agents` | Create agent |
-| POST | `/api/agents/:id/execute` | Execute agent task |
-| GET | `/api/memory` | List memories |
-| POST | `/api/memory` | Add memory |
-| GET | `/api/knowledge` | List knowledge entries |
-| POST | `/api/knowledge` | Add knowledge entry |
-| GET | `/api/projects` | List projects |
+| GET | `/api/scripts` | List all scripts |
+| GET | `/api/scripts/:name` | Get script details + docs + source |
+| POST | `/api/scripts/:name/run` | Execute script with args |
+| POST | `/api/scripts/:name/stream` | Execute with streaming output |
+
+### Files (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/files/list?path=` | List directory contents |
+| GET | `/api/files/read?path=` | Read file content |
+| POST | `/api/files/write` | Create or overwrite file |
+| POST | `/api/files/mkdir` | Create directory |
+| POST | `/api/files/delete` | Delete file or directory |
+| POST | `/api/files/rename` | Rename or move |
+| GET | `/api/files/tree?depth=` | Directory tree for sidebar |
+| GET | `/api/files/search?path=&query=` | Search files by name |
+
+### Activity (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/activity` | List recent activity |
+
+### Notifications (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/notifications` | List notifications |
+| POST | `/api/notifications/:id/read` | Mark notification as read |
+| POST | `/api/notifications/read-all` | Mark all as read |
+
+### Logs (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/logs` | List recent log entries |
+| GET | `/api/logs/stream` | SSE streaming logs |
+
+### Settings (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/settings` | Get all settings |
+| GET | `/api/settings/:key` | Get single setting |
+| PUT | `/api/settings/:key` | Update setting |
+
+### Analytics (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/analytics/projects` | Analyze all projects |
+| GET | `/api/analytics/projects/:id` | Analyze single project |
+
+### Ollama (Protected)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/ollama/status` | Ollama status (running, models, RAM) |
+| POST | `/api/ollama/pull` | Pull a model |
+| POST | `/api/ollama/start` | Start Ollama |
+| POST | `/api/ollama/stop` | Stop Ollama |
 
 ## CLI Commands
 
@@ -229,7 +373,7 @@ vestara upgrade       # Upgrade Vestara
 ## Docker
 
 ```bash
-# Full stack (API + Dashboard + PostgreSQL + Redis)
+# Full stack (API + Dashboard + Ollama)
 docker compose up -d
 
 # Development mode (with hot reload)
@@ -325,9 +469,11 @@ sudo dd if=dist/vestara-ai-os.img of=/dev/sdX bs=4M status=progress
 - [Boot Experience](./blueprints/02-boot-experience.md) — Auto-login, systemd services
 - [Services](./blueprints/03-services.md) — Lightweight AI services
 - [Filesystem](./blueprints/04-filesystem.md) — Purpose-built filesystem layout
-- [Desktop](./blueprints/05-desktop.md) — 14-screen dark/light glassmorphism UI
+- [Desktop](./blueprints/05-desktop.md) — 16-screen dark/light glassmorphism UI
 - [Applications](./blueprints/06-applications.md) — Built-in AI applications
 - [Implementation Roadmap](./blueprints/07-implementation-roadmap.md) — 4-stage build plan
+- [API Reference](./docs/api.md) — Full API endpoint reference
+- [Scripts Reference](./scripts/README.md) — Build and deployment scripts
 
 ## Development
 

@@ -16,6 +16,8 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
 
 **ALL STAGES COMPLETE — Vestara AI OS v1.0 READY**
 
+> The project has evolved into a full production-grade immutable AI operating system. All 4 stages are complete.
+
 ---
 
 ## Stage 1: Portable SSD
@@ -37,11 +39,11 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
 ```
 ✅ Foundation
   ├── Monorepo structure (pnpm ≥10 + Turborepo)
-  ├── 6 shared packages (types, validation, constants, utils, config, cli)
-  ├── @vestara/core library (SQLite, memory, knowledge, agents)
-  └── SQLite schema (16 tables)
+  ├── 9 shared packages (types, validation, constants, utils, config, cli, deb, immutable, iso)
+  ├── 5 services (core, api, agents, memory, notifications)
+  └── SQLite schema
 
-✅ API Server (14 route modules)
+✅ API Server (20 route modules)
   ├── Auth routes (OS-based authentication + JWT)
   ├── System routes (stats, health, exec)
   ├── Provider routes (AI provider management)
@@ -57,7 +59,7 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
   ├── File routes (list, read, write, mkdir, delete, rename, tree, search)
   └── WebSocket support
 
-✅ Dashboard (14 pages)
+✅ Dashboard (16 pages)
   ├── Dashboard — System overview (recharts: area, radial, pie)
   ├── AI Chat — Streaming chat with multi-model
   ├── OpenCode — CLI integration with chat history
@@ -122,7 +124,7 @@ Stage 4: Immutable OS         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
 
 **A Samsung T9 SSD that boots into Vestara AI OS on any x86-64 computer.**
 
-The user plugs in the SSD, powers on, selects USB boot, and enters a fully functional AI workstation with 14 dashboard pages. All services are running. The dashboard is ready.
+The user plugs in the SSD, powers on, selects USB boot, and enters a fully functional AI workstation with 16 dashboard pages. All services are running. The dashboard is ready.
 
 ---
 
@@ -184,8 +186,8 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 |---|---|---|
 | Monorepo setup | ✅ Complete | 1 |
 | Core library | ✅ Complete | 1 |
-| API server (14 modules) | ✅ Complete | 1 |
-| Dashboard (14 pages) | ✅ Complete | 1 |
+| API server (20 modules) | ✅ Complete | 1 |
+| Dashboard (16 pages) | ✅ Complete | 1 |
 | AI provider abstraction | ✅ Complete | 1 |
 | Agent runtime | ✅ Complete | 1 |
 | Memory service | ✅ Complete | 1 |
@@ -236,7 +238,7 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 | 11 | Monitor | `/monitor` | Real-time recharts, process table |
 | 12 | Scripts | `/scripts` | Categorized list, docs, source viewer |
 | 13 | Users | `/users` | CRUD, OS sync, role management |
-| 14 | Settings | `/settings` | Provider config, appearance |
+| 16 | Settings | `/settings` | Provider config, appearance |
 
 ---
 
@@ -267,7 +269,7 @@ The user plugs in the SSD, powers on, selects USB boot, and enters a fully funct
 
 - [x] Build script creates bootable SSD image
 - [x] All services start and report healthy
-- [x] Dashboard loads with 14 pages
+- [x] Dashboard loads with 16 pages
 - [x] AI Chat works with cloud APIs and free OpenCode models
 - [x] OpenCode embedded web UI with Vestara theme
 - [x] OpenCode project directory selection
