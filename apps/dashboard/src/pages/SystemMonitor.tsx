@@ -123,16 +123,16 @@ export default function SystemMonitor() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center flex-1 min-h-0">
         <div className="text-sm text-vestara-text-muted">Loading system info...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-vestara-text">System Monitor</h1>
           <p className="text-sm text-vestara-text-muted">Real-time resource monitoring</p>
@@ -154,7 +154,7 @@ export default function SystemMonitor() {
 
       {/* Top stats */}
       {systemInfo && (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 flex-shrink-0">
           {[
             { label: 'Uptime', value: formatUptime(systemInfo.uptime) },
             { label: 'Load Avg', value: systemInfo.loadAvg.map((l) => l.toFixed(2)).join(' / ') },
@@ -170,17 +170,17 @@ export default function SystemMonitor() {
       )}
 
       {/* Main charts */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 flex-1 min-h-0">
         {/* CPU + Memory history */}
-        <div className="glass p-4 lg:col-span-2">
-          <div className="flex items-center gap-6 mb-3">
+        <div className="glass p-4 lg:col-span-2 flex flex-col min-h-0">
+          <div className="flex items-center gap-6 mb-3 flex-shrink-0">
             <h2 className="text-sm font-semibold text-vestara-gold">Resource History</h2>
             <div className="flex items-center gap-4 text-[10px] text-vestara-text-dim">
               <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-amber-400" /> CPU</span>
               <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-green-400" /> Memory</span>
             </div>
           </div>
-          <div className="h-56">
+          <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={cpuHistory.map((c, i) => ({ ...c, mem: memHistory[i]?.value || 0 }))}>
                 <defs>
@@ -205,9 +205,9 @@ export default function SystemMonitor() {
         </div>
 
         {/* Gauges */}
-        <div className="glass p-4">
-          <h2 className="mb-3 text-sm font-semibold text-vestara-gold">System Load</h2>
-          <div className="h-56">
+        <div className="glass p-4 flex flex-col min-h-0">
+          <h2 className="mb-3 text-sm font-semibold text-vestara-gold flex-shrink-0">System Load</h2>
+          <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <RadialBarChart cx="50%" cy="50%" innerRadius="15%" outerRadius="85%" barSize={12} data={gaugeData} startAngle={180} endAngle={0}>
                 <RadialBar background dataKey="value" />
@@ -220,11 +220,11 @@ export default function SystemMonitor() {
       </div>
 
       {/* Second row */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 flex-1 min-h-0">
         {/* Network chart */}
-        <div className="glass p-4">
-          <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Network I/O</h2>
-          <div className="h-40">
+        <div className="glass p-4 flex flex-col min-h-0">
+          <h2 className="mb-3 text-sm font-semibold text-vestara-gold flex-shrink-0">Network I/O</h2>
+          <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={netHistory}>
                 <defs>
@@ -249,10 +249,10 @@ export default function SystemMonitor() {
         </div>
 
         {/* Disk pie */}
-        <div className="glass p-4">
-          <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Disk</h2>
-          <div className="h-40 flex items-center">
-            <ResponsiveContainer width="50%" height="100%">
+        <div className="glass p-4 flex flex-col min-h-0">
+          <h2 className="mb-3 text-sm font-semibold text-vestara-gold flex-shrink-0">Disk</h2>
+          <div className="flex flex-1 items-center min-h-0">
+            <ResponsiveContainer width="50%" height="80%">
               <PieChart>
                 <Pie data={diskPie} cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={3} dataKey="value">
                   {diskPie.map((_, i) => <Cell key={i} fill={i === 0 ? CHART.blue : 'rgba(255,255,255,0.05)'} />)}
@@ -260,7 +260,7 @@ export default function SystemMonitor() {
                 <Tooltip formatter={(v) => formatBytes(Number(v))} contentStyle={{ background: CHART.tooltipBg, border: `1px solid rgba(79,140,255,0.2)`, borderRadius: '8px', fontSize: '12px' }} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="flex-1 space-y-2 text-xs">
+            <div className="flex-1 space-y-2 text-xs ml-4">
               <div className="flex justify-between"><span className="text-vestara-text-muted">Used</span><span className="text-vestara-text">{formatBytes(systemInfo?.disk.used || 0)}</span></div>
               <div className="flex justify-between"><span className="text-vestara-text-muted">Free</span><span className="text-vestara-text">{formatBytes(systemInfo?.disk.free || 0)}</span></div>
               <div className="flex justify-between"><span className="text-vestara-text-muted">Total</span><span className="text-vestara-text">{formatBytes(systemInfo?.disk.total || 0)}</span></div>
@@ -269,9 +269,9 @@ export default function SystemMonitor() {
         </div>
 
         {/* Top processes bar chart */}
-        <div className="glass p-4">
-          <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Top Processes</h2>
-          <div className="h-40">
+        <div className="glass p-4 flex flex-col min-h-0">
+          <h2 className="mb-3 text-sm font-semibold text-vestara-gold flex-shrink-0">Top Processes</h2>
+          <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={processChart} layout="vertical" margin={{ left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
@@ -288,11 +288,11 @@ export default function SystemMonitor() {
 
       {/* Processes table */}
       {processes.length > 0 && (
-        <div className="glass overflow-hidden">
-          <div className="px-4 py-3 border-b border-vestara-glass-border">
+        <div className="glass overflow-hidden flex-shrink-0">
+          <div className="px-4 py-3 border-b border-vestara-glass-border flex-shrink-0">
             <h2 className="text-sm font-semibold text-vestara-gold">All Processes</h2>
           </div>
-          <div className="overflow-auto max-h-64">
+          <div className="overflow-auto max-h-64 flex-1 min-h-0">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-vestara-text-muted border-b border-vestara-glass-border">
@@ -325,7 +325,7 @@ export default function SystemMonitor() {
 
       {/* Network interfaces */}
       {systemInfo && systemInfo.network.interfaces.length > 0 && (
-        <div className="glass p-4">
+        <div className="glass p-4 flex-shrink-0">
           <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Network Interfaces</h2>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {systemInfo.network.interfaces.map((iface) => (

@@ -226,7 +226,7 @@ export default function FileManager() {
   };
 
   return (
-    <div className="flex h-full gap-0 overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       {/* Tree sidebar */}
       <div className="w-56 flex-shrink-0 border-r border-vestara-glass-border bg-vestara-surface/30 overflow-y-auto hidden md:block">
         <div className="p-3 border-b border-vestara-glass-border">

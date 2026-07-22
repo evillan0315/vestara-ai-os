@@ -154,7 +154,7 @@ export function DashboardLayout() {
 
   const contextValue = useMemo(() => ({ sidebarOpen, setSidebarOpen }), [sidebarOpen]);
 
-  return (
+return (
     <DashboardLayoutContext.Provider value={contextValue}>
       <div className="flex h-screen bg-vestara-bg" data-theme={resolvedTheme}>
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -194,7 +194,7 @@ export function DashboardLayout() {
           )}
 
           {/* Main content */}
-          <main className="flex-1 min-h-0 overflow-auto flex flex-col">
+          <main className="flex-1 min-h-0 overflow-y-auto flex flex-col">
             <ErrorBoundary key={location.pathname}>
               <div className="flex-1 flex flex-col overflow-hidden widget-enter">
                 <Outlet />

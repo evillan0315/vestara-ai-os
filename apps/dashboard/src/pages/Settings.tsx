@@ -24,11 +24,83 @@ const FONTS = [
   { value: 'system-ui', label: 'System UI' },
 ];
 
+// Font sizes
+const FONT_SIZE_OPTIONS = [
+  { value: 'small', label: 'Small', description: '14px base' },
+  { value: 'medium', label: 'Medium', description: '16px base (default)' },
+  { value: 'large', label: 'Large', description: '18px base' },
+  { value: 'xlarge', label: 'XLarge', description: '20px base' },
+];
+
+// Border radius options
+const BORDER_RADIUS_OPTIONS = [
+  { value: 'small', label: 'Small', description: '4px' },
+  { value: 'medium', label: 'Medium', description: '8px (default)' },
+  { value: 'large', label: 'Large', description: '12px' },
+  { value: 'xlarge', label: 'XLarge', description: '16px' },
+];
+
 const THEME_OPTIONS = [
   { value: 'dark', label: 'Dark' },
   { value: 'light', label: 'Light' },
   { value: 'system', label: 'System' },
 ];
+
+const DENSITY_OPTIONS = [
+  { value: 'compact', label: 'Compact', icon: '☷' },
+  { value: 'comfortable', label: 'Comfortable', icon: '☐' },
+  { value: 'spacious', label: 'Spacious', icon: '⊞' },
+];
+
+const SCROLLBAR_STYLE_OPTIONS = [
+  { value: 'system', label: 'System Default' },
+  { value: 'thin', label: 'Thin' },
+  { value: 'visible', label: 'Always Visible' },
+  { value: 'auto', label: 'Auto Hide' },
+];
+
+const PRESET_THEMES = {
+  default: {
+    name: 'Default',
+    colors: {
+      primary: '#C9A84C', // gold
+      secondary: '#4F8CFF', // blue
+      success: '#22C55E', // green
+      warning: '#F59E0B', // amber
+      error: '#EF4444', // red
+    }
+  },
+  ocean: {
+    name: 'Ocean',
+    colors: {
+      primary: '#0891B2', // cyan
+      secondary: '#3B82F6', // blue
+      success: '#10B981', // emerald
+      warning: '#F59E0B', // amber
+      error: '#EF4444', // red
+    }
+  },
+  forest: {
+    name: 'Forest',
+    colors: {
+      primary: '#10B981', // green
+      secondary: '#059669', // emerald
+      success: '#84CC16', // lime
+      warning: '#F59E0B', // amber
+      error: '#EF4444', // red
+    }
+  },
+  midnight: {
+    name: 'Midnight',
+    colors: {
+      primary: '#6366F1', // indigo
+      secondary: '#8B5CF6', // violet
+      success: '#10B981', // emerald
+      warning: '#F59E0B', // amber
+      error: '#EF4444', // red
+    }
+  }
+};
 
 const REFRESH_OPTIONS = [
   { value: '1000', label: '1s' },
@@ -65,6 +137,11 @@ const ALL_SETTINGS_ROWS: SettingRowDef[] = [
   { label: 'Default Model', section: 'Defaults', tab: 'providers' },
   { label: 'Theme', section: 'Theme', tab: 'appearance' },
   { label: 'Font', section: 'Theme', tab: 'appearance' },
+  { label: 'Font Size', section: 'Theme', tab: 'appearance' },
+  { label: 'UI Density', section: 'Theme', tab: 'appearance' },
+  { label: 'Border Radius', section: 'Theme', tab: 'appearance' },
+  { label: 'Scrollbar Style', section: 'Theme', tab: 'appearance' },
+  { label: 'Theme Preset', section: 'Theme', tab: 'appearance' },
   { label: 'Backup Settings', section: 'Data Management', tab: 'advanced' },
   { label: 'Keyboard Shortcuts', section: 'Keyboard Shortcuts', tab: 'advanced' },
   { label: 'Danger Zone', section: 'Danger Zone', tab: 'advanced' },
@@ -73,8 +150,8 @@ const ALL_SETTINGS_ROWS: SettingRowDef[] = [
 export function Settings() {
   const { settings, loading, dirty, error, clearError, updateSetting, bulkUpdate, resetSettings, backupSettings } = useSettings();
   const { user } = useAuth();
-  const { theme, setTheme, resolvedTheme, font, setFont } = useTheme();
-  const { addToast } = useToast();
+  const { theme, setTheme, resolvedTheme, font, setFont, fontSize, uiDensity, borderRadius, scrollbarStyle, setFontSize, setUIDensity, setBorderRadius, setScrollbarStyle, currentColors, setCurrentColors, isCustomizing, setIsCustomizing, applyCustomColors } = useTheme();
+  const { addToast, toasts, removeToast, updateToast } = useToast();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [searchQuery, setSearchQuery] = useState('');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -120,6 +197,22 @@ export function Settings() {
   const handleFontChange = useCallback((value: string) => {
     setFont(value);
   }, [setFont]);
+
+  const handleFontSizeChange = useCallback((value: string) => {
+    setFontSize(value);
+  }, [setFontSize]);
+
+  const handleUIDensityChange = useCallback((value: string) => {
+    setUIDensity(value);
+  }, [setUIDensity]);
+
+  const handleBorderRadiusChange = useCallback((value: string) => {
+    setBorderRadius(value);
+  }, [setBorderRadius]);
+
+  const handleScrollbarStyleChange = useCallback((value: string) => {
+    setScrollbarStyle(value);
+  }, [setScrollbarStyle]);
 
   const handleBackup = useCallback(async () => {
     const path = await backupSettings();
@@ -218,9 +311,8 @@ export function Settings() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
+      <div className="w-full flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-vestara-text">Settings</h1>
           <p className="text-sm text-vestara-text-muted">System configuration</p>
@@ -340,6 +432,30 @@ export function Settings() {
           <SettingsCard title="Theme" icon="🎨">
             {matchesSearch('Theme', 'Theme') && (
               <div className="space-y-3">
+                <div className="p-4 bg-vestara-bg/50 rounded-lg border border-vestara-glass-border/50">
+                  <p className="text-xs text-vestara-text-muted mb-3">Current Theme Colors</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="text-center">
+                      <div className="w-8 h-8 rounded bg-vestara-gold mb-1 border border-white/10" />
+                      <span className="text-[9px] text-vestara-text-muted">Primary</span>
+                    </div>
+                    <div className="text-center">
+                      <div className="w-8 h-8 rounded bg-vestara-blue mb-1 border border-white/10" />
+                      <span className="text-[9px] text-vestara-text-muted">Secondary</span>
+                    </div>
+                    <div className="text-center">
+                      <div className="w-8 h-8 rounded bg-vestara-success mb-1 border border-white/10" />
+                      <span className="text-[9px] text-vestara-text-muted">Success</span>
+                    </div>
+                    <div className="text-center">
+                      <div className="w-8 h-8 rounded bg-vestara-warning mb-1 border border-white/10" />
+                      <span className="text-[9px] text-vestara-text-muted">Warning</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-vestara-text-muted">
+                  Custom colors are applied globally. Use the preset themes or custom editor to modify them.
+                </p>
                 <p className="text-[10px] text-vestara-text-dim">Choose your preferred theme</p>
                 <div className="grid grid-cols-3 gap-2">
                   {THEME_OPTIONS.map((opt) => {
@@ -397,6 +513,199 @@ export function Settings() {
                 onChange={handleFontChange}
                 description="UI font family"
               />
+            )}
+            {matchesSearch('Font Size', 'Theme') && (
+              <SettingRow
+                label="Font Size"
+                value={settings.fontSize || 'medium'}
+                type="select"
+                options={FONT_SIZE_OPTIONS}
+                onChange={(v) => updateSetting('fontSize', v)}
+                description="Base font size for UI elements"
+              />
+            )}
+            {matchesSearch('UI Density', 'Theme') && (
+              <SettingRow
+                label="UI Density"
+                value={settings.uiDensity || 'comfortable'}
+                type="select"
+                options={DENSITY_OPTIONS}
+                onChange={(v) => updateSetting('uiDensity', v)}
+                description="Overall spacing and sizing of components"
+              />
+            )}
+            {matchesSearch('Border Radius', 'Theme') && (
+              <SettingRow
+                label="Border Radius"
+                value={settings.borderRadius || 'medium'}
+                type="select"
+                options={BORDER_RADIUS_OPTIONS}
+                onChange={(v) => updateSetting('borderRadius', v)}
+                description="Rounded corners for UI elements"
+              />
+            )}
+            {matchesSearch('Scrollbar Style', 'Theme') && (
+              <SettingRow
+                label="Scrollbar Style"
+                value={settings.scrollbarStyle || 'system'}
+                type="select"
+                options={SCROLLBAR_STYLE_OPTIONS}
+                onChange={(v) => updateSetting('scrollbarStyle', v)}
+                description="How scrollbars appear and behave"
+              />
+            )}
+            {matchesSearch('Theme Preset', 'Theme') && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] text-vestara-text-dim">Quick apply preset themes</p>
+                  <button
+                    onClick={() => {
+                      // Enable custom theme editor
+                      setActiveTab('appearance');
+                      // Scroll to theme editor section
+                      setTimeout(() => {
+                        const element = document.querySelector('[data-theme-editor]');
+                        if (element) element.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className="text-[10px] text-vestara-gold hover:text-vestara-gold-light transition-colors"
+                  >
+                    Edit Custom Theme →
+                  </button>
+                </div>
+                <div className="p-4 bg-vestara-bg/50 rounded-lg border border-vestara-glass-border/50">
+                  <p className="text-xs text-vestara-text-muted mb-3">Accessibility Settings</p>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        // Increase contrast mode
+                        const root = document.documentElement;
+                        const currentBg = getComputedStyle(root).getPropertyValue('--color-vestara-bg');
+                        const currentText = getComputedStyle(root).getPropertyValue('--color-vestara-text');
+                        
+                        // Toggle high contrast mode
+                        if (!root.classList.contains('high-contrast')) {
+                          root.classList.add('high-contrast');
+                          addToast('High contrast mode enabled', 'info');
+                        } else {
+                          root.classList.remove('high-contrast');
+                          addToast('High contrast mode disabled', 'info');
+                        }
+                      }}
+                      className="w-full text-left p-3 rounded-lg bg-vestara-surface/50 hover:bg-vestara-surface transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-vestara-text">High Contrast Mode</p>
+                          <p className="text-[10px] text-vestara-text-dim">Increase color contrast for better visibility</p>
+                        </div>
+                        <div className="w-10 h-5 rounded-full bg-vestara-glass relative">
+                          <div className="absolute inset-y-0 left-1 w-3 h-3 rounded-full bg-vestara-text-dim" />
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Reduce animations
+                        const root = document.documentElement;
+                        if (!root.classList.contains('reduced-animations')) {
+                          root.classList.add('reduced-animations');
+                          addToast('Reduced animations mode enabled', 'info');
+                        } else {
+                          root.classList.remove('reduced-animations');
+                          addToast('Reduced animations mode disabled', 'info');
+                        }
+                      }}
+                      className="w-full text-left p-3 rounded-lg bg-vestara-surface/50 hover:bg-vestara-surface transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-vestara-text">Reduced Animations</p>
+                          <p className="text-[10px] text-vestara-text-dim">Minimize CSS animations for motion sensitivity</p>
+                        </div>
+                        <div className="w-10 h-5 rounded-full bg-vestara-glass relative">
+                          <div className="absolute inset-y-0 left-1 w-3 h-3 rounded-full bg-vestara-text-dim" />
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(PRESET_THEMES).map(([key, preset]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        // Apply preset colors as CSS variables
+                        const root = document.documentElement;
+                        Object.entries(preset.colors).forEach(([colorName, colorValue]) => {
+                          const cssVar = colorName === 'primary' ? '--color-vestara-gold' :
+                                       colorName === 'secondary' ? '--color-vestara-blue' :
+                                       colorName === 'success' ? '--color-vestara-success' :
+                                       colorName === 'warning' ? '--color-vestara-warning' :
+                                       colorName === 'error' ? '--color-vestara-error' : `--color-${colorName}`;
+                          root.style.setProperty(cssVar, colorValue);
+                        });
+                        addToast(`${preset.name} preset applied`);
+                      }}
+                      className="p-3 rounded-lg border border-vestara-glass-border bg-vestara-surface hover:bg-vestara-gold/10 transition-colors text-left"
+                    >
+                      <div className="text-xs font-medium text-vestara-text mb-2">{preset.name}</div>
+                      <div className="flex gap-1">
+                        {Object.values(preset.colors).slice(0, 3).map((color, i) => (
+                          <div key={i} className="w-3 h-3 rounded-full border border-white/10" style={{ backgroundColor: color }} />
+                        ))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 p-2 bg-vestara-surface/50 rounded-lg border border-vestara-glass-border/50" data-theme-editor>
+                  <p className="text-[9px] text-vestara-text-muted mb-2">Custom Color Editor</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded bg-vestara-gold border border-white/10" />
+                      <input
+                        type="color"
+                        value={currentColors.primary}
+                        onChange={(e) => {
+                          const newColors = { ...currentColors, primary: e.target.value };
+                          setCurrentColors(newColors);
+                          document.documentElement.style.setProperty('--color-vestara-gold', e.target.value);
+                        }}
+                        className="w-16 h-6 rounded border border-vestara-glass-border bg-transparent cursor-pointer"
+                      />
+                      <span className="text-[9px] text-vestara-text-muted">Primary</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded bg-vestara-blue border border-white/10" />
+                      <input
+                        type="color"
+                        value={currentColors.secondary}
+                        onChange={(e) => {
+                          const newColors = { ...currentColors, secondary: e.target.value };
+                          setCurrentColors(newColors);
+                          document.documentElement.style.setProperty('--color-vestara-blue', e.target.value);
+                        }}
+                        className="w-16 h-6 rounded border border-vestara-glass-border bg-transparent cursor-pointer"
+                      />
+                      <span className="text-[9px] text-vestara-text-muted">Secondary</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded bg-vestara-success border border-white/10" />
+                      <input
+                        type="color"
+                        value={currentColors.success}
+                        onChange={(e) => {
+                          const newColors = { ...currentColors, success: e.target.value };
+                          setCurrentColors(newColors);
+                          document.documentElement.style.setProperty('--color-vestara-success', e.target.value);
+                        }}
+                        className="w-16 h-6 rounded border border-vestara-glass-border bg-transparent cursor-pointer"
+                      />
+                      <span className="text-[9px] text-vestara-text-muted">Success</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </SettingsCard>
         </div>

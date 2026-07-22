@@ -127,12 +127,31 @@ export default function Users() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 min-h-0 flex items-center justify-center">
+        <div className="text-vestara-blue text-lg">Loading users...</div>
+      </div>
+    );
+  }
+
+if (loading) {
+    return (
+      <div className="flex-1 min-h-0 flex items-center justify-center">
+        <div className="text-vestara-blue text-lg">Loading users...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-vestara-text">Users</h1>
-          <p className="text-sm text-vestara-text-muted">Manage dashboard users and OS accounts</p>
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
+      <div className="flex-shrink-0">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-vestara-text">Users</h1>
+            <p className="text-sm text-vestara-text-muted">Manage dashboard users and OS accounts</p>
+          </div>
+          <button onClick={openCreate} className="btn-gold px-4 py-2 text-sm">+ Add User</button>
         </div>
         <button onClick={openCreate} className="btn-gold px-4 py-2 text-sm">+ Add User</button>
       </div>

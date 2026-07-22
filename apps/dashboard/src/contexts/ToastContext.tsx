@@ -10,6 +10,7 @@ interface ToastContextType {
   toasts: Toast[];
   addToast: (message: string, type?: Toast['type']) => void;
   removeToast: (id: number) => void;
+  updateToast: (id: number, updates: Partial<Omit<Toast, 'id'>>) => void;
 }
 
 const ToastContext = createContext<ToastContextType | null>(null);
@@ -23,6 +24,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  const updateToast = useCallback((id: number, updates: Partial<Omit<Toast, 'id'>>) => {
+    setToasts(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  }, []);
+
   const addToast = useCallback((message: string, type: Toast['type'] = 'success') => {
     const id = ++toastId;
     setToasts(prev => [...prev, { id, message, type }]);
@@ -30,7 +35,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [removeToast]);
 
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+    <ToastContext.Provider value={{ toasts, addToast, removeToast, updateToast }}>
       {children}
     </ToastContext.Provider>
   );

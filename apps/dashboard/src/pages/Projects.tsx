@@ -199,8 +199,8 @@ export default function Projects() {
 
   return (
     <ErrorBoundary>
-      <div className="space-y-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
+        <div className="w-full flex-shrink-0">
           <div ref={headerRef} className="flex flex-wrap items-center justify-between gap-3 mb-4 md:mb-6">
             <div>
               <h1 className="text-xl md:text-3xl font-bold text-vestara-text">Projects</h1>

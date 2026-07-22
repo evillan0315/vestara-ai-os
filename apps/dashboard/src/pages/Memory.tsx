@@ -146,17 +146,17 @@ export default function Memory() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="text-vestara-blue text-lg">Loading memories...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
+      <div className="w-full flex-shrink-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 flex-shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-vestara-text">Memory</h1>
             <p className="text-vestara-text-dim mt-1">Store and retrieve information across conversations</p>
@@ -179,7 +179,7 @@ export default function Memory() {
 
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-4 gap-4 mb-8 flex-shrink-0">
             <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
               <div className="text-vestara-text-dim text-sm">Total Memories</div>
               <div className="text-2xl font-bold text-vestara-text mt-1">{stats.total}</div>
@@ -202,7 +202,7 @@ export default function Memory() {
         )}
 
         {/* Search */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 flex-shrink-0">
           <input
             type="text"
             placeholder="Search memories..."
@@ -232,7 +232,7 @@ export default function Memory() {
         </div>
 
         {/* Memory List */}
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 min-h-0 overflow-y-auto">
           {memories.length === 0 ? (
             <div className="text-center py-12 text-vestara-text-dim">
               No memories found. Add one to get started.

@@ -225,10 +225,10 @@ System commands:
     }
   };
 
-  return (
-    <div className="h-full flex flex-col bg-vestara-bg text-vestara-text">
+return (
+    <div className="flex-1 min-h-0 flex flex-col bg-vestara-bg text-vestara-text overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-vestara-glass-border shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-vestara-glass-border shrink-0 flex-shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-bold text-vestara-text">Terminal</h1>
           <span className="text-[10px] text-vestara-text-dim hidden sm:inline">{cwd}</span>

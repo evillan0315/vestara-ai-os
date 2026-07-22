@@ -38,9 +38,9 @@ export function Layout() {
   }, [location.pathname]);
 
   return (
-    <div className="flex h-screen bg-vestara-bg" data-theme={resolvedTheme}>
+    <div className="flex min-h-screen bg-vestara-bg" data-theme={resolvedTheme}>
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col">
         {/* Mobile header */}
         <div className="flex items-center gap-3 border-b border-vestara-glass-border px-4 py-3 md:hidden">
           <button
@@ -58,7 +58,7 @@ export function Layout() {
           </div>
         </div>
 
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
           <ErrorBoundary key={location.pathname}>
             <div className="widget-enter">
               <Outlet />

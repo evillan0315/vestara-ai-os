@@ -174,9 +174,9 @@ export function OpenCodePage() {
     injectVestaraTheme(iframe, resolvedTheme);
   }, [resolvedTheme, serverStatus, key]);
 
-  if (serverStatus === 'loading') {
+if (serverStatus === 'loading') {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="h-5 w-5 border-2 border-vestara-gold border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-vestara-text-muted">Checking OpenCode status...</p>
@@ -187,7 +187,7 @@ export function OpenCodePage() {
 
   if (serverStatus === 'stopped' || serverStatus === 'error') {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="glass max-w-md w-full p-8 text-center space-y-5">
           <div className="w-16 h-16 rounded-2xl bg-vestara-gold/10 flex items-center justify-center mx-auto">
             <svg className="w-8 h-8 text-vestara-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -257,7 +257,7 @@ export function OpenCodePage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-vestara-glass-border">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-lg border border-vestara-glass-border">
       {/* Toolbar */}
       <div className="flex items-center gap-3 border-b border-vestara-glass-border px-3 py-2 bg-vestara-surface">
         <div className="flex items-center gap-2">

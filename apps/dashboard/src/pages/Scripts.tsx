@@ -122,14 +122,30 @@ export default function Scripts() {
     return `${(bytes / 1024).toFixed(1)} KB`;
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 min-h-0 flex items-center justify-center">
+        <div className="text-vestara-blue text-lg">Loading scripts...</div>
+      </div>
+    );
+  }
+
+if (loading) {
+    return (
+      <div className="flex-1 min-h-0 flex items-center justify-center">
+        <div className="text-vestara-blue text-lg">Loading scripts...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
+      <div className="flex-shrink-0">
         <h1 className="text-2xl font-bold text-vestara-text">Scripts</h1>
         <p className="text-sm text-vestara-text-muted">Run build, deploy, and maintenance scripts</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 flex-1 min-h-0">
         {/* Script list */}
         <div className="glass p-4">
           <h2 className="mb-3 text-sm font-semibold text-vestara-gold">Available Scripts</h2>

@@ -53,9 +53,9 @@ export function Models() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div>
+      <div className="flex-shrink-0">
         <h1 className="text-2xl font-bold text-vestara-text">Model Manager</h1>
         <p className="text-sm text-vestara-text-muted">Configure AI providers, manage models, and set defaults.</p>
       </div>

@@ -557,7 +557,7 @@ export function Chat() {
   }, []);
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Sidebar */}
       <ChatSidebar
         chats={conversations.map((c) => ({

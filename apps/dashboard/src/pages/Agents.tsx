@@ -91,13 +91,13 @@ export function Agents() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
+      <div className="flex-shrink-0">
         <h1 className="text-2xl font-bold text-vestara-text">Agent Manager</h1>
         <p className="text-sm text-vestara-text-muted">Manage and run AI agents.</p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 flex-shrink-0">
         <div className="relative flex-1">
           <input
             type="text"
@@ -107,7 +107,7 @@ export function Agents() {
             className="w-full pl-4 pr-4 py-2 bg-vestara-surface border border-vestara-border rounded-lg text-vestara-text placeholder-vestara-text-muted focus:outline-none focus:ring-2 focus:ring-vestara-gold/50"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value as AgentType | 'all')}
@@ -131,10 +131,10 @@ export function Agents() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1 min-h-0 overflow-y-auto">
         {filteredAgents.map((agent) => (
-          <div key={agent.id} className="glass rounded-lg p-4 hover:bg-vestara-surface/50 transition-all duration-200 group">
-            <div className="flex items-start justify-between mb-3">
+          <div key={agent.id} className="glass rounded-lg p-4 hover:bg-vestara-surface/50 transition-all duration-200 group flex flex-col">
+            <div className="flex items-start justify-between mb-3 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{getTypeIcon(agent.type)}</span>
                 <div>
@@ -160,7 +160,7 @@ export function Agents() {
               </div>
             </div>
 
-            <div className="space-y-2 mb-3">
+            <div className="space-y-2 mb-3 flex-shrink-0">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-vestara-text-muted">Provider:</span>
                 <span className="text-vestara-text">{agent.providerId || 'Default'}</span>
@@ -179,7 +179,7 @@ export function Agents() {
             </div>
 
             {agent.statistics && (
-              <div className="mb-3 p-2 bg-vestara-surface/30 rounded-lg">
+              <div className="mb-3 p-2 bg-vestara-surface/30 rounded-lg flex-shrink-0">
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-vestara-text-muted">Executions:</span>
                   <span className="text-vestara-text font-medium">{agent.statistics.totalExecutions}</span>
@@ -193,7 +193,7 @@ export function Agents() {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-auto flex-shrink-0">
               <button
                 onClick={() => {
                   setAgents(agents.map(a => a.id === agent.id ? { ...a, status: AgentStatus.RUNNING, statistics: { ...a.statistics, totalExecutions: (a.statistics?.totalExecutions || 0) + 1, lastExecutionAt: new Date() } } : a));
@@ -214,7 +214,7 @@ export function Agents() {
       </div>
 
       {filteredAgents.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 flex-1 flex items-center justify-center">
           <div className="text-6xl mb-4">🤖</div>
           <h3 className="text-lg font-medium text-vestara-text mb-2">No agents found</h3>
           <p className="text-vestara-text-muted mb-4">

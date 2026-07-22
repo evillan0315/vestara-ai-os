@@ -54,7 +54,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-5 p-4 md:p-6">
       {/* Header row */}
       <div className="flex items-start justify-between">
         <Greeting />

@@ -149,17 +149,17 @@ export default function Knowledge() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="text-vestara-blue text-lg">Loading knowledge base...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
+      <div className="w-full flex-shrink-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 flex-shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-vestara-text">Knowledge Base</h1>
             <p className="text-vestara-text-dim mt-1">Store documents, code, and notes for AI context</p>
@@ -174,7 +174,7 @@ export default function Knowledge() {
 
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-4 gap-4 mb-8 flex-shrink-0">
             <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-4">
               <div className="text-vestara-text-dim text-sm">Total Entries</div>
               <div className="text-2xl font-bold text-vestara-text mt-1">{stats.total}</div>
@@ -197,7 +197,7 @@ export default function Knowledge() {
         )}
 
         {/* Search */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 flex-shrink-0">
           <input
             type="text"
             placeholder="Search knowledge base..."
@@ -227,9 +227,9 @@ export default function Knowledge() {
         </div>
 
         {/* Content */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
           {/* Entry List */}
-          <div className="col-span-1 space-y-3">
+          <div className="col-span-1 space-y-3 flex-1 min-h-0 overflow-y-auto">
             {entries.length === 0 ? (
               <div className="text-center py-12 text-vestara-text-dim">
                 No entries found. Add one to get started.
@@ -271,10 +271,10 @@ export default function Knowledge() {
           </div>
 
           {/* Entry Detail */}
-          <div className="col-span-2">
+          <div className="col-span-2 flex-1 min-h-0">
             {selectedEntry ? (
-              <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-6 flex-1 flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between mb-4 flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <span>{getTypeIcon(selectedEntry.type)}</span>
                     <h2 className="text-xl font-bold text-vestara-text">{selectedEntry.title}</h2>
@@ -286,7 +286,7 @@ export default function Knowledge() {
                     Delete
                   </button>
                 </div>
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2 mb-4 flex-shrink-0">
                   <span className={`px-2 py-1 rounded text-xs ${getTypeColor(selectedEntry.type)}`}>
                     {selectedEntry.type}
                   </span>
@@ -297,21 +297,21 @@ export default function Knowledge() {
                   ))}
                 </div>
                 {selectedEntry.source && (
-                  <div className="text-vestara-text-dim text-sm mb-4">
+                  <div className="text-vestara-text-dim text-sm mb-4 flex-shrink-0">
                     Source: <a href={selectedEntry.source} target="_blank" rel="noopener noreferrer" className="text-vestara-blue hover:underline">{selectedEntry.source}</a>
                   </div>
                 )}
-                <div className="bg-vestara-bg rounded-lg p-4 text-vestara-text whitespace-pre-wrap">
+                <div className="bg-vestara-bg rounded-lg p-4 text-vestara-text whitespace-pre-wrap flex-1 overflow-auto">
                   {selectedEntry.content}
                 </div>
-                <div className="text-vestara-text-dim text-sm mt-4">
+                <div className="text-vestara-text-dim text-sm mt-4 flex-shrink-0">
                   Created: {new Date(selectedEntry.createdAt).toLocaleDateString()}
                   {' · '}
                   Updated: {new Date(selectedEntry.updatedAt).toLocaleDateString()}
                 </div>
               </div>
             ) : (
-              <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-6 flex items-center justify-center h-64">
+              <div className="bg-vestara-surface border border-vestara-glass-border rounded-lg p-6 flex items-center justify-center flex-1">
                 <div className="text-vestara-text-dim">Select an entry to view details</div>
               </div>
             )}
