@@ -156,7 +156,7 @@ export function hasProviderCredentials(providerId: string): boolean {
 /**
  * Start OpenCode as a headless server
  */
-export async function startServer(): Promise<void> {
+export async function startServer(cwd?: string): Promise<void> {
   if (serverProcess) {
     logger.info('OpenCode server already running');
     return;
@@ -166,13 +166,15 @@ export async function startServer(): Promise<void> {
     throw new Error('OpenCode is not installed. Install with: npm i -g opencode-ai');
   }
 
-  logger.info(`Starting OpenCode server on port ${config.port}`);
+  const workDir = cwd || config.workDir;
+  logger.info(`Starting OpenCode server on port ${config.port} in ${workDir}`);
 
   serverProcess = spawn(config.binaryPath, [
     'serve',
     '--port', String(config.port),
     '--hostname', '0.0.0.0',
   ], {
+    cwd: workDir,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: {
       ...process.env,

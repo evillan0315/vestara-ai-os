@@ -16,7 +16,8 @@ export function registerOpenCodeRoutes(app: VestaraApp) {
    */
   app.post('/api/providers/opencode/start', {}, async (request, reply) => {
     try {
-      await opencode.startServer();
+      const body = request.body as { cwd?: string } | undefined;
+      await opencode.startServer(body?.cwd);
       const port = opencode.getConfig().port;
       return { status: 'started', port, serverUrl: `http://localhost:${port}` };
     } catch (err) {

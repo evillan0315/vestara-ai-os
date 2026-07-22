@@ -13,6 +13,15 @@ interface OpenCodeStatus {
   serverUrl: string | null;
 }
 
+interface Project {
+  id: string;
+  name: string;
+  path?: string;
+  status: string;
+}
+
+const PROJECT_STORAGE_KEY = 'opencode-selected-project';
+
 export function OpenCodePage() {
   const { token } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -24,6 +33,39 @@ export function OpenCodePage() {
   const [statusInfo, setStatusInfo] = useState<OpenCodeStatus | null>(null);
   const [starting, setStarting] = useState(false);
   const [key, setKey] = useState(0);
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    () => localStorage.getItem(PROJECT_STORAGE_KEY)
+  );
+  const [loadingProjects, setLoadingProjects] = useState(true);
+
+  const selectedProject = projects.find((p) => p.id === selectedProjectId) || null;
+
+  /** Fetch projects */
+  useEffect(() => {
+    if (!token) return;
+    setLoadingProjects(true);
+    fetch('/api/projects', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setProjects(data.projects || []);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingProjects(false));
+  }, [token]);
+
+  /** Persist selected project */
+  const handleSelectProject = useCallback((id: string | null) => {
+    setSelectedProjectId(id);
+    if (id) {
+      localStorage.setItem(PROJECT_STORAGE_KEY, id);
+    } else {
+      localStorage.removeItem(PROJECT_STORAGE_KEY);
+    }
+  }, []);
 
   const checkStatus = useCallback(async () => {
     try {
@@ -47,19 +89,23 @@ export function OpenCodePage() {
     }
   }, [token]);
 
-  const startServer = useCallback(async () => {
+  const startServer = useCallback(async (cwd?: string) => {
     setStarting(true);
     try {
       const res = await fetch('/api/providers/opencode/start', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cwd }),
       });
       if (res.ok) {
         const data = await res.json();
         setServerUrl(data.serverUrl || `http://localhost:${data.port}`);
         setServerStatus('running');
         setKey((k) => k + 1);
-        addToast('OpenCode server started');
+        addToast(cwd ? `OpenCode started in ${cwd.split('/').pop()}` : 'OpenCode server started');
       } else {
         const err = await res.json().catch(() => ({ error: 'Failed to start' }));
         setServerStatus('error');
@@ -86,6 +132,22 @@ export function OpenCodePage() {
       addToast(`Failed to stop: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
     }
   }, [token, addToast]);
+
+  /** Auto-start with selected project's directory */
+  const handleStartWithProject = useCallback(() => {
+    const cwd = selectedProject?.path || undefined;
+    startServer(cwd);
+  }, [selectedProject, startServer]);
+
+  /** Switch project: stop server, restart with new directory */
+  const handleSwitchProject = useCallback(async (id: string | null) => {
+    handleSelectProject(id);
+    const project = projects.find((p) => p.id === id);
+    if (project?.path && serverStatus === 'running') {
+      await stopServer();
+      setTimeout(() => startServer(project.path), 500);
+    }
+  }, [projects, serverStatus, handleSelectProject, stopServer, startServer]);
 
   useEffect(() => {
     checkStatus();
@@ -145,8 +207,35 @@ export function OpenCodePage() {
               <p>Installed: {statusInfo.installed ? `Yes (${statusInfo.version})` : 'No'}</p>
             </div>
           )}
+
+          {/* Project selector */}
+          <div className="text-left space-y-2">
+            <label className="text-[10px] font-medium text-vestara-text-muted uppercase tracking-wider">
+              Project Directory
+            </label>
+            <select
+              value={selectedProjectId || ''}
+              onChange={(e) => handleSelectProject(e.target.value || null)}
+              className="w-full rounded-lg border border-vestara-glass-border bg-vestara-surface-2 px-3 py-2 text-sm text-vestara-text focus:outline-none focus:border-vestara-gold/50"
+            >
+              <option value="">No project (default dir)</option>
+              {projects
+                .filter((p) => p.path)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.path}
+                  </option>
+                ))}
+            </select>
+            {selectedProject?.path && (
+              <p className="text-[10px] text-vestara-text-dim truncate">
+                Working directory: {selectedProject.path}
+              </p>
+            )}
+          </div>
+
           <button
-            onClick={startServer}
+            onClick={handleStartWithProject}
             disabled={starting || !statusInfo?.installed}
             className="btn-gold w-full text-sm disabled:opacity-50"
           >
@@ -156,7 +245,7 @@ export function OpenCodePage() {
                 Starting...
               </span>
             ) : (
-              'Start OpenCode Server'
+              selectedProject ? `Start in ${selectedProject.name}` : 'Start OpenCode Server'
             )}
           </button>
           <button onClick={checkStatus} className="text-[10px] text-vestara-text-dim hover:text-vestara-text">
@@ -176,6 +265,29 @@ export function OpenCodePage() {
           <span className="text-xs font-medium text-vestara-text">OpenCode</span>
           <span className="text-[10px] text-vestara-text-dim">{statusInfo?.version}</span>
         </div>
+
+        {/* Project switcher in toolbar */}
+        {projects.length > 0 && (
+          <div className="flex items-center gap-1.5 ml-2">
+            <svg className="w-3 h-3 text-vestara-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+            <select
+              value={selectedProjectId || ''}
+              onChange={(e) => handleSwitchProject(e.target.value || null)}
+              className="bg-transparent border-0 text-[10px] text-vestara-text-muted hover:text-vestara-text cursor-pointer focus:outline-none max-w-[180px] truncate"
+            >
+              <option value="" className="bg-vestara-surface">No project</option>
+              {projects
+                .filter((p) => p.path)
+                .map((p) => (
+                  <option key={p.id} value={p.id} className="bg-vestara-surface">
+                    {p.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           <button
