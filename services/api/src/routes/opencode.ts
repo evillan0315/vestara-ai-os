@@ -17,7 +17,8 @@ export function registerOpenCodeRoutes(app: VestaraApp) {
   app.post('/api/providers/opencode/start', {}, async (request, reply) => {
     try {
       await opencode.startServer();
-      return { status: 'started', port: opencode.getConfig().port };
+      const port = opencode.getConfig().port;
+      return { status: 'started', port, serverUrl: `http://localhost:${port}` };
     } catch (err) {
       return reply.status(500).send({
         error: err instanceof Error ? err.message : 'Failed to start OpenCode server',

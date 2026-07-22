@@ -168,22 +168,26 @@ export async function startServer(): Promise<void> {
 
   logger.info(`Starting OpenCode server on port ${config.port}`);
 
-  serverProcess = spawn(config.binaryPath, ['serve', '--port', String(config.port)], {
+  serverProcess = spawn(config.binaryPath, [
+    'serve',
+    '--port', String(config.port),
+    '--hostname', '0.0.0.0',
+  ], {
     stdio: ['ignore', 'pipe', 'pipe'],
-    shell: '/usr/bin/sh',
     env: {
       ...process.env,
       ...getApiKeyEnv(),
-      OPENCODE_SERVER_PORT: String(config.port),
     },
   });
 
   serverProcess.stdout?.on('data', (data) => {
-    logger.info(`OpenCode: ${data.toString().trim()}`);
+    const msg = data.toString().trim();
+    if (msg) logger.info(`OpenCode: ${msg}`);
   });
 
   serverProcess.stderr?.on('data', (data) => {
-    logger.warn(`OpenCode: ${data.toString().trim()}`);
+    const msg = data.toString().trim();
+    if (msg) logger.warn(`OpenCode: ${msg}`);
   });
 
   serverProcess.on('exit', (code) => {
@@ -191,7 +195,6 @@ export async function startServer(): Promise<void> {
     serverProcess = null;
   });
 
-  // Wait for server to be ready
   await waitForServer();
 }
 
@@ -473,6 +476,7 @@ export function getStatus(): {
   installed: boolean;
   version: string | null;
   serverRunning: boolean;
+  serverUrl: string | null;
   configPath: string;
   authPath: string;
 } {
@@ -480,6 +484,7 @@ export function getStatus(): {
     installed: isInstalled(),
     version: getVersion(),
     serverRunning: isServerRunning(),
+    serverUrl: isServerRunning() ? `http://localhost:${config.port}` : null,
     configPath: getConfigPath(),
     authPath: getAuthPath(),
   };
