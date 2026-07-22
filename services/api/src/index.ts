@@ -29,6 +29,7 @@ import { registerNotificationRoutes } from './routes/notifications.js';
 import { registerLogRoutes } from './routes/logs.js';
 import { registerSettingsRoutes } from './routes/settings.js';
 import { registerAnalyticsRoutes } from './routes/analytics.js';
+import { registerOllamaRoutes } from './routes/ollama.js';
 import { AIRouter, type ProviderConfig } from './providers/router.js';
 import type { VestaraApp } from './types.js';
 
@@ -124,6 +125,7 @@ async function main() {
   registerLogRoutes(vestaraApp);
   registerSettingsRoutes(vestaraApp);
   registerAnalyticsRoutes(vestaraApp);
+  registerOllamaRoutes(vestaraApp);
   registerWebSocketHandler(vestaraApp);
 
   // Start

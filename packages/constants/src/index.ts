@@ -10,6 +10,7 @@ export const WS_PATH = '/ws';
 
 export const DEFAULT_PORT = 3000;
 export const OLLAMA_PORT = 11434;
+export const OPENCODE_PORT = 4096;
 
 export const DATABASE_NAME = 'vestara.db';
 
@@ -25,42 +26,123 @@ export const MAX_PAGE_LIMIT = 100;
 export const MEMORY_CONSOLIDATION_INTERVAL = 60 * 60 * 1000; // 1 hour
 export const SHORT_TERM_MEMORY_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
-export const PROVIDER_DEFAULTS = {
-  openai: {
-    baseUrl: 'https://api.openai.com/v1',
-    models: ['gpt-4o', 'gpt-4.1', 'o3-mini'],
-  },
-  anthropic: {
-    baseUrl: 'https://api.anthropic.com',
-    models: ['claude-opus-4', 'claude-sonnet-4', 'claude-haiku-3.5'],
-  },
-  google: {
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    models: ['gemini-2.5-pro', 'gemini-2.5-flash'],
-  },
-  openrouter: {
-    baseUrl: 'https://openrouter.ai/api/v1',
-    models: [],
+// ──────────────────────────────────────────────
+// Provider & Model Registry
+// ──────────────────────────────────────────────
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  context?: number;
+  inputPrice?: number;
+  outputPrice?: number;
+  description?: string;
+}
+
+export interface ProviderInfo {
+  name: string;
+  icon: string;
+  color: string;
+  description: string;
+  baseUrl: string;
+  models: readonly ModelInfo[];
+  features: readonly string[];
+}
+
+export const OPENCODE_MODELS = [
+  { id: 'opencode/deepseek-v4-flash-free', name: 'DeepSeek V4 Flash (Free)', description: 'Fast, free coding model' },
+  { id: 'opencode/mimo-v2.5-free', name: 'Mimo V2.5 (Free)', description: 'Multimodal free model' },
+  { id: 'opencode/nemotron-3-ultra-free', name: 'Nemotron 3 Ultra (Free)', description: 'NVIDIA large free model' },
+  { id: 'opencode/north-mini-code-free', name: 'North Mini Code (Free)', description: 'Compact code model' },
+  { id: 'opencode/big-pickle', name: 'Big Pickle', description: 'General purpose model' },
+] as const;
+
+export const PROVIDERS: Record<string, ProviderInfo> = {
+  opencode: {
+    name: 'OpenCode',
+    icon: '⚡',
+    color: 'gold',
+    description: 'Open-source AI coding agent — 75+ models via AI SDK',
+    baseUrl: `http://localhost:${OPENCODE_PORT}`,
+    models: OPENCODE_MODELS,
+    features: ['free', 'local-server', 'iframe', 'chat-history'],
   },
   ollama: {
-    baseUrl: 'http://localhost:11434',
+    name: 'Ollama',
+    icon: '🦙',
+    color: 'cyan',
+    description: 'Local model inference — no API key required',
+    baseUrl: `http://localhost:${OLLAMA_PORT}`,
     models: [],
+    features: ['local', 'no-api-key', 'gpu'],
+  },
+  openai: {
+    name: 'OpenAI',
+    icon: '🟢',
+    color: 'green',
+    description: 'GPT-4o, GPT-4.1, o3-mini',
+    baseUrl: 'https://api.openai.com/v1',
+    models: [
+      { id: 'gpt-4o', name: 'GPT-4o', context: 128_000, inputPrice: 2.50, outputPrice: 10, description: 'Best overall model' },
+      { id: 'gpt-4.1', name: 'GPT-4.1', context: 1_000_000, inputPrice: 2, outputPrice: 8, description: 'Latest flagship model' },
+      { id: 'o3-mini', name: 'o3-mini', context: 200_000, inputPrice: 1.10, outputPrice: 4.40, description: 'Fast reasoning model' },
+    ],
+    features: ['api-key-required', 'streaming'],
+  },
+  anthropic: {
+    name: 'Anthropic',
+    icon: '🟤',
+    color: 'amber',
+    description: 'Claude Opus, Sonnet, Haiku',
+    baseUrl: 'https://api.anthropic.com',
+    models: [
+      { id: 'claude-opus-4', name: 'Claude Opus 4', context: 200_000, inputPrice: 15, outputPrice: 75, description: 'Most capable model' },
+      { id: 'claude-sonnet-4', name: 'Claude Sonnet 4', context: 200_000, inputPrice: 3, outputPrice: 15, description: 'Balanced performance' },
+      { id: 'claude-haiku-3.5', name: 'Claude Haiku 3.5', context: 200_000, inputPrice: 0.80, outputPrice: 4, description: 'Fast and cheap' },
+    ],
+    features: ['api-key-required', 'streaming'],
+  },
+  google: {
+    name: 'Google Gemini',
+    icon: '🔵',
+    color: 'blue',
+    description: 'Gemini 2.5 Pro, Flash',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    models: [
+      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', context: 1_000_000, inputPrice: 1.25, outputPrice: 10, description: 'Most capable Gemini' },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', context: 1_000_000, inputPrice: 0.15, outputPrice: 0.60, description: 'Fast and affordable' },
+    ],
+    features: ['api-key-required', 'streaming', 'multimodal'],
+  },
+  openrouter: {
+    name: 'OpenRouter',
+    icon: '🟣',
+    color: 'purple',
+    description: 'Unified API for 100+ models',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    models: [],
+    features: ['api-key-required', 'aggregator'],
   },
   lmstudio: {
+    name: 'LM Studio',
+    icon: '🖥️',
+    color: 'slate',
+    description: 'Local model inference GUI',
     baseUrl: 'http://localhost:1234',
     models: [],
-  },
-  opencode: {
-    baseUrl: 'http://localhost:4096',
-    models: [
-      'opencode/deepseek-v4-flash-free',
-      'opencode/mimo-v2.5-free',
-      'opencode/nemotron-3-ultra-free',
-      'opencode/north-mini-code-free',
-      'opencode/big-pickle',
-    ],
+    features: ['local', 'gui'],
   },
 } as const;
+
+export const PROVIDER_TYPES = Object.keys(PROVIDERS) as string[];
+
+export const PROVIDER_DEFAULTS = Object.fromEntries(
+  Object.entries(PROVIDERS).map(([key, p]) => [key, { baseUrl: p.baseUrl, models: p.models.map((m) => m.id) }])
+) as Record<string, { baseUrl: string; models: string[] }>;
+
+// ──────────────────────────────────────────────
+// System Prompts
+// ──────────────────────────────────────────────
 
 export const SYSTEM_PROMPTS = {
   assistant: `You are Vestara AI, a helpful AI assistant running on Vestara AI OS.
@@ -79,6 +161,10 @@ Output clean, well-documented code.`,
 Cite sources and provide evidence-based conclusions.`,
 } as const;
 
+// ──────────────────────────────────────────────
+// Activity Actions
+// ──────────────────────────────────────────────
+
 export const ACTIVITY_ACTIONS = {
   LOGIN: 'login',
   LOGOUT: 'logout',
@@ -90,13 +176,9 @@ export const ACTIVITY_ACTIONS = {
   DOWNLOAD: 'download',
 } as const;
 
-export const OPENCODE_MODELS = [
-  { id: 'opencode/deepseek-v4-flash-free', name: 'DeepSeek V4 Flash (Free)' },
-  { id: 'opencode/mimo-v2.5-free', name: 'Mimo V2.5 (Free)' },
-  { id: 'opencode/nemotron-3-ultra-free', name: 'Nemotron 3 Ultra (Free)' },
-  { id: 'opencode/north-mini-code-free', name: 'North Mini Code (Free)' },
-  { id: 'opencode/big-pickle', name: 'Big Pickle' },
-] as const;
+// ──────────────────────────────────────────────
+// Agent Modes
+// ──────────────────────────────────────────────
 
 export const AGENT_MODES = ['build', 'plan', 'explore', 'general'] as const;
 

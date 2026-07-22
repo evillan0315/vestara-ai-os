@@ -93,6 +93,9 @@ export function registerProviderRoutes(app: VestaraApp) {
     return { message: 'Provider deleted' };
   });
 
+  /**
+   * Test provider connection
+   */
   app.post<{
     Params: { id: string };
   }>('/api/providers/:id/test', {
@@ -104,7 +107,104 @@ export function registerProviderRoutes(app: VestaraApp) {
       return reply.status(404).send({ error: 'Provider not found' });
     }
 
-    // TODO: Actually test the provider connection
-    return { status: 'ok', message: 'Connection successful' };
+    const start = Date.now();
+    try {
+      switch (provider.type) {
+        case 'ollama': {
+          const res = await fetch(`${provider.base_url || 'http://localhost:11434'}/api/tags`);
+          if (!res.ok) throw new Error(`Ollama returned ${res.status}`);
+          break;
+        }
+        case 'openai': {
+          if (!provider.api_key_encrypted) throw new Error('API key required');
+          const res = await fetch(`${provider.base_url || 'https://api.openai.com/v1'}/models`, {
+            headers: { Authorization: `Bearer ${provider.api_key_encrypted}` },
+          });
+          if (!res.ok) throw new Error(`OpenAI returned ${res.status}`);
+          break;
+        }
+        case 'anthropic': {
+          if (!provider.api_key_encrypted) throw new Error('API key required');
+          const res = await fetch(`${provider.base_url || 'https://api.anthropic.com'}/v1/messages`, {
+            method: 'POST',
+            headers: {
+              'x-api-key': provider.api_key_encrypted,
+              'anthropic-version': '2023-06-01',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({ model: 'claude-haiku-3.5', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] }),
+          });
+          if (!res.ok && res.status !== 400) throw new Error(`Anthropic returned ${res.status}`);
+          break;
+        }
+        case 'google': {
+          if (!provider.api_key_encrypted) throw new Error('API key required');
+          const res = await fetch(`${provider.base_url || 'https://generativelanguage.googleapis.com/v1beta'}/models?key=${provider.api_key_encrypted}`);
+          if (!res.ok) throw new Error(`Google returned ${res.status}`);
+          break;
+        }
+        case 'opencode': {
+          const res = await fetch(`${provider.base_url || 'http://localhost:4096'}/`);
+          if (!res.ok) throw new Error(`OpenCode returned ${res.status}`);
+          break;
+        }
+        case 'openrouter': {
+          if (!provider.api_key_encrypted) throw new Error('API key required');
+          const res = await fetch(`${provider.base_url || 'https://openrouter.ai/api/v1'}/models`, {
+            headers: { Authorization: `Bearer ${provider.api_key_encrypted}` },
+          });
+          if (!res.ok) throw new Error(`OpenRouter returned ${res.status}`);
+          break;
+        }
+        default:
+          return { status: 'ok', message: 'Connection test not supported for this provider', latency: Date.now() - start };
+      }
+      return { status: 'ok', message: 'Connection successful', latency: Date.now() - start };
+    } catch (e) {
+      return { status: 'error', message: e instanceof Error ? e.message : 'Connection failed', latency: Date.now() - start };
+    }
+  });
+
+  /**
+   * List available models for a provider
+   */
+  app.get<{
+    Params: { id: string };
+  }>('/api/providers/:id/models', {
+    preHandler: [authMiddleware],
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const provider = app.db.get<ProviderRow>('SELECT * FROM providers WHERE id = ?', id);
+    if (!provider) {
+      return reply.status(404).send({ error: 'Provider not found' });
+    }
+
+    try {
+      switch (provider.type) {
+        case 'ollama': {
+          const res = await fetch(`${provider.base_url || 'http://localhost:11434'}/api/tags`);
+          if (!res.ok) throw new Error('Ollama not available');
+          const data = await res.json() as { models?: { name: string; size: number; modified_at: string }[] };
+          return {
+            models: (data.models || []).map((m) => ({
+              id: m.name,
+              name: m.name,
+              size: m.size,
+              modified: m.modified_at,
+            })),
+          };
+        }
+        case 'opencode': {
+          const res = await fetch(`${provider.base_url || 'http://localhost:4096'}/api/models`);
+          if (!res.ok) return { models: [] };
+          const data = await res.json() as { models?: { id: string; name: string }[] };
+          return { models: data.models || [] };
+        }
+        default:
+          return { models: [] };
+      }
+    } catch {
+      return { models: [] };
+    }
   });
 }
